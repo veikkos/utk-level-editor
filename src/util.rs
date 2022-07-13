@@ -1,7 +1,7 @@
 use sdl2::{
     pixels::Color,
     rect::{Point, Rect},
-    render::Canvas,
+    render::{Canvas, Texture},
     video,
 };
 
@@ -89,4 +89,87 @@ pub fn put_tile_to_level(
         texture_type: *selected_texture,
         id: selected_tile_id,
     };
+}
+
+pub fn init_empty_level(level: &mut [[Tile; 16]; 12]) {
+    for x in 0..level[0].len() {
+        level[0][x] = if x == 0 {
+            Tile {
+                texture_type: TextureType::WALLS,
+                id: 0,
+            }
+        } else if x == level[0].len() - 1 {
+            Tile {
+                texture_type: TextureType::WALLS,
+                id: 2,
+            }
+        } else {
+            Tile {
+                texture_type: TextureType::WALLS,
+                id: 1,
+            }
+        }
+    }
+    for y in 1..(level.len() - 1) {
+        for x in 0..level[0].len() {
+            level[y][x] = if x == 0 {
+                Tile {
+                    texture_type: TextureType::WALLS,
+                    id: 16,
+                }
+            } else if x == level[0].len() - 1 {
+                Tile {
+                    texture_type: TextureType::WALLS,
+                    id: 16,
+                }
+            } else {
+                Tile {
+                    texture_type: TextureType::FLOOR,
+                    id: 0,
+                }
+            }
+        }
+    }
+    for x in 0..level[0].len() {
+        level[level.len() - 1][x] = if x == 0 {
+            Tile {
+                texture_type: TextureType::WALLS,
+                id: 32,
+            }
+        } else if x == level[0].len() - 1 {
+            Tile {
+                texture_type: TextureType::WALLS,
+                id: 18,
+            }
+        } else {
+            Tile {
+                texture_type: TextureType::WALLS,
+                id: 1,
+            }
+        }
+    }
+}
+
+pub fn render_level(
+    level: [[Tile; 16]; 12],
+    canvas: &mut Canvas<video::Window>,
+    texture_floor: &Texture,
+    texture_walls: &Texture,
+) {
+    for y in 0..level.len() {
+        for x in 0..level[0].len() {
+            let src = get_block(level[y][x].id);
+            let dst = Rect::new(
+                (x * RENDER_SIZE as usize).try_into().unwrap(),
+                (y * RENDER_SIZE as usize).try_into().unwrap(),
+                RENDER_SIZE,
+                RENDER_SIZE,
+            );
+            let texture = match level[y][x].texture_type {
+                TextureType::FLOOR => texture_floor,
+                TextureType::WALLS => texture_walls,
+            };
+            canvas.copy(&texture, src, dst).unwrap();
+        }
+    }
 }

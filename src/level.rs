@@ -28,13 +28,13 @@ pub fn serialize(filename: &str, level: [[Tile; 16]; 12]) -> std::io::Result<()>
         }
     }
 
-    file.write_all(&(0u32).to_le_bytes())
-        .expect("Failed to write p1 start x");
-    file.write_all(&(0u32).to_le_bytes())
-        .expect("Failed to write p1 start y");
     file.write_all(&(1u32).to_le_bytes())
+        .expect("Failed to write p1 start x");
+    file.write_all(&(1u32).to_le_bytes())
+        .expect("Failed to write p1 start y");
+    file.write_all(&(2u32).to_le_bytes())
         .expect("Failed to write p2 start x");
-    file.write_all(&(0u32).to_le_bytes())
+    file.write_all(&(2u32).to_le_bytes())
         .expect("Failed to write p2 start y");
     file.write_all(&(0u32).to_le_bytes())
         .expect("Failed to write spot amount");

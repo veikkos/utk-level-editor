@@ -6,8 +6,6 @@ use sdl2::keyboard::Keycode;
 use sdl2::mouse::MouseButton;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
-use sdl2::render::{Canvas, Texture};
-use sdl2::video;
 use std::time::Duration;
 
 mod level;
@@ -117,59 +115,5 @@ pub fn main() {
         canvas.present();
 
         ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
-    }
-}
-
-fn render_level(
-    level: [[Tile; 16]; 12],
-    canvas: &mut Canvas<video::Window>,
-    texture_floor: &Texture,
-    texture_walls: &Texture,
-) {
-    for y in 0..level.len() {
-        for x in 0..level[0].len() {
-            let src = get_block(level[y][x].id);
-            let dst = Rect::new(
-                (x * RENDER_SIZE as usize).try_into().unwrap(),
-                (y * RENDER_SIZE as usize).try_into().unwrap(),
-                RENDER_SIZE,
-                RENDER_SIZE,
-            );
-            let texture = match level[y][x].texture_type {
-                TextureType::FLOOR => texture_floor,
-                TextureType::WALLS => texture_walls,
-            };
-            canvas.copy(&texture, src, dst).unwrap();
-        }
-    }
-}
-
-fn init_empty_level(level: &mut [[Tile; 16]; 12]) {
-    for x in 0..level[0].len() {
-        level[0][x] = Tile {
-            texture_type: TextureType::FLOOR,
-            id: 1,
-        };
-    }
-    for y in 1..(level.len() - 1) {
-        for x in 0..level[0].len() {
-            if x == 0 || x == level[0].len() - 1 {
-                level[y][x] = Tile {
-                    texture_type: TextureType::FLOOR,
-                    id: 1,
-                };
-            } else {
-                level[y][x] = Tile {
-                    texture_type: TextureType::FLOOR,
-                    id: 0,
-                };
-            }
-        }
-    }
-    for x in 0..level[0].len() {
-        level[level.len() - 1][x] = Tile {
-            texture_type: TextureType::FLOOR,
-            id: 1,
-        };
     }
 }
