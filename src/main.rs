@@ -3,6 +3,7 @@ extern crate sdl2;
 use sdl2::event::Event;
 use sdl2::image::{InitFlag, LoadTexture};
 use sdl2::keyboard::Keycode;
+use sdl2::mouse::MouseButton;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 use std::time::Duration;
@@ -30,10 +31,9 @@ pub fn main() {
     let mut level = [[0u32; 16]; 12];
     init_empty_level(&mut level);
 
-    // Test level export
-    level::serialize("./TEST.LEV", level).unwrap();
-
     let mut tile_select_mode = false;
+    let mut selected_tile_id = 0;
+    let mut mouse = (0, 0);
 
     let mut event_pump = sdl_context.event_pump().unwrap();
     'running: loop {
@@ -50,6 +50,23 @@ pub fn main() {
                 } => {
                     tile_select_mode = !tile_select_mode;
                 }
+                Event::KeyDown {
+                    keycode: Some(Keycode::F2),
+                    ..
+                } => {
+                    level::serialize("./TEST.LEV", level).unwrap();
+                }
+                Event::MouseButtonDown {
+                    mouse_btn: MouseButton::Left,
+                    ..
+                } => {
+                    if tile_select_mode {
+                        selected_tile_id = get_tile_id_from_coordinate(mouse.0, mouse.1);
+                    } else {
+                        let pointed_tile = get_tile_id_from_coordinate(mouse.0, mouse.1);
+                        put_tile_to_level(pointed_tile, &mut level, selected_tile_id);
+                    }
+                }
                 _ => {}
             }
         }
@@ -64,7 +81,9 @@ pub fn main() {
         }
 
         let state = event_pump.mouse_state();
-        let highlighted_id = get_tile_id_from_coordinate(state.x() as u32, state.y() as u32);
+        mouse.0 = state.x() as u32;
+        mouse.1 = state.y() as u32;
+        let highlighted_id = get_tile_id_from_coordinate(mouse.0, mouse.1);
 
         highlight_selected_tile(highlighted_id, &mut canvas);
         canvas.present();

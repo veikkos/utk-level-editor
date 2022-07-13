@@ -68,3 +68,9 @@ pub fn get_tile_id_from_coordinate(x: u32, y: u32) -> u32 {
     let y_logical = y / RENDER_MULTIPLIER;
     x_logical / TILE_SIZE + y_logical / TILE_SIZE * 16
 }
+
+pub fn put_tile_to_level(pointed_tile: u32, level: &mut [[u32; 16]; 12], selected_tile_id: u32) {
+    let x = pointed_tile as usize % level[0].len();
+    let y = pointed_tile as usize / level[0].len();
+    level[y][x] = selected_tile_id;
+}
