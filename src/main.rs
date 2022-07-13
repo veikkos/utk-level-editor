@@ -3,6 +3,7 @@ extern crate sdl2;
 use sdl2::event::Event;
 use sdl2::image::{InitFlag, LoadTexture};
 use sdl2::keyboard::Keycode;
+use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 use std::time::Duration;
 
@@ -54,7 +55,10 @@ pub fn main() {
         }
 
         if tile_select_mode {
-            canvas.copy(&texture, None, None).unwrap();
+            canvas.set_draw_color(Color::from((0, 0, 0)));
+            canvas.clear();
+            let dst = Rect::new(0, 0, 640, 400);
+            canvas.copy(&texture, None, dst).unwrap();
         } else {
             render_level(level, &mut canvas, &texture);
         }
