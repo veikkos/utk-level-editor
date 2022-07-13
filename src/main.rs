@@ -6,6 +6,8 @@ use sdl2::keyboard::Keycode;
 use sdl2::rect::Rect;
 use std::time::Duration;
 
+mod level;
+
 fn get_block(id: u32) -> Rect {
     const SIZE: u32 = 20;
     let x = id * SIZE % 320;
@@ -19,7 +21,7 @@ pub fn main() {
     let video_subsystem = sdl_context.video().unwrap();
 
     let window = video_subsystem
-        .window("Ultimate Tapan Kaikki - Level Editor", 640, 400)
+        .window("Ultimate Tapan Kaikki - Level Editor", 640, 480)
         .position_centered()
         .build()
         .unwrap();
@@ -29,8 +31,11 @@ pub fn main() {
     let texture_creator = canvas.texture_creator();
     let texture = texture_creator.load_texture("FLOOR1.PNG").unwrap();
 
-    let mut level = [[0u32; 16]; 10];
+    let mut level = [[0u32; 16]; 12];
     init_empty_level(&mut level);
+
+    // Test level export
+    level::serialize("./TEST.LEV", level).unwrap();
 
     for y in 0..level.len() {
         for x in 0..level[0].len() {
@@ -65,7 +70,7 @@ pub fn main() {
     }
 }
 
-fn init_empty_level(level: &mut [[u32; 16]; 10]) {
+fn init_empty_level(level: &mut [[u32; 16]; 12]) {
     for x in 0..level[0].len() {
         level[0][x] = 1;
     }
@@ -79,6 +84,6 @@ fn init_empty_level(level: &mut [[u32; 16]; 10]) {
         }
     }
     for x in 0..level[0].len() {
-        level[9][x] = 1;
+        level[level.len() - 1][x] = 1;
     }
 }
