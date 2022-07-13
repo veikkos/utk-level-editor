@@ -1,8 +1,6 @@
 use std::{fs::File, io::Write};
 
-const FLOOR: u32 = 0;
-#[allow(dead_code)]
-const WALLS: u32 = 1;
+use crate::util::Tile;
 
 const DIFF_BULLETS: u32 = 9;
 const DIFF_WEAPONS: u32 = 11;
@@ -10,7 +8,7 @@ const DIFF_ENEMIES: u32 = 8;
 
 const VERSION: u32 = 5;
 
-pub fn serialize(filename: &str, level: [[u32; 16]; 12]) -> std::io::Result<()> {
+pub fn serialize(filename: &str, level: [[Tile; 16]; 12]) -> std::io::Result<()> {
     let mut file = File::create(filename)?;
 
     file.write_all(&VERSION.to_le_bytes())
@@ -21,9 +19,9 @@ pub fn serialize(filename: &str, level: [[u32; 16]; 12]) -> std::io::Result<()> 
         .expect("Failed to write y size");
     for y in 0..(level.len()) {
         for x in 0..level[0].len() {
-            file.write_all(&(FLOOR).to_le_bytes())
+            file.write_all(&(level[y][x].texture_type as u32).to_le_bytes())
                 .expect("Failed to write block type");
-            file.write_all(&(level[y][x] as u32).to_le_bytes())
+            file.write_all(&(level[y][x].id as u32).to_le_bytes())
                 .expect("Failed to write block num");
             file.write_all(&0u32.to_le_bytes())
                 .expect("Failed to write block num");

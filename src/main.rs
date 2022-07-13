@@ -6,6 +6,8 @@ use sdl2::keyboard::Keycode;
 use sdl2::mouse::MouseButton;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
+use sdl2::render::{Canvas, Texture};
+use sdl2::video;
 use std::time::Duration;
 
 mod level;
@@ -26,9 +28,14 @@ pub fn main() {
     let mut canvas = window.into_canvas().build().unwrap();
 
     let texture_creator = canvas.texture_creator();
-    let texture = texture_creator.load_texture("FLOOR1.PNG").unwrap();
+    let texture_floor = texture_creator.load_texture("./ASSETS/FLOOR1.PNG").unwrap();
+    let texture_walls = texture_creator.load_texture("./ASSETS/WALLS1.PNG").unwrap();
+    let mut texture_type_selected = TextureType::FLOOR;
 
-    let mut level = [[0u32; 16]; 12];
+    let mut level = [[Tile {
+        texture_type: TextureType::FLOOR,
+        id: 0,
+    }; 16]; 12];
     init_empty_level(&mut level);
 
     let mut tile_select_mode = false;
@@ -56,6 +63,18 @@ pub fn main() {
                 } => {
                     level::serialize("./TEST.LEV", level).unwrap();
                 }
+                Event::KeyDown {
+                    keycode: Some(Keycode::PageDown) | Some(Keycode::PageUp),
+                    ..
+                } => {
+                    if tile_select_mode {
+                        texture_type_selected = if texture_type_selected == TextureType::FLOOR {
+                            TextureType::WALLS
+                        } else {
+                            TextureType::FLOOR
+                        }
+                    }
+                }
                 Event::MouseButtonDown {
                     mouse_btn: MouseButton::Left,
                     ..
@@ -64,7 +83,12 @@ pub fn main() {
                         selected_tile_id = get_tile_id_from_coordinate(mouse.0, mouse.1);
                     } else {
                         let pointed_tile = get_tile_id_from_coordinate(mouse.0, mouse.1);
-                        put_tile_to_level(pointed_tile, &mut level, selected_tile_id);
+                        put_tile_to_level(
+                            pointed_tile,
+                            &mut level,
+                            selected_tile_id,
+                            &texture_type_selected,
+                        );
                     }
                 }
                 _ => {}
@@ -75,9 +99,13 @@ pub fn main() {
             canvas.set_draw_color(Color::from((0, 0, 0)));
             canvas.clear();
             let dst = Rect::new(0, 0, 640, 400);
-            canvas.copy(&texture, None, dst).unwrap();
+            let texture_selected = match texture_type_selected {
+                TextureType::FLOOR => &texture_floor,
+                TextureType::WALLS => &texture_walls,
+            };
+            canvas.copy(texture_selected, None, dst).unwrap();
         } else {
-            render_level(level, &mut canvas, &texture);
+            render_level(level, &mut canvas, &texture_floor, &texture_walls);
         }
 
         let state = event_pump.mouse_state();
@@ -93,38 +121,55 @@ pub fn main() {
 }
 
 fn render_level(
-    level: [[u32; 16]; 12],
-    canvas: &mut sdl2::render::Canvas<sdl2::video::Window>,
-    texture: &sdl2::render::Texture,
+    level: [[Tile; 16]; 12],
+    canvas: &mut Canvas<video::Window>,
+    texture_floor: &Texture,
+    texture_walls: &Texture,
 ) {
     for y in 0..level.len() {
         for x in 0..level[0].len() {
-            let src = get_block(level[y][x]);
+            let src = get_block(level[y][x].id);
             let dst = Rect::new(
                 (x * RENDER_SIZE as usize).try_into().unwrap(),
                 (y * RENDER_SIZE as usize).try_into().unwrap(),
                 RENDER_SIZE,
                 RENDER_SIZE,
             );
+            let texture = match level[y][x].texture_type {
+                TextureType::FLOOR => texture_floor,
+                TextureType::WALLS => texture_walls,
+            };
             canvas.copy(&texture, src, dst).unwrap();
         }
     }
 }
 
-fn init_empty_level(level: &mut [[u32; 16]; 12]) {
+fn init_empty_level(level: &mut [[Tile; 16]; 12]) {
     for x in 0..level[0].len() {
-        level[0][x] = 1;
+        level[0][x] = Tile {
+            texture_type: TextureType::FLOOR,
+            id: 1,
+        };
     }
     for y in 1..(level.len() - 1) {
         for x in 0..level[0].len() {
             if x == 0 || x == level[0].len() - 1 {
-                level[y][x] = 1;
+                level[y][x] = Tile {
+                    texture_type: TextureType::FLOOR,
+                    id: 1,
+                };
             } else {
-                level[y][x] = 0;
+                level[y][x] = Tile {
+                    texture_type: TextureType::FLOOR,
+                    id: 0,
+                };
             }
         }
     }
     for x in 0..level[0].len() {
-        level[level.len() - 1][x] = 1;
+        level[level.len() - 1][x] = Tile {
+            texture_type: TextureType::FLOOR,
+            id: 1,
+        };
     }
 }
