@@ -62,3 +62,9 @@ pub fn draw_line(
         )
         .unwrap();
 }
+
+pub fn get_tile_id_from_coordinate(x: u32, y: u32) -> u32 {
+    let x_logical = x / RENDER_MULTIPLIER;
+    let y_logical = y / RENDER_MULTIPLIER;
+    x_logical / TILE_SIZE + y_logical / TILE_SIZE * 16
+}

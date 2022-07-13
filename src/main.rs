@@ -59,11 +59,10 @@ pub fn main() {
             render_level(level, &mut canvas, &texture);
         }
 
-        highlight_selected_tile(0, &mut canvas);
-        highlight_selected_tile(1, &mut canvas);
-        highlight_selected_tile(16, &mut canvas);
-        highlight_selected_tile(17, &mut canvas);
-        highlight_selected_tile(15, &mut canvas);
+        let state = event_pump.mouse_state();
+        let highlighted_id = get_tile_id_from_coordinate(state.x() as u32, state.y() as u32);
+
+        highlight_selected_tile(highlighted_id, &mut canvas);
         canvas.present();
 
         ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
