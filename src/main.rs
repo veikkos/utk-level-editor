@@ -37,6 +37,44 @@ pub fn main() {
     // Test level export
     level::serialize("./TEST.LEV", level).unwrap();
 
+    let mut tile_select_mode = false;
+
+    let mut event_pump = sdl_context.event_pump().unwrap();
+    'running: loop {
+        for event in event_pump.poll_iter() {
+            match event {
+                Event::Quit { .. }
+                | Event::KeyDown {
+                    keycode: Some(Keycode::Escape),
+                    ..
+                } => break 'running,
+                Event::KeyDown {
+                    keycode: Some(Keycode::Space),
+                    ..
+                } => {
+                    tile_select_mode = !tile_select_mode;
+                }
+                _ => {}
+            }
+        }
+
+        if tile_select_mode {
+            canvas.copy(&texture, None, None).unwrap();
+        } else {
+            render_level(level, &mut canvas, &texture);
+        }
+
+        canvas.present();
+
+        ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
+    }
+}
+
+fn render_level(
+    level: [[u32; 16]; 12],
+    canvas: &mut sdl2::render::Canvas<sdl2::video::Window>,
+    texture: &sdl2::render::Texture,
+) {
     for y in 0..level.len() {
         for x in 0..level[0].len() {
             let src = get_block(level[y][x]);
@@ -48,25 +86,6 @@ pub fn main() {
             );
             canvas.copy(&texture, src, dst).unwrap();
         }
-    }
-
-    canvas.present();
-
-    let mut event_pump = sdl_context.event_pump().unwrap();
-    'running: loop {
-        for event in event_pump.poll_iter() {
-            match event {
-                Event::Quit { .. }
-                | Event::KeyDown {
-                    keycode: Some(Keycode::Escape),
-                    ..
-                } => break 'running,
-                _ => {}
-            }
-        }
-        // TODO :|
-
-        ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
     }
 }
 
