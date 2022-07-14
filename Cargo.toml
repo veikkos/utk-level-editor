@@ -10,4 +10,4 @@ edition = "2021"
 [dependencies.sdl2]
 version = "0.35.2"
 default-features = true
-features = ["image"]
+features = ["image", "ttf"]

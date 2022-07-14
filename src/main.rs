@@ -9,12 +9,14 @@ use sdl2::rect::Rect;
 use std::time::Duration;
 
 mod level;
+mod render;
 mod util;
 use util::*;
 
 pub fn main() {
     let sdl_context = sdl2::init().unwrap();
     let _image_context = sdl2::image::init(InitFlag::PNG | InitFlag::JPG);
+    let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string()).unwrap();
     let video_subsystem = sdl_context.video().unwrap();
 
     let window = video_subsystem
@@ -26,9 +28,15 @@ pub fn main() {
     let mut canvas = window.into_canvas().build().unwrap();
 
     let texture_creator = canvas.texture_creator();
-    let texture_floor = texture_creator.load_texture("./ASSETS/FLOOR1.PNG").unwrap();
-    let texture_walls = texture_creator.load_texture("./ASSETS/WALLS1.PNG").unwrap();
+    let texture_floor = texture_creator.load_texture("./assets/FLOOR1.PNG").unwrap();
+    let texture_walls = texture_creator.load_texture("./assets/WALLS1.PNG").unwrap();
     let mut texture_type_selected = TextureType::FLOOR;
+
+    let font = ttf_context
+        .load_font("./assets/TheJewishBitmap.ttf", 128)
+        .unwrap();
+    let p1_text_texture = render::get_font_texture(&texture_creator, &font, "P1");
+    let p2_text_texture = render::get_font_texture(&texture_creator, &font, "P2");
 
     let mut level = [[Tile {
         texture_type: TextureType::FLOOR,
@@ -39,6 +47,8 @@ pub fn main() {
     let mut tile_select_mode = false;
     let mut selected_tile_id = 0;
     let mut mouse = (0, 0);
+    let p1_position = (1u32, 1u32);
+    let p2_position = (2u32, 2u32);
 
     let mut event_pump = sdl_context.event_pump().unwrap();
     'running: loop {
@@ -59,7 +69,7 @@ pub fn main() {
                     keycode: Some(Keycode::F2),
                     ..
                 } => {
-                    level::serialize("./TEST.LEV", level).unwrap();
+                    level::serialize("./TEST.LEV", level, p1_position, p2_position).unwrap();
                 }
                 Event::KeyDown {
                     keycode: Some(Keycode::PageDown) | Some(Keycode::PageUp),
@@ -103,7 +113,19 @@ pub fn main() {
             };
             canvas.copy(texture_selected, None, dst).unwrap();
         } else {
-            render_level(level, &mut canvas, &texture_floor, &texture_walls);
+            render::render_level(level, &mut canvas, &texture_floor, &texture_walls);
+            render::render_text_texture(
+                &mut canvas,
+                &p1_text_texture,
+                p1_position.0 * RENDER_SIZE,
+                p1_position.1 * RENDER_SIZE,
+            );
+            render::render_text_texture(
+                &mut canvas,
+                &p2_text_texture,
+                p2_position.0 * RENDER_SIZE,
+                p2_position.1 * RENDER_SIZE,
+            );
         }
 
         let state = event_pump.mouse_state();
@@ -111,7 +133,7 @@ pub fn main() {
         mouse.1 = state.y() as u32;
         let highlighted_id = get_tile_id_from_coordinate(mouse.0, mouse.1);
 
-        highlight_selected_tile(highlighted_id, &mut canvas);
+        render::highlight_selected_tile(highlighted_id, &mut canvas);
         canvas.present();
 
         ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));

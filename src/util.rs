@@ -1,9 +1,4 @@
-use sdl2::{
-    pixels::Color,
-    rect::{Point, Rect},
-    render::{Canvas, Texture},
-    video,
-};
+use sdl2::rect::Rect;
 
 pub const TILE_SIZE: u32 = 20;
 pub const RENDER_MULTIPLIER: u32 = 2;
@@ -30,45 +25,6 @@ pub fn get_tile_coordinates(id: u32) -> (u32, u32) {
 pub fn get_block(id: u32) -> Rect {
     let (x, y) = get_tile_coordinates(id);
     Rect::new(x as i32, y as i32, TILE_SIZE, TILE_SIZE)
-}
-
-pub fn highlight_selected_tile(id: u32, canvas: &mut Canvas<video::Window>) {
-    canvas.set_draw_color(Color::from((255, 255, 255)));
-
-    let (x_logical, y_logical) = get_tile_coordinates(id);
-    let x = x_logical * RENDER_MULTIPLIER;
-    let y = y_logical * RENDER_MULTIPLIER;
-
-    draw_line(canvas, x, y, x, y + RENDER_SIZE - 1);
-    draw_line(canvas, x, y, x + RENDER_SIZE - 1, y);
-    draw_line(
-        canvas,
-        x + RENDER_SIZE - 1,
-        y,
-        x + RENDER_SIZE - 1,
-        y + RENDER_SIZE - 1,
-    );
-    draw_line(
-        canvas,
-        x,
-        y + RENDER_SIZE - 1,
-        x + RENDER_SIZE - 1,
-        y + RENDER_SIZE - 1,
-    );
-}
-
-pub fn draw_line(canvas: &mut Canvas<video::Window>, x0: u32, y0: u32, x1: u32, y1: u32) {
-    let x0_signed = x0 as i32;
-    let y0_signed = y0 as i32;
-    let x1_signed = x1 as i32;
-    let y1_signed = y1 as i32;
-
-    canvas
-        .draw_line(
-            Point::from((x0_signed, y0_signed)),
-            Point::from((x1_signed, y1_signed)),
-        )
-        .unwrap();
 }
 
 pub fn get_tile_id_from_coordinate(x: u32, y: u32) -> u32 {
@@ -146,30 +102,6 @@ pub fn init_empty_level(level: &mut [[Tile; 16]; 12]) {
                 texture_type: TextureType::WALLS,
                 id: 1,
             }
-        }
-    }
-}
-
-pub fn render_level(
-    level: [[Tile; 16]; 12],
-    canvas: &mut Canvas<video::Window>,
-    texture_floor: &Texture,
-    texture_walls: &Texture,
-) {
-    for y in 0..level.len() {
-        for x in 0..level[0].len() {
-            let src = get_block(level[y][x].id);
-            let dst = Rect::new(
-                (x * RENDER_SIZE as usize).try_into().unwrap(),
-                (y * RENDER_SIZE as usize).try_into().unwrap(),
-                RENDER_SIZE,
-                RENDER_SIZE,
-            );
-            let texture = match level[y][x].texture_type {
-                TextureType::FLOOR => texture_floor,
-                TextureType::WALLS => texture_walls,
-            };
-            canvas.copy(&texture, src, dst).unwrap();
         }
     }
 }
