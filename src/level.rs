@@ -64,33 +64,46 @@ pub fn serialize(
     //     fread( &steam[a].speed, 4, 1, dat );
     // }
 
-    let comment = "Rust UTK editor     ";
+    let comment = "Rust UTK editor\0\0\0\0\0";
     file.write_all(&comment.as_bytes())
         .expect("Failed to write comment");
-    file.write_all(&(120u32).to_le_bytes())
+    file.write_all(&(45u32).to_le_bytes())
         .expect("Failed to write time limit");
-    file.write_all(&(4u32 * DIFF_ENEMIES).to_le_bytes())
-        .expect("Failed to write normal game enemies");
-    file.write_all(&(4u32 * DIFF_WEAPONS).to_le_bytes())
-        .expect("Failed to write normal game weapons");
-    file.write_all(&(4u32 * DIFF_BULLETS).to_le_bytes())
-        .expect("Failed to write normal game bullets");
-    file.write_all(&(0u32).to_le_bytes())
+    for x in 0..DIFF_ENEMIES {
+        let amount = if x == 0 { 1u32 } else { 0u32 };
+        file.write_all(&(amount).to_le_bytes())
+            .expect("Failed to write normal game enemies");
+    }
+    for x in 0..DIFF_WEAPONS {
+        let amount = if x == 0 { 1u32 } else { 0u32 };
+        file.write_all(&(amount).to_le_bytes())
+            .expect("Failed to write normal game weapons");
+    }
+    for x in 0..DIFF_BULLETS {
+        let amount = if x == 0 { 1u32 } else { 0u32 };
+        file.write_all(&(amount).to_le_bytes())
+            .expect("Failed to write normal game bullets");
+    }
+    file.write_all(&(1u32).to_le_bytes())
         .expect("Failed to write normal game energy crates");
-    file.write_all(&(4u32 * DIFF_ENEMIES).to_le_bytes())
-        .expect("Failed to write multiplayer game enemies");
-    file.write_all(&(4u32 * DIFF_WEAPONS).to_le_bytes())
-        .expect("Failed to write multiplayer game weapons");
-    file.write_all(&(4u32 * DIFF_BULLETS).to_le_bytes())
-        .expect("Failed to write multiplayer game bullets");
-    file.write_all(&(0u32).to_le_bytes())
+    for x in 0..DIFF_WEAPONS {
+        let amount = if x == 0 { 1u32 } else { 0u32 };
+        file.write_all(&(amount).to_le_bytes())
+            .expect("Failed to write multiplayer game weapons");
+    }
+    for x in 0..DIFF_BULLETS {
+        let amount = if x == 0 { 1u32 } else { 0u32 };
+        file.write_all(&(amount).to_le_bytes())
+            .expect("Failed to write multiplayer game bullets");
+    }
+    file.write_all(&(1u32).to_le_bytes())
         .expect("Failed to write multiplayer game energy crates");
     file.write_all(&(0u32).to_le_bytes())
         .expect("Failed to write normal game crate amount");
     // TODO: Write normal game crates
     //  fread( normal_crate_info, sizeof(Crate_info) * normal_crate_amount, 1, dat );
     file.write_all(&(0u32).to_le_bytes())
-        .expect("Failed to write multiplayer game crate amount");
+        .expect("Failed to write deathmatch game crate amount");
     // TODO: Write deathmatch game crates
     //  fread( deathmatch_crate_info, sizeof(Crate_info) * deathmatch_crate_amount, 1, dat );
 
