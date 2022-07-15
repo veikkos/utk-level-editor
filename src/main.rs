@@ -44,7 +44,7 @@ pub fn main() {
     let mut level = Level::get_default_level();
     let mut tile_select_mode = false;
     let mut selected_tile_id = 0;
-    let mut mouse = (0, 0);
+    let mut mouse: (u32, u32) = (0, 0);
 
     let mut event_pump = sdl_context.event_pump().unwrap();
     'running: loop {
@@ -78,6 +78,10 @@ pub fn main() {
                             TextureType::FLOOR
                         }
                     }
+                }
+                Event::MouseMotion { x, y, .. } => {
+                    mouse.0 = x as u32;
+                    mouse.1 = y as u32;
                 }
                 Event::MouseButtonDown {
                     mouse_btn: MouseButton::Left,
@@ -123,9 +127,6 @@ pub fn main() {
             );
         }
 
-        let state = event_pump.mouse_state();
-        mouse.0 = state.x() as u32;
-        mouse.1 = state.y() as u32;
         let highlighted_id = get_tile_id_from_coordinate(mouse.0, mouse.1);
 
         render::highlight_selected_tile(&mut canvas, highlighted_id);
