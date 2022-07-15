@@ -1,6 +1,5 @@
+use crate::types::*;
 use std::{fs::File, io::Write};
-
-use crate::util::Tile;
 
 const DIFF_BULLETS: u32 = 9;
 const DIFF_WEAPONS: u32 = 11;
@@ -8,104 +7,193 @@ const DIFF_ENEMIES: u32 = 8;
 
 const VERSION: u32 = 5;
 
-pub fn serialize(
-    filename: &str,
-    level: [[Tile; 16]; 12],
-    p1_position: (u32, u32),
-    p2_position: (u32, u32),
-) -> std::io::Result<()> {
-    let mut file = File::create(filename)?;
+pub struct Level {
+    pub tiles: Tiles,
+    pub p1_position: (u32, u32),
+    pub p2_position: (u32, u32),
+}
 
-    file.write_all(&VERSION.to_le_bytes())
-        .expect("Failed to write version");
-    file.write_all(&(level[0].len() as u32).to_le_bytes())
-        .expect("Failed to write x size");
-    file.write_all(&(level.len() as u32).to_le_bytes())
-        .expect("Failed to write y size");
-    for y in 0..(level.len()) {
-        for x in 0..level[0].len() {
-            file.write_all(&(level[y][x].texture_type as u32).to_le_bytes())
-                .expect("Failed to write block type");
-            file.write_all(&(level[y][x].id as u32).to_le_bytes())
-                .expect("Failed to write block num");
-            file.write_all(&0u32.to_le_bytes())
-                .expect("Failed to write block num");
+impl Level {
+    pub fn get_default_level() -> Level {
+        let mut level = Level {
+            tiles: [[Tile {
+                texture_type: TextureType::FLOOR,
+                id: 0,
+            }; 16]; 12],
+            p1_position: (1u32, 1u32),
+            p2_position: (2u32, 2u32),
+        };
+        level.init_default_level();
+        level
+    }
+
+    pub fn init_default_level(&mut self) {
+        for x in 0..self.tiles[0].len() {
+            self.tiles[0][x] = if x == 0 {
+                Tile {
+                    texture_type: TextureType::WALLS,
+                    id: 0,
+                }
+            } else if x == self.tiles[0].len() - 1 {
+                Tile {
+                    texture_type: TextureType::WALLS,
+                    id: 2,
+                }
+            } else {
+                Tile {
+                    texture_type: TextureType::WALLS,
+                    id: 1,
+                }
+            }
+        }
+        for y in 1..(self.tiles.len() - 1) {
+            for x in 0..self.tiles[0].len() {
+                self.tiles[y][x] = if x == 0 {
+                    Tile {
+                        texture_type: TextureType::WALLS,
+                        id: 16,
+                    }
+                } else if x == self.tiles[0].len() - 1 {
+                    Tile {
+                        texture_type: TextureType::WALLS,
+                        id: 16,
+                    }
+                } else {
+                    Tile {
+                        texture_type: TextureType::FLOOR,
+                        id: 0,
+                    }
+                }
+            }
+        }
+        for x in 0..self.tiles[0].len() {
+            self.tiles[self.tiles.len() - 1][x] = if x == 0 {
+                Tile {
+                    texture_type: TextureType::WALLS,
+                    id: 32,
+                }
+            } else if x == self.tiles[0].len() - 1 {
+                Tile {
+                    texture_type: TextureType::WALLS,
+                    id: 18,
+                }
+            } else {
+                Tile {
+                    texture_type: TextureType::WALLS,
+                    id: 1,
+                }
+            }
         }
     }
 
-    file.write_all(&(p1_position.0).to_le_bytes())
-        .expect("Failed to write p1 start x");
-    file.write_all(&(p1_position.1).to_le_bytes())
-        .expect("Failed to write p1 start y");
-    file.write_all(&(p2_position.0).to_le_bytes())
-        .expect("Failed to write p2 start x");
-    file.write_all(&(p2_position.1).to_le_bytes())
-        .expect("Failed to write p2 start y");
-    file.write_all(&(0u32).to_le_bytes())
-        .expect("Failed to write spot amount");
-
-    // TODO: Write spots
-    // for ( a = 0; a < Spot_amount; a ++  )
-    // {
-    //     fread( &spot_light[a].x, 4, 1, dat );
-    //     fread( &spot_light[a].y, 4, 1, dat );
-    //     fread( &spot_light[a].size, 4, 1, dat );
-    // }
-
-    file.write_all(&(0u32).to_le_bytes())
-        .expect("Failed to write steam amount");
-
-    // TODO: Write steams
-    // for ( a = 0; a < Steam_amount; a ++  )
-    // {
-    //     fread( &steam[a].x, 4, 1, dat );
-    //     fread( &steam[a].y, 4, 1, dat );
-    //     fread( &steam[a].angle, 4, 1, dat );
-    //     fread( &steam[a].speed, 4, 1, dat );
-    // }
-
-    let comment = "Rust UTK editor\0\0\0\0\0";
-    file.write_all(&comment.as_bytes())
-        .expect("Failed to write comment");
-    file.write_all(&(45u32).to_le_bytes())
-        .expect("Failed to write time limit");
-    for x in 0..DIFF_ENEMIES {
-        let amount = if x == 0 { 1u32 } else { 0u32 };
-        file.write_all(&(amount).to_le_bytes())
-            .expect("Failed to write normal game enemies");
+    pub fn put_tile_to_level(
+        &mut self,
+        pointed_tile: u32,
+        selected_tile_id: u32,
+        selected_texture: &TextureType,
+    ) {
+        let x = pointed_tile as usize % self.tiles[0].len();
+        let y = pointed_tile as usize / self.tiles[0].len();
+        self.tiles[y][x] = Tile {
+            texture_type: *selected_texture,
+            id: selected_tile_id,
+        };
     }
-    for x in 0..DIFF_WEAPONS {
-        let amount = if x == 0 { 1u32 } else { 0u32 };
-        file.write_all(&(amount).to_le_bytes())
-            .expect("Failed to write normal game weapons");
-    }
-    for x in 0..DIFF_BULLETS {
-        let amount = if x == 0 { 1u32 } else { 0u32 };
-        file.write_all(&(amount).to_le_bytes())
-            .expect("Failed to write normal game bullets");
-    }
-    file.write_all(&(1u32).to_le_bytes())
-        .expect("Failed to write normal game energy crates");
-    for x in 0..DIFF_WEAPONS {
-        let amount = if x == 0 { 1u32 } else { 0u32 };
-        file.write_all(&(amount).to_le_bytes())
-            .expect("Failed to write multiplayer game weapons");
-    }
-    for x in 0..DIFF_BULLETS {
-        let amount = if x == 0 { 1u32 } else { 0u32 };
-        file.write_all(&(amount).to_le_bytes())
-            .expect("Failed to write multiplayer game bullets");
-    }
-    file.write_all(&(1u32).to_le_bytes())
-        .expect("Failed to write multiplayer game energy crates");
-    file.write_all(&(0u32).to_le_bytes())
-        .expect("Failed to write normal game crate amount");
-    // TODO: Write normal game crates
-    //  fread( normal_crate_info, sizeof(Crate_info) * normal_crate_amount, 1, dat );
-    file.write_all(&(0u32).to_le_bytes())
-        .expect("Failed to write deathmatch game crate amount");
-    // TODO: Write deathmatch game crates
-    //  fread( deathmatch_crate_info, sizeof(Crate_info) * deathmatch_crate_amount, 1, dat );
 
-    Ok(())
+    pub fn serialize(&self, filename: &str) -> std::io::Result<()> {
+        let mut file = File::create(filename)?;
+
+        file.write_all(&VERSION.to_le_bytes())
+            .expect("Failed to write version");
+        file.write_all(&(self.tiles[0].len() as u32).to_le_bytes())
+            .expect("Failed to write x size");
+        file.write_all(&(self.tiles.len() as u32).to_le_bytes())
+            .expect("Failed to write y size");
+        for y in 0..(self.tiles.len()) {
+            for x in 0..self.tiles[0].len() {
+                file.write_all(&(self.tiles[y][x].texture_type as u32).to_le_bytes())
+                    .expect("Failed to write block type");
+                file.write_all(&(self.tiles[y][x].id as u32).to_le_bytes())
+                    .expect("Failed to write block num");
+                file.write_all(&0u32.to_le_bytes())
+                    .expect("Failed to write block num");
+            }
+        }
+
+        file.write_all(&(self.p1_position.0).to_le_bytes())
+            .expect("Failed to write p1 start x");
+        file.write_all(&(self.p1_position.1).to_le_bytes())
+            .expect("Failed to write p1 start y");
+        file.write_all(&(self.p2_position.0).to_le_bytes())
+            .expect("Failed to write p2 start x");
+        file.write_all(&(self.p2_position.1).to_le_bytes())
+            .expect("Failed to write p2 start y");
+        file.write_all(&(0u32).to_le_bytes())
+            .expect("Failed to write spot amount");
+
+        // TODO: Write spots
+        // for ( a = 0; a < Spot_amount; a ++  )
+        // {
+        //     fread( &spot_light[a].x, 4, 1, dat );
+        //     fread( &spot_light[a].y, 4, 1, dat );
+        //     fread( &spot_light[a].size, 4, 1, dat );
+        // }
+
+        file.write_all(&(0u32).to_le_bytes())
+            .expect("Failed to write steam amount");
+
+        // TODO: Write steams
+        // for ( a = 0; a < Steam_amount; a ++  )
+        // {
+        //     fread( &steam[a].x, 4, 1, dat );
+        //     fread( &steam[a].y, 4, 1, dat );
+        //     fread( &steam[a].angle, 4, 1, dat );
+        //     fread( &steam[a].speed, 4, 1, dat );
+        // }
+
+        let comment = "Rust UTK editor\0\0\0\0\0";
+        file.write_all(&comment.as_bytes())
+            .expect("Failed to write comment");
+        file.write_all(&(45u32).to_le_bytes())
+            .expect("Failed to write time limit");
+        for x in 0..DIFF_ENEMIES {
+            let amount = if x == 0 { 1u32 } else { 0u32 };
+            file.write_all(&(amount).to_le_bytes())
+                .expect("Failed to write normal game enemies");
+        }
+        for x in 0..DIFF_WEAPONS {
+            let amount = if x == 0 { 1u32 } else { 0u32 };
+            file.write_all(&(amount).to_le_bytes())
+                .expect("Failed to write normal game weapons");
+        }
+        for x in 0..DIFF_BULLETS {
+            let amount = if x == 0 { 1u32 } else { 0u32 };
+            file.write_all(&(amount).to_le_bytes())
+                .expect("Failed to write normal game bullets");
+        }
+        file.write_all(&(1u32).to_le_bytes())
+            .expect("Failed to write normal game energy crates");
+        for x in 0..DIFF_WEAPONS {
+            let amount = if x == 0 { 1u32 } else { 0u32 };
+            file.write_all(&(amount).to_le_bytes())
+                .expect("Failed to write multiplayer game weapons");
+        }
+        for x in 0..DIFF_BULLETS {
+            let amount = if x == 0 { 1u32 } else { 0u32 };
+            file.write_all(&(amount).to_le_bytes())
+                .expect("Failed to write multiplayer game bullets");
+        }
+        file.write_all(&(1u32).to_le_bytes())
+            .expect("Failed to write multiplayer game energy crates");
+        file.write_all(&(0u32).to_le_bytes())
+            .expect("Failed to write normal game crate amount");
+        // TODO: Write normal game crates
+        //  fread( normal_crate_info, sizeof(Crate_info) * normal_crate_amount, 1, dat );
+        file.write_all(&(0u32).to_le_bytes())
+            .expect("Failed to write deathmatch game crate amount");
+        // TODO: Write deathmatch game crates
+        //  fread( deathmatch_crate_info, sizeof(Crate_info) * deathmatch_crate_amount, 1, dat );
+
+        Ok(())
+    }
 }

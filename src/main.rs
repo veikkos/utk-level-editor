@@ -1,5 +1,6 @@
 extern crate sdl2;
 
+use crate::level::Level;
 use sdl2::event::Event;
 use sdl2::image::{InitFlag, LoadTexture};
 use sdl2::keyboard::Keycode;
@@ -10,7 +11,9 @@ use std::time::Duration;
 
 mod level;
 mod render;
+mod types;
 mod util;
+use types::*;
 use util::*;
 
 pub fn main() {
@@ -38,17 +41,10 @@ pub fn main() {
     let p1_text_texture = render::get_font_texture(&texture_creator, &font, "P1");
     let p2_text_texture = render::get_font_texture(&texture_creator, &font, "P2");
 
-    let mut level = [[Tile {
-        texture_type: TextureType::FLOOR,
-        id: 0,
-    }; 16]; 12];
-    init_empty_level(&mut level);
-
+    let mut level = Level::get_default_level();
     let mut tile_select_mode = false;
     let mut selected_tile_id = 0;
     let mut mouse = (0, 0);
-    let p1_position = (1u32, 1u32);
-    let p2_position = (2u32, 2u32);
 
     let mut event_pump = sdl_context.event_pump().unwrap();
     'running: loop {
@@ -69,7 +65,7 @@ pub fn main() {
                     keycode: Some(Keycode::F2),
                     ..
                 } => {
-                    level::serialize("./TEST.LEV", level, p1_position, p2_position).unwrap();
+                    level.serialize("./TEST.LEV").unwrap();
                 }
                 Event::KeyDown {
                     keycode: Some(Keycode::PageDown) | Some(Keycode::PageUp),
@@ -91,9 +87,8 @@ pub fn main() {
                         selected_tile_id = get_tile_id_from_coordinate(mouse.0, mouse.1);
                     } else {
                         let pointed_tile = get_tile_id_from_coordinate(mouse.0, mouse.1);
-                        put_tile_to_level(
+                        level.put_tile_to_level(
                             pointed_tile,
-                            &mut level,
                             selected_tile_id,
                             &texture_type_selected,
                         );
@@ -113,18 +108,18 @@ pub fn main() {
             };
             canvas.copy(texture_selected, None, dst).unwrap();
         } else {
-            render::render_level(level, &mut canvas, &texture_floor, &texture_walls);
+            render::render_level(&mut canvas, &level, &texture_floor, &texture_walls);
             render::render_text_texture(
                 &mut canvas,
                 &p1_text_texture,
-                p1_position.0 * RENDER_SIZE,
-                p1_position.1 * RENDER_SIZE,
+                level.p1_position.0 * RENDER_SIZE,
+                level.p1_position.1 * RENDER_SIZE,
             );
             render::render_text_texture(
                 &mut canvas,
                 &p2_text_texture,
-                p2_position.0 * RENDER_SIZE,
-                p2_position.1 * RENDER_SIZE,
+                level.p2_position.0 * RENDER_SIZE,
+                level.p2_position.1 * RENDER_SIZE,
             );
         }
 
@@ -133,7 +128,7 @@ pub fn main() {
         mouse.1 = state.y() as u32;
         let highlighted_id = get_tile_id_from_coordinate(mouse.0, mouse.1);
 
-        render::highlight_selected_tile(highlighted_id, &mut canvas);
+        render::highlight_selected_tile(&mut canvas, highlighted_id);
         canvas.present();
 
         ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));

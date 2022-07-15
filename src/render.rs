@@ -1,3 +1,6 @@
+use crate::types::*;
+use crate::util::*;
+use crate::Level;
 use sdl2::pixels::Color;
 use sdl2::rect::Point;
 use sdl2::rect::Rect;
@@ -9,11 +12,9 @@ use sdl2::ttf::Font;
 use sdl2::video::Window;
 use sdl2::video::WindowContext;
 
-use crate::util::*;
-
 const TEXT_SIZE_DIVIDER: u32 = 4;
 
-pub fn highlight_selected_tile(id: u32, canvas: &mut Canvas<Window>) {
+pub fn highlight_selected_tile(canvas: &mut Canvas<Window>, id: u32) {
     canvas.set_draw_color(Color::from((255, 255, 255)));
 
     let (x_logical, y_logical) = get_tile_coordinates(id);
@@ -80,21 +81,21 @@ pub fn render_text_texture(canvas: &mut Canvas<Window>, texture: &Texture, x: u3
 }
 
 pub fn render_level(
-    level: [[Tile; 16]; 12],
     canvas: &mut Canvas<Window>,
+    level: &Level,
     texture_floor: &Texture,
     texture_walls: &Texture,
 ) {
-    for y in 0..level.len() {
-        for x in 0..level[0].len() {
-            let src = get_block(level[y][x].id);
+    for y in 0..level.tiles.len() {
+        for x in 0..level.tiles[0].len() {
+            let src = get_block(level.tiles[y][x].id);
             let dst = Rect::new(
                 (x * RENDER_SIZE as usize).try_into().unwrap(),
                 (y * RENDER_SIZE as usize).try_into().unwrap(),
                 RENDER_SIZE,
                 RENDER_SIZE,
             );
-            let texture = match level[y][x].texture_type {
+            let texture = match level.tiles[y][x].texture_type {
                 TextureType::FLOOR => texture_floor,
                 TextureType::WALLS => texture_walls,
             };
