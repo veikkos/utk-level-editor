@@ -116,7 +116,7 @@ impl Level {
                 file.write_all(&(self.tiles[y][x].id as u32).to_le_bytes())
                     .expect("Failed to write block num");
                 file.write_all(&0u32.to_le_bytes())
-                    .expect("Failed to write block num");
+                    .expect("Failed to write block shadow");
             }
         }
 
@@ -188,11 +188,11 @@ impl Level {
         file.write_all(&(0u32).to_le_bytes())
             .expect("Failed to write normal game crate amount");
         // TODO: Write normal game crates
-        //  fread( normal_crate_info, sizeof(Crate_info) * normal_crate_amount, 1, dat );
+        // fread( normal_crate_info, sizeof(Crate_info) * normal_crate_amount, 1, dat );
         file.write_all(&(0u32).to_le_bytes())
             .expect("Failed to write deathmatch game crate amount");
         // TODO: Write deathmatch game crates
-        //  fread( deathmatch_crate_info, sizeof(Crate_info) * deathmatch_crate_amount, 1, dat );
+        // fread( deathmatch_crate_info, sizeof(Crate_info) * deathmatch_crate_amount, 1, dat );
 
         Ok(())
     }
