@@ -16,7 +16,6 @@ pub struct Context<'a> {
     pub texture_floor: Texture<'a>,
     pub texture_walls: Texture<'a>,
     pub level: Level,
-    pub tile_select_mode: bool,
     pub selected_tile_id: u32,
     pub texture_type_selected: TextureType,
     pub mouse: (u32, u32),

@@ -11,6 +11,7 @@ use sdl2::render::TextureQuery;
 use sdl2::ttf::Font;
 use sdl2::video::Window;
 use sdl2::video::WindowContext;
+use std::time::Duration;
 
 const TEXT_SIZE_DIVIDER: u32 = 4;
 
@@ -102,4 +103,9 @@ pub fn render_level(
             canvas.copy(&texture, src, dst).unwrap();
         }
     }
+}
+
+pub fn render_and_wait(canvas: &mut Canvas<Window>) {
+    canvas.present();
+    ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
 }

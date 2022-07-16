@@ -1,18 +1,17 @@
 extern crate sdl2;
 
 use crate::render;
+use crate::types::*;
 use crate::util::*;
 use crate::Context;
-use crate::NextMode;
 use crate::NextMode::*;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::mouse::MouseButton;
+use sdl2::pixels::Color;
+use sdl2::rect::Rect;
 
 pub fn exec(context: &mut Context) -> NextMode {
-    let p1_text_texture = render::get_font_texture(&context.texture_creator, &context.font, "P1");
-    let p2_text_texture = render::get_font_texture(&context.texture_creator, &context.font, "P2");
-
     let mut event_pump = context.sdl.event_pump().unwrap();
     loop {
         for event in event_pump.poll_iter() {
@@ -24,10 +23,15 @@ pub fn exec(context: &mut Context) -> NextMode {
                 } => return Quit,
                 Event::KeyDown { keycode, .. } => match keycode.unwrap() {
                     Keycode::Space => {
-                        return TileSelect;
+                        return Editor;
                     }
-                    Keycode::F2 => {
-                        context.level.serialize("./TEST.LEV").unwrap();
+                    Keycode::PageDown | Keycode::PageUp => {
+                        context.texture_type_selected =
+                            if context.texture_type_selected == TextureType::FLOOR {
+                                TextureType::WALLS
+                            } else {
+                                TextureType::FLOOR
+                            }
                     }
                     _ => {}
                 },
@@ -39,37 +43,21 @@ pub fn exec(context: &mut Context) -> NextMode {
                     mouse_btn: MouseButton::Left,
                     ..
                 } => {
-                    let pointed_tile =
+                    context.selected_tile_id =
                         get_tile_id_from_coordinate(context.mouse.0, context.mouse.1);
-                    context.level.put_tile_to_level(
-                        pointed_tile,
-                        context.selected_tile_id,
-                        &context.texture_type_selected,
-                    );
                 }
                 _ => {}
             }
         }
 
-        render::render_level(
-            &mut context.canvas,
-            &context.level,
-            &context.texture_floor,
-            &context.texture_walls,
-        );
-        render::render_text_texture(
-            &mut context.canvas,
-            &p1_text_texture,
-            context.level.p1_position.0 * RENDER_SIZE,
-            context.level.p1_position.1 * RENDER_SIZE,
-        );
-        render::render_text_texture(
-            &mut context.canvas,
-            &p2_text_texture,
-            context.level.p2_position.0 * RENDER_SIZE,
-            context.level.p2_position.1 * RENDER_SIZE,
-        );
-
+        context.canvas.set_draw_color(Color::from((0, 0, 0)));
+        context.canvas.clear();
+        let dst = Rect::new(0, 0, 640, 400);
+        let texture_selected = match context.texture_type_selected {
+            TextureType::FLOOR => &context.texture_floor,
+            TextureType::WALLS => &context.texture_walls,
+        };
+        context.canvas.copy(texture_selected, None, dst).unwrap();
         let highlighted_id = get_tile_id_from_coordinate(context.mouse.0, context.mouse.1);
 
         render::highlight_selected_tile(&mut context.canvas, highlighted_id);

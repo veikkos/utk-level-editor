@@ -1,11 +1,13 @@
 extern crate sdl2;
 
 use crate::level::Level;
+use crate::types::NextMode::*;
 use sdl2::image::{InitFlag, LoadTexture};
 mod context;
 mod editor;
 mod level;
 mod render;
+mod tile_selector;
 mod types;
 mod util;
 use context::Context;
@@ -40,11 +42,18 @@ pub fn main() {
         texture_floor,
         texture_walls,
         level: Level::get_default_level(),
-        tile_select_mode: false,
         selected_tile_id: 0,
         texture_type_selected: TextureType::FLOOR,
         mouse: (0, 0),
     };
 
-    editor::editor_mode(&mut context);
+    let mut next_mode = NextMode::Editor;
+
+    'running: loop {
+        next_mode = match next_mode {
+            Editor => editor::exec(&mut context),
+            TileSelect => tile_selector::exec(&mut context),
+            Quit => break 'running,
+        }
+    }
 }

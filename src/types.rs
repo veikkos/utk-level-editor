@@ -11,3 +11,9 @@ pub struct Tile {
 }
 
 pub type Tiles = [[Tile; 16]; 12];
+
+pub enum NextMode {
+    Editor,
+    TileSelect,
+    Quit,
+}
