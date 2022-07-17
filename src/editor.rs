@@ -25,6 +25,7 @@ pub fn exec(context: &mut Context) -> NextMode {
     let help_text_texture =
         render::get_font_texture(&context.texture_creator, &context.font, "F1 FOR HELP");
     let mut set_position: u8 = 0;
+    let mut mouse_left_click = false;
 
     let mut event_pump = context.sdl.event_pump().unwrap();
     loop {
@@ -54,30 +55,26 @@ pub fn exec(context: &mut Context) -> NextMode {
                     _ => {}
                 },
                 Event::MouseMotion { x, y, .. } => {
-                    context.mouse.0 = x as u32;
-                    context.mouse.1 = y as u32;
+                    if x >= 0 && y >= 0 {
+                        context.mouse.0 = x as u32;
+                        context.mouse.1 = y as u32;
+                        if mouse_left_click {
+                            handle_mouse_down(context, &mut set_position);
+                        }
+                    }
                 }
                 Event::MouseButtonDown {
                     mouse_btn: MouseButton::Left,
                     ..
                 } => {
-                    if set_position > 0 {
-                        let position = if set_position == 1 {
-                            &mut context.level.p1_position
-                        } else {
-                            &mut context.level.p2_position
-                        };
-                        *position = get_logical_coordinates(context.mouse.0, context.mouse.1);
-                        set_position = 0;
-                    } else {
-                        let pointed_tile =
-                            get_tile_id_from_coordinate(context.mouse.0, context.mouse.1);
-                        context.level.put_tile_to_level(
-                            pointed_tile,
-                            context.selected_tile_id,
-                            &context.texture_type_selected,
-                        );
-                    }
+                    mouse_left_click = true;
+                    handle_mouse_down(context, &mut set_position);
+                }
+                Event::MouseButtonUp {
+                    mouse_btn: MouseButton::Left,
+                    ..
+                } => {
+                    mouse_left_click = false;
                 }
                 _ => {}
             }
@@ -121,5 +118,24 @@ pub fn exec(context: &mut Context) -> NextMode {
 
         render::highlight_selected_tile(&mut context.canvas, highlighted_id);
         render::render_and_wait(&mut context.canvas);
+    }
+}
+
+fn handle_mouse_down(context: &mut Context, set_position: &mut u8) {
+    if *set_position > 0 {
+        let position = if *set_position == 1 {
+            &mut context.level.p1_position
+        } else {
+            &mut context.level.p2_position
+        };
+        *position = get_logical_coordinates(context.mouse.0, context.mouse.1);
+        *set_position = 0;
+    } else {
+        let pointed_tile = get_tile_id_from_coordinate(context.mouse.0, context.mouse.1);
+        context.level.put_tile_to_level(
+            pointed_tile,
+            context.selected_tile_id,
+            &context.texture_type_selected,
+        );
     }
 }
