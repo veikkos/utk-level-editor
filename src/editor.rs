@@ -22,6 +22,8 @@ pub fn exec(context: &mut Context) -> NextMode {
         &context.font,
         "PLACE PL2 START POINT",
     );
+    let help_text_texture =
+        render::get_font_texture(&context.texture_creator, &context.font, "F1 FOR HELP");
     let mut set_position: u8 = 0;
 
     let mut event_pump = context.sdl.event_pump().unwrap();
@@ -99,10 +101,25 @@ pub fn exec(context: &mut Context) -> NextMode {
             context.level.p2_position.0 * RENDER_SIZE,
             context.level.p2_position.1 * RENDER_SIZE,
         );
+        let text_position = (8, 8);
         if set_position == 1 {
-            render::render_text_texture(&mut context.canvas, &p1_set_text_texture, 8, 8);
+            render::render_text_texture_coordinates(
+                &mut context.canvas,
+                &p1_set_text_texture,
+                text_position,
+            );
         } else if set_position == 2 {
-            render::render_text_texture(&mut context.canvas, &p2_set_text_texture, 8, 8);
+            render::render_text_texture_coordinates(
+                &mut context.canvas,
+                &p2_set_text_texture,
+                text_position,
+            );
+        } else {
+            render::render_text_texture_coordinates(
+                &mut context.canvas,
+                &help_text_texture,
+                text_position,
+            );
         };
 
         let highlighted_id = get_tile_id_from_coordinate(context.mouse.0, context.mouse.1);
