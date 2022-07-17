@@ -1,5 +1,6 @@
 extern crate sdl2;
 
+use crate::context::Textures;
 use crate::level::Level;
 use crate::types::NextMode::*;
 use sdl2::image::{InitFlag, LoadTexture};
@@ -33,8 +34,13 @@ pub fn main() {
         font: ttf_context
             .load_font("./assets/TheJewishBitmap.ttf", 24)
             .unwrap(),
-        texture_floor: texture_creator.load_texture("./assets/FLOOR1.PNG").unwrap(),
-        texture_walls: texture_creator.load_texture("./assets/WALLS1.PNG").unwrap(),
+        textures: Textures {
+            floor: texture_creator.load_texture("./assets/FLOOR1.PNG").unwrap(),
+            walls: texture_creator.load_texture("./assets/WALLS1.PNG").unwrap(),
+            shadows: texture_creator
+                .load_texture("./assets/SHADOWS_ALPHA.PNG")
+                .unwrap(),
+        },
         level: Level::get_default_level(),
         selected_tile_id: 0,
         texture_type_selected: TextureType::FLOOR,

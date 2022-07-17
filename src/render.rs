@@ -1,6 +1,7 @@
 use crate::types::*;
 use crate::util::*;
 use crate::Level;
+use crate::Textures;
 use sdl2::pixels::Color;
 use sdl2::rect::Point;
 use sdl2::rect::Rect;
@@ -89,12 +90,7 @@ pub fn render_text_texture_coordinates(
     render_text_texture(canvas, texture, coordinates.0, coordinates.1);
 }
 
-pub fn render_level(
-    canvas: &mut Canvas<Window>,
-    level: &Level,
-    texture_floor: &Texture,
-    texture_walls: &Texture,
-) {
+pub fn render_level(canvas: &mut Canvas<Window>, level: &Level, textures: &Textures) {
     for y in 0..level.tiles.len() {
         for x in 0..level.tiles[0].len() {
             let src = get_block(level.tiles[y][x].id);
@@ -105,10 +101,15 @@ pub fn render_level(
                 RENDER_SIZE,
             );
             let texture = match level.tiles[y][x].texture_type {
-                TextureType::FLOOR => texture_floor,
-                TextureType::WALLS => texture_walls,
+                TextureType::FLOOR => &textures.floor,
+                TextureType::WALLS => &textures.walls,
+                TextureType::SHADOW => unreachable!(),
             };
-            canvas.copy(&texture, src, dst).unwrap();
+            canvas.copy(texture, src, dst).unwrap();
+            if level.tiles[y][x].shadow > 0 {
+                let src = get_block(level.tiles[y][x].shadow - 1);
+                canvas.copy(&textures.shadows, src, dst).unwrap();
+            }
         }
     }
 }
@@ -116,4 +117,9 @@ pub fn render_level(
 pub fn render_and_wait(canvas: &mut Canvas<Window>) {
     canvas.present();
     ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
+}
+
+pub fn get_texture_rect(texture: &Texture) -> Rect {
+    let TextureQuery { width, height, .. } = texture.query();
+    Rect::new(0, 0, width * RENDER_MULTIPLIER, height * RENDER_MULTIPLIER)
 }

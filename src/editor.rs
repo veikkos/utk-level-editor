@@ -83,12 +83,7 @@ pub fn exec(context: &mut Context) -> NextMode {
             }
         }
 
-        render::render_level(
-            &mut context.canvas,
-            &context.level,
-            &context.texture_floor,
-            &context.texture_walls,
-        );
+        render::render_level(&mut context.canvas, &context.level, &context.textures);
         render::render_text_texture(
             &mut context.canvas,
             &p1_text_texture,

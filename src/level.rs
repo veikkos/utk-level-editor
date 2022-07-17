@@ -19,6 +19,7 @@ impl Level {
             tiles: [[Tile {
                 texture_type: TextureType::FLOOR,
                 id: 0,
+                shadow: 0,
             }; 16]; 12],
             p1_position: (1u32, 1u32),
             p2_position: (1u32, 3u32),
@@ -33,16 +34,19 @@ impl Level {
                 Tile {
                     texture_type: TextureType::WALLS,
                     id: 0,
+                    shadow: 0,
                 }
             } else if x == self.tiles[0].len() - 1 {
                 Tile {
                     texture_type: TextureType::WALLS,
                     id: 2,
+                    shadow: 0,
                 }
             } else {
                 Tile {
                     texture_type: TextureType::WALLS,
                     id: 1,
+                    shadow: 0,
                 }
             }
         }
@@ -52,16 +56,23 @@ impl Level {
                     Tile {
                         texture_type: TextureType::WALLS,
                         id: 16,
+                        shadow: 0,
                     }
                 } else if x == self.tiles[0].len() - 1 {
                     Tile {
                         texture_type: TextureType::WALLS,
                         id: 16,
+                        shadow: 0,
                     }
                 } else {
                     Tile {
                         texture_type: TextureType::FLOOR,
                         id: 0,
+                        shadow: if y == 1 || x == self.tiles[0].len() - 2 {
+                            1
+                        } else {
+                            0
+                        },
                     }
                 }
             }
@@ -71,16 +82,19 @@ impl Level {
                 Tile {
                     texture_type: TextureType::WALLS,
                     id: 32,
+                    shadow: 0,
                 }
             } else if x == self.tiles[0].len() - 1 {
                 Tile {
                     texture_type: TextureType::WALLS,
                     id: 18,
+                    shadow: 0,
                 }
             } else {
                 Tile {
                     texture_type: TextureType::WALLS,
                     id: 1,
+                    shadow: 0,
                 }
             }
         }
@@ -94,10 +108,15 @@ impl Level {
     ) {
         let x = pointed_tile as usize % self.tiles[0].len();
         let y = pointed_tile as usize / self.tiles[0].len();
-        self.tiles[y][x] = Tile {
-            texture_type: *selected_texture,
-            id: selected_tile_id,
-        };
+        if *selected_texture != TextureType::SHADOW {
+            self.tiles[y][x] = Tile {
+                texture_type: *selected_texture,
+                id: selected_tile_id,
+                shadow: 0,
+            }
+        } else {
+            self.tiles[y][x].shadow = selected_tile_id + 1
+        }
     }
 
     pub fn serialize(&self, filename: &str) -> std::io::Result<()> {
@@ -113,9 +132,9 @@ impl Level {
             for x in 0..self.tiles[0].len() {
                 file.write_all(&(self.tiles[y][x].texture_type as u32).to_le_bytes())
                     .expect("Failed to write block type");
-                file.write_all(&(self.tiles[y][x].id as u32).to_le_bytes())
+                file.write_all(&self.tiles[y][x].id.to_le_bytes())
                     .expect("Failed to write block num");
-                file.write_all(&0u32.to_le_bytes())
+                file.write_all(&self.tiles[y][x].shadow.to_le_bytes())
                     .expect("Failed to write block shadow");
             }
         }

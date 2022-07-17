@@ -16,7 +16,6 @@ pub fn exec(context: &mut Context) -> NextMode {
         "1/2  - PLACE PL1/PL2 START",
         " ",
         "SPACE - SELECTION/EDITING MODE",
-        "PAGEUP/PAGEDOWN - CHANGE BLOCK TYPE (WALLS/FLOOR)",
     ];
     let line_textures: Vec<Texture> = lines
         .iter()
