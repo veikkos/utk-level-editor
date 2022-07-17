@@ -15,8 +15,14 @@ pub fn get_block(id: u32) -> Rect {
     Rect::new(x as i32, y as i32, TILE_SIZE, TILE_SIZE)
 }
 
+pub fn get_logical_coordinates(x: u32, y: u32) -> (u32, u32) {
+    (
+        x / RENDER_MULTIPLIER / TILE_SIZE,
+        y / RENDER_MULTIPLIER / TILE_SIZE,
+    )
+}
+
 pub fn get_tile_id_from_coordinate(x: u32, y: u32) -> u32 {
-    let x_logical = x / RENDER_MULTIPLIER;
-    let y_logical = y / RENDER_MULTIPLIER;
-    x_logical / TILE_SIZE + y_logical / TILE_SIZE * 16
+    let (x_logical, y_logical) = get_logical_coordinates(x, y);
+    x_logical + y_logical * 16
 }

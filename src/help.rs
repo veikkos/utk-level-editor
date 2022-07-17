@@ -13,6 +13,7 @@ pub fn exec(context: &mut Context) -> NextMode {
         "ESC - QUIT",
         "F1   - THIS HELP",
         "F2   - SAVE LEVEL",
+        "1/2  - PLACE PL1/PL2 START",
         " ",
         "SPACE - SELECTION/EDITING MODE",
         "PAGEUP/PAGEDOWN - CHANGE BLOCK TYPE (WALLS/FLOOR)",

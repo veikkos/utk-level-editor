@@ -12,6 +12,17 @@ use sdl2::mouse::MouseButton;
 pub fn exec(context: &mut Context) -> NextMode {
     let p1_text_texture = render::get_font_texture(&context.texture_creator, &context.font, "PL1");
     let p2_text_texture = render::get_font_texture(&context.texture_creator, &context.font, "PL2");
+    let p1_set_text_texture = render::get_font_texture(
+        &context.texture_creator,
+        &context.font,
+        "PLACE PL1 START POINT",
+    );
+    let p2_set_text_texture = render::get_font_texture(
+        &context.texture_creator,
+        &context.font,
+        "PLACE PL2 START POINT",
+    );
+    let mut set_position: u8 = 0;
 
     let mut event_pump = context.sdl.event_pump().unwrap();
     loop {
@@ -32,6 +43,12 @@ pub fn exec(context: &mut Context) -> NextMode {
                     Keycode::F2 => {
                         context.level.serialize("./TEST.LEV").unwrap();
                     }
+                    Keycode::Num1 => {
+                        set_position = 1;
+                    }
+                    Keycode::Num2 => {
+                        set_position = 2;
+                    }
                     _ => {}
                 },
                 Event::MouseMotion { x, y, .. } => {
@@ -42,13 +59,23 @@ pub fn exec(context: &mut Context) -> NextMode {
                     mouse_btn: MouseButton::Left,
                     ..
                 } => {
-                    let pointed_tile =
-                        get_tile_id_from_coordinate(context.mouse.0, context.mouse.1);
-                    context.level.put_tile_to_level(
-                        pointed_tile,
-                        context.selected_tile_id,
-                        &context.texture_type_selected,
-                    );
+                    if set_position > 0 {
+                        let position = if set_position == 1 {
+                            &mut context.level.p1_position
+                        } else {
+                            &mut context.level.p2_position
+                        };
+                        *position = get_logical_coordinates(context.mouse.0, context.mouse.1);
+                        set_position = 0;
+                    } else {
+                        let pointed_tile =
+                            get_tile_id_from_coordinate(context.mouse.0, context.mouse.1);
+                        context.level.put_tile_to_level(
+                            pointed_tile,
+                            context.selected_tile_id,
+                            &context.texture_type_selected,
+                        );
+                    }
                 }
                 _ => {}
             }
@@ -72,6 +99,11 @@ pub fn exec(context: &mut Context) -> NextMode {
             context.level.p2_position.0 * RENDER_SIZE,
             context.level.p2_position.1 * RENDER_SIZE,
         );
+        if set_position == 1 {
+            render::render_text_texture(&mut context.canvas, &p1_set_text_texture, 8, 8);
+        } else if set_position == 2 {
+            render::render_text_texture(&mut context.canvas, &p2_set_text_texture, 8, 8);
+        };
 
         let highlighted_id = get_tile_id_from_coordinate(context.mouse.0, context.mouse.1);
 
