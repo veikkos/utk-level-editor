@@ -112,7 +112,7 @@ impl Level {
             self.tiles[y][x] = Tile {
                 texture_type: *selected_texture,
                 id: selected_tile_id,
-                shadow: 0,
+                shadow: self.tiles[y][x].shadow,
             }
         } else {
             self.tiles[y][x].shadow = selected_tile_id + 1
