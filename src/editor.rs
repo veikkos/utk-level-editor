@@ -10,8 +10,8 @@ use sdl2::keyboard::Keycode;
 use sdl2::mouse::MouseButton;
 
 pub fn exec(context: &mut Context) -> NextMode {
-    let p1_text_texture = render::get_font_texture(&context.texture_creator, &context.font, "P1");
-    let p2_text_texture = render::get_font_texture(&context.texture_creator, &context.font, "P2");
+    let p1_text_texture = render::get_font_texture(&context.texture_creator, &context.font, "PL1");
+    let p2_text_texture = render::get_font_texture(&context.texture_creator, &context.font, "PL2");
 
     let mut event_pump = context.sdl.event_pump().unwrap();
     loop {
@@ -25,6 +25,9 @@ pub fn exec(context: &mut Context) -> NextMode {
                 Event::KeyDown { keycode, .. } => match keycode.unwrap() {
                     Keycode::Space => {
                         return TileSelect;
+                    }
+                    Keycode::F1 => {
+                        return Help;
                     }
                     Keycode::F2 => {
                         context.level.serialize("./TEST.LEV").unwrap();

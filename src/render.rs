@@ -13,7 +13,7 @@ use sdl2::video::Window;
 use sdl2::video::WindowContext;
 use std::time::Duration;
 
-const TEXT_SIZE_DIVIDER: u32 = 4;
+const TEXT_SIZE_DIVIDER: u32 = 1;
 
 pub fn highlight_selected_tile(canvas: &mut Canvas<Window>, id: u32) {
     canvas.set_draw_color(Color::from((255, 255, 255)));

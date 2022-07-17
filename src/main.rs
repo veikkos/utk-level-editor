@@ -5,6 +5,7 @@ use crate::types::NextMode::*;
 use sdl2::image::{InitFlag, LoadTexture};
 mod context;
 mod editor;
+mod help;
 mod level;
 mod render;
 mod tile_selector;
@@ -30,7 +31,7 @@ pub fn main() {
         canvas,
         texture_creator: &texture_creator,
         font: ttf_context
-            .load_font("./assets/TheJewishBitmap.ttf", 128)
+            .load_font("./assets/TheJewishBitmap.ttf", 24)
             .unwrap(),
         texture_floor: texture_creator.load_texture("./assets/FLOOR1.PNG").unwrap(),
         texture_walls: texture_creator.load_texture("./assets/WALLS1.PNG").unwrap(),
@@ -46,6 +47,7 @@ pub fn main() {
         next_mode = match next_mode {
             Editor => editor::exec(&mut context),
             TileSelect => tile_selector::exec(&mut context),
+            Help => help::exec(&mut context),
             Quit => break 'running,
         }
     }

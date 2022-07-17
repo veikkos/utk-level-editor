@@ -15,5 +15,6 @@ pub type Tiles = [[Tile; 16]; 12];
 pub enum NextMode {
     Editor,
     TileSelect,
+    Help,
     Quit,
 }

@@ -21,7 +21,7 @@ impl Level {
                 id: 0,
             }; 16]; 12],
             p1_position: (1u32, 1u32),
-            p2_position: (2u32, 2u32),
+            p2_position: (1u32, 3u32),
         };
         level.init_default_level();
         level
