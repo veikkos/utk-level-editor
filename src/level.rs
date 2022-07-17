@@ -103,7 +103,7 @@ impl Level {
     pub fn put_tile_to_level(
         &mut self,
         pointed_tile: u32,
-        selected_tile_id: u32,
+        selected_tile_id: Option<u32>,
         selected_texture: &TextureType,
     ) {
         let x = pointed_tile as usize % self.tiles[0].len();
@@ -111,11 +111,14 @@ impl Level {
         if *selected_texture != TextureType::SHADOW {
             self.tiles[y][x] = Tile {
                 texture_type: *selected_texture,
-                id: selected_tile_id,
+                id: selected_tile_id.unwrap(),
                 shadow: self.tiles[y][x].shadow,
             }
         } else {
-            self.tiles[y][x].shadow = selected_tile_id + 1
+            self.tiles[y][x].shadow = match selected_tile_id {
+                Some(id) => id + 1,
+                None => 0,
+            };
         }
     }
 

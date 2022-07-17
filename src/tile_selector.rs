@@ -24,7 +24,7 @@ pub fn exec(context: &mut Context) -> NextMode {
     let shadow_blocks_text_texture = render::get_font_texture(
         &context.texture_creator,
         &context.font,
-        "SHADOW [PAGEGUP/DOWN]",
+        "SHADOW [PAGEGUP/DOWN] - CLEAR WITH RIGHT CLICK",
     );
     let mut event_pump = context.sdl.event_pump().unwrap();
     loop {

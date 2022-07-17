@@ -5,6 +5,7 @@ use crate::util::*;
 use crate::Context;
 use crate::NextMode;
 use crate::NextMode::*;
+use crate::TextureType;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::mouse::MouseButton;
@@ -26,6 +27,7 @@ pub fn exec(context: &mut Context) -> NextMode {
         render::get_font_texture(&context.texture_creator, &context.font, "F1 FOR HELP");
     let mut set_position: u8 = 0;
     let mut mouse_left_click = false;
+    let mut mouse_right_click = false;
 
     let mut event_pump = context.sdl.event_pump().unwrap();
     loop {
@@ -59,7 +61,10 @@ pub fn exec(context: &mut Context) -> NextMode {
                         context.mouse.0 = x as u32;
                         context.mouse.1 = y as u32;
                         if mouse_left_click {
-                            handle_mouse_down(context, &mut set_position);
+                            handle_mouse_left_down(context, &mut set_position);
+                        }
+                        if mouse_right_click {
+                            handle_mouse_right_down(context);
                         }
                     }
                 }
@@ -68,13 +73,26 @@ pub fn exec(context: &mut Context) -> NextMode {
                     ..
                 } => {
                     mouse_left_click = true;
-                    handle_mouse_down(context, &mut set_position);
+                    handle_mouse_left_down(context, &mut set_position);
                 }
                 Event::MouseButtonUp {
                     mouse_btn: MouseButton::Left,
                     ..
                 } => {
                     mouse_left_click = false;
+                }
+                Event::MouseButtonDown {
+                    mouse_btn: MouseButton::Right,
+                    ..
+                } => {
+                    mouse_right_click = true;
+                    handle_mouse_right_down(context);
+                }
+                Event::MouseButtonUp {
+                    mouse_btn: MouseButton::Right,
+                    ..
+                } => {
+                    mouse_right_click = false;
                 }
                 _ => {}
             }
@@ -121,7 +139,7 @@ pub fn exec(context: &mut Context) -> NextMode {
     }
 }
 
-fn handle_mouse_down(context: &mut Context, set_position: &mut u8) {
+fn handle_mouse_left_down(context: &mut Context, set_position: &mut u8) {
     if *set_position > 0 {
         let position = if *set_position == 1 {
             &mut context.level.p1_position
@@ -134,8 +152,15 @@ fn handle_mouse_down(context: &mut Context, set_position: &mut u8) {
         let pointed_tile = get_tile_id_from_coordinate(context.mouse.0, context.mouse.1);
         context.level.put_tile_to_level(
             pointed_tile,
-            context.selected_tile_id,
+            Some(context.selected_tile_id),
             &context.texture_type_selected,
         );
     }
+}
+
+fn handle_mouse_right_down(context: &mut Context) {
+    let pointed_tile = get_tile_id_from_coordinate(context.mouse.0, context.mouse.1);
+    context
+        .level
+        .put_tile_to_level(pointed_tile, None, &TextureType::SHADOW);
 }
