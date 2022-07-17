@@ -12,6 +12,10 @@ use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 
 pub fn exec(context: &mut Context) -> NextMode {
+    let floor_blocks_text_texture =
+        render::get_font_texture(&context.texture_creator, &context.font, "FLOOR BLOCKS");
+    let wall_blocks_text_texture =
+        render::get_font_texture(&context.texture_creator, &context.font, "WALL BLOCKS");
     let mut event_pump = context.sdl.event_pump().unwrap();
     loop {
         for event in event_pump.poll_iter() {
@@ -61,6 +65,20 @@ pub fn exec(context: &mut Context) -> NextMode {
         let highlighted_id = get_tile_id_from_coordinate(context.mouse.0, context.mouse.1);
 
         render::highlight_selected_tile(&mut context.canvas, highlighted_id);
+        let text_position = (8, 454);
+        if context.texture_type_selected == TextureType::FLOOR {
+            render::render_text_texture_coordinates(
+                &mut context.canvas,
+                &floor_blocks_text_texture,
+                text_position,
+            );
+        } else {
+            render::render_text_texture_coordinates(
+                &mut context.canvas,
+                &wall_blocks_text_texture,
+                text_position,
+            );
+        };
         render::render_and_wait(&mut context.canvas);
     }
 }

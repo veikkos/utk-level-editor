@@ -81,6 +81,14 @@ pub fn render_text_texture(canvas: &mut Canvas<Window>, texture: &Texture, x: u3
     canvas.copy(&texture, None, dst).unwrap();
 }
 
+pub fn render_text_texture_coordinates(
+    canvas: &mut Canvas<Window>,
+    texture: &Texture,
+    coordinates: (u32, u32),
+) {
+    render_text_texture(canvas, texture, coordinates.0, coordinates.1);
+}
+
 pub fn render_level(
     canvas: &mut Canvas<Window>,
     level: &Level,
