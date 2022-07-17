@@ -71,6 +71,7 @@ pub fn exec(context: &mut Context) -> NextMode {
                 } => {
                     context.selected_tile_id =
                         get_tile_id_from_coordinate(context.mouse.0, context.mouse.1);
+                    return Editor;
                 }
                 _ => {}
             }
