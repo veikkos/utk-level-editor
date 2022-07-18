@@ -277,14 +277,10 @@ impl Level {
             }
         }
 
-        // file.write_all(&(self.p1_position.0).to_le_bytes())
-        //     .expect("Failed to write p1 start x");
-        // file.write_all(&(self.p1_position.1).to_le_bytes())
-        //     .expect("Failed to write p1 start y");
-        // file.write_all(&(self.p2_position.0).to_le_bytes())
-        //     .expect("Failed to write p2 start x");
-        // file.write_all(&(self.p2_position.1).to_le_bytes())
-        //     .expect("Failed to write p2 start y");
+        self.p1_position.0 = file.read_u32::<LittleEndian>()?;
+        self.p1_position.1 = file.read_u32::<LittleEndian>()?;
+        self.p2_position.0 = file.read_u32::<LittleEndian>()?;
+        self.p2_position.1 = file.read_u32::<LittleEndian>()?;
         // file.write_all(&(0u32).to_le_bytes())
         //     .expect("Failed to write spot amount");
 
