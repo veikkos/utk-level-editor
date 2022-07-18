@@ -3,6 +3,7 @@ extern crate sdl2;
 use crate::render;
 use crate::util::*;
 use crate::Context;
+use crate::Level;
 use crate::NextMode;
 use crate::NextMode::*;
 use crate::TextureType;
@@ -25,9 +26,17 @@ pub fn exec(context: &mut Context) -> NextMode {
     );
     let help_text_texture =
         render::get_font_texture(&context.texture_creator, &context.font, "F1 FOR HELP");
+    let create_new_level_text_texture =
+        render::get_font_texture(&context.texture_creator, &context.font, "CREATE NEW LEVEL?");
+    let press_y_text_texture = render::get_font_texture(
+        &context.texture_creator,
+        &context.font,
+        "PRESS Y TO CONFIRM",
+    );
     let mut set_position: u8 = 0;
     let mut mouse_left_click = false;
     let mut mouse_right_click = false;
+    let mut prompt_new_level = false;
 
     let mut event_pump = context.sdl.event_pump().unwrap();
     loop {
@@ -47,14 +56,26 @@ pub fn exec(context: &mut Context) -> NextMode {
                     }
                     Keycode::F2 => {
                         context.level.serialize("./TEST.LEV").unwrap();
+                        prompt_new_level = false;
+                    }
+                    Keycode::F4 => {
+                        prompt_new_level = true;
                     }
                     Keycode::Num1 => {
                         set_position = 1;
+                        prompt_new_level = false;
                     }
                     Keycode::Num2 => {
                         set_position = 2;
+                        prompt_new_level = false;
                     }
-                    _ => {}
+                    Keycode::Y => {
+                        context.level = Level::get_default_level();
+                        prompt_new_level = false;
+                    }
+                    _ => {
+                        prompt_new_level = false;
+                    }
                 },
                 Event::MouseMotion { x, y, .. } => {
                     if x >= 0 && y >= 0 {
@@ -131,7 +152,15 @@ pub fn exec(context: &mut Context) -> NextMode {
                 text_position,
             );
         };
-
+        if prompt_new_level {
+            render::render_text_texture(
+                &mut context.canvas,
+                &create_new_level_text_texture,
+                200,
+                200,
+            );
+            render::render_text_texture(&mut context.canvas, &press_y_text_texture, 200, 230);
+        }
         let highlighted_id = get_tile_id_from_coordinate(context.mouse.0, context.mouse.1);
 
         render::highlight_selected_tile(&mut context.canvas, highlighted_id);
