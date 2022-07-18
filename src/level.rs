@@ -40,50 +40,58 @@ impl From<FileTypeError> for DeserializationError {
 
 impl Level {
     pub fn get_default_level() -> Level {
-        let mut level = Level {
-            tiles: [[Tile {
-                texture_type: TextureType::FLOOR,
-                id: 0,
-                shadow: 0,
-            }; 16]; 12],
+        Level {
+            tiles: Level::init_default_level(),
             p1_position: (1u32, 1u32),
             p2_position: (1u32, 3u32),
-        };
-        level.init_default_level();
-        level
+        }
     }
 
-    pub fn init_default_level(&mut self) {
-        for x in 0..self.tiles[0].len() {
-            self.tiles[0][x] = if x == 0 {
-                Tile {
-                    texture_type: TextureType::WALLS,
-                    id: 0,
-                    shadow: 0,
-                }
-            } else if x == self.tiles[0].len() - 1 {
-                Tile {
-                    texture_type: TextureType::WALLS,
-                    id: 2,
-                    shadow: 0,
-                }
-            } else {
-                Tile {
-                    texture_type: TextureType::WALLS,
-                    id: 1,
-                    shadow: 0,
-                }
+    fn init_default_level() -> Tiles {
+        const LEVEL_SIZE_X: u8 = 16;
+        const LEVEL_SIZE_Y: u8 = 12;
+
+        let mut tiles = Vec::new();
+
+        // First row ...
+        {
+            let mut row = Vec::new();
+            for x in 0..LEVEL_SIZE_X {
+                row.push(if x == 0 {
+                    Tile {
+                        texture_type: TextureType::WALLS,
+                        id: 0,
+                        shadow: 0,
+                    }
+                } else if x == LEVEL_SIZE_X - 1 {
+                    Tile {
+                        texture_type: TextureType::WALLS,
+                        id: 2,
+                        shadow: 0,
+                    }
+                } else {
+                    Tile {
+                        texture_type: TextureType::WALLS,
+                        id: 1,
+                        shadow: 0,
+                    }
+                });
             }
+            tiles.push(row);
         }
-        for y in 1..(self.tiles.len() - 1) {
-            for x in 0..self.tiles[0].len() {
-                self.tiles[y][x] = if x == 0 {
+
+        // .. all but final row ...
+        for y in 1..LEVEL_SIZE_Y - 1 {
+            let mut row = Vec::new();
+
+            for x in 0..LEVEL_SIZE_X {
+                row.push(if x == 0 {
                     Tile {
                         texture_type: TextureType::WALLS,
                         id: 16,
                         shadow: 0,
                     }
-                } else if x == self.tiles[0].len() - 1 {
+                } else if x == LEVEL_SIZE_X - 1 {
                     Tile {
                         texture_type: TextureType::WALLS,
                         id: 16,
@@ -93,36 +101,44 @@ impl Level {
                     Tile {
                         texture_type: TextureType::FLOOR,
                         id: 0,
-                        shadow: if y == 1 || x == self.tiles[0].len() - 2 {
+                        shadow: if y == 1 || x == LEVEL_SIZE_X - 2 {
                             1
                         } else {
                             0
                         },
                     }
-                }
+                });
             }
+            tiles.push(row);
         }
-        for x in 0..self.tiles[0].len() {
-            self.tiles[self.tiles.len() - 1][x] = if x == 0 {
-                Tile {
-                    texture_type: TextureType::WALLS,
-                    id: 32,
-                    shadow: 0,
-                }
-            } else if x == self.tiles[0].len() - 1 {
-                Tile {
-                    texture_type: TextureType::WALLS,
-                    id: 18,
-                    shadow: 0,
-                }
-            } else {
-                Tile {
-                    texture_type: TextureType::WALLS,
-                    id: 1,
-                    shadow: 0,
-                }
+
+        // ... and final row!
+        {
+            let mut row = Vec::new();
+            for x in 0..LEVEL_SIZE_X {
+                row.push(if x == 0 {
+                    Tile {
+                        texture_type: TextureType::WALLS,
+                        id: 32,
+                        shadow: 0,
+                    }
+                } else if x == LEVEL_SIZE_X - 1 {
+                    Tile {
+                        texture_type: TextureType::WALLS,
+                        id: 18,
+                        shadow: 0,
+                    }
+                } else {
+                    Tile {
+                        texture_type: TextureType::WALLS,
+                        id: 1,
+                        shadow: 0,
+                    }
+                });
             }
+            tiles.push(row);
         }
+        tiles
     }
 
     pub fn put_tile_to_level(

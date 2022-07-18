@@ -23,7 +23,7 @@ pub struct Tile {
     pub(crate) shadow: u32,
 }
 
-pub type Tiles = [[Tile; 16]; 12];
+pub type Tiles = Vec<Vec<Tile>>;
 
 pub enum NextMode {
     Editor,
