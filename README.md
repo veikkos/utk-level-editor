@@ -12,9 +12,9 @@ Implementation is done using [SDL2](https://www.libsdl.org/) library for creatin
 - :heavy_check_mark: Creating shadows
 - :heavy_check_mark: Setting player start positions
 - :heavy_check_mark::grey_exclamation: Saving level but with hard-coded file name
+- :heavy_check_mark::grey_exclamation: Only partial support for loading a level from file
 - :x::grey_exclamation: Enemies, weapons and bullets are hard-coded to 1 each
 - :x::grey_exclamation: Time limit is hard-coded
-- :x: Loading previously generated level
 - :x: Setting level size
 - :x: Setting crates
 - :x: Setting spot lights

@@ -1,8 +1,19 @@
 #[derive(Clone, Copy, PartialEq)]
 pub enum TextureType {
     FLOOR = 0,
-    WALLS,
-    SHADOW,
+    WALLS = 1,
+    SHADOW = 2,
+}
+
+impl TextureType {
+    pub fn from_u32(value: u32) -> TextureType {
+        match value {
+            0 => TextureType::FLOOR,
+            1 => TextureType::WALLS,
+            2 => TextureType::SHADOW,
+            _ => panic!("Unknown value: {}", value),
+        }
+    }
 }
 
 #[derive(Clone, Copy)]

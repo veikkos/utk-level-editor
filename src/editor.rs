@@ -76,6 +76,10 @@ pub fn exec(context: &mut Context) -> NextMode {
                         context.level.serialize("./TEST.LEV").unwrap();
                         prompt = PromptType::None;
                     }
+                    Keycode::F3 => {
+                        context.level.deserialize("./TEST.LEV").unwrap();
+                        prompt = PromptType::None;
+                    }
                     Keycode::F4 => {
                         prompt = PromptType::NewLevel;
                     }

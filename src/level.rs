@@ -1,4 +1,5 @@
 use crate::types::*;
+use byteorder::{LittleEndian, ReadBytesExt};
 use std::{fs::File, io::Write};
 
 const DIFF_BULLETS: u32 = 9;
@@ -11,6 +12,30 @@ pub struct Level {
     pub tiles: Tiles,
     pub p1_position: (u32, u32),
     pub p2_position: (u32, u32),
+}
+
+#[derive(Debug)]
+pub enum FileTypeError {
+    InvalidVersion,
+    InvalidLevelSize,
+}
+
+#[derive(Debug)]
+pub enum DeserializationError {
+    IOError(std::io::Error),
+    ContentError(FileTypeError),
+}
+
+impl From<std::io::Error> for DeserializationError {
+    fn from(e: std::io::Error) -> Self {
+        DeserializationError::IOError(e)
+    }
+}
+
+impl From<FileTypeError> for DeserializationError {
+    fn from(e: FileTypeError) -> Self {
+        DeserializationError::ContentError(e)
+    }
 }
 
 impl Level {
@@ -215,6 +240,116 @@ impl Level {
             .expect("Failed to write deathmatch game crate amount");
         // TODO: Write deathmatch game crates
         // fread( deathmatch_crate_info, sizeof(Crate_info) * deathmatch_crate_amount, 1, dat );
+
+        Ok(())
+    }
+
+    pub fn deserialize(&mut self, filename: &str) -> Result<(), DeserializationError> {
+        let mut file = File::open(filename)?;
+        let version: u32 = file.read_u32::<LittleEndian>()?;
+
+        if version != VERSION {
+            return Err(DeserializationError::ContentError(
+                FileTypeError::InvalidVersion,
+            ));
+        }
+
+        let x_size: u32 = file.read_u32::<LittleEndian>()?;
+        if x_size != self.tiles[0].len() as u32 {
+            return Err(DeserializationError::ContentError(
+                FileTypeError::InvalidLevelSize,
+            ));
+        }
+
+        let y_size: u32 = file.read_u32::<LittleEndian>()?;
+        if y_size != self.tiles.len() as u32 {
+            return Err(DeserializationError::ContentError(
+                FileTypeError::InvalidLevelSize,
+            ));
+        }
+
+        for y in 0..(self.tiles.len()) {
+            for x in 0..self.tiles[0].len() {
+                self.tiles[y][x].texture_type =
+                    TextureType::from_u32(file.read_u32::<LittleEndian>()?);
+                self.tiles[y][x].id = file.read_u32::<LittleEndian>()?;
+                self.tiles[y][x].shadow = file.read_u32::<LittleEndian>()?;
+            }
+        }
+
+        // file.write_all(&(self.p1_position.0).to_le_bytes())
+        //     .expect("Failed to write p1 start x");
+        // file.write_all(&(self.p1_position.1).to_le_bytes())
+        //     .expect("Failed to write p1 start y");
+        // file.write_all(&(self.p2_position.0).to_le_bytes())
+        //     .expect("Failed to write p2 start x");
+        // file.write_all(&(self.p2_position.1).to_le_bytes())
+        //     .expect("Failed to write p2 start y");
+        // file.write_all(&(0u32).to_le_bytes())
+        //     .expect("Failed to write spot amount");
+
+        // // TODO: Write spots
+        // // for ( a = 0; a < Spot_amount; a ++  )
+        // // {
+        // //     fread( &spot_light[a].x, 4, 1, dat );
+        // //     fread( &spot_light[a].y, 4, 1, dat );
+        // //     fread( &spot_light[a].size, 4, 1, dat );
+        // // }
+
+        // file.write_all(&(0u32).to_le_bytes())
+        //     .expect("Failed to write steam amount");
+
+        // // TODO: Write steams
+        // // for ( a = 0; a < Steam_amount; a ++  )
+        // // {
+        // //     fread( &steam[a].x, 4, 1, dat );
+        // //     fread( &steam[a].y, 4, 1, dat );
+        // //     fread( &steam[a].angle, 4, 1, dat );
+        // //     fread( &steam[a].speed, 4, 1, dat );
+        // // }
+
+        // let comment = "Rust UTK editor\0\0\0\0\0";
+        // file.write_all(&comment.as_bytes())
+        //     .expect("Failed to write comment");
+        // file.write_all(&(45u32).to_le_bytes())
+        //     .expect("Failed to write time limit");
+        // for x in 0..DIFF_ENEMIES {
+        //     let amount = if x == 0 { 1u32 } else { 0u32 };
+        //     file.write_all(&(amount).to_le_bytes())
+        //         .expect("Failed to write normal game enemies");
+        // }
+        // for x in 0..DIFF_WEAPONS {
+        //     let amount = if x == 0 { 1u32 } else { 0u32 };
+        //     file.write_all(&(amount).to_le_bytes())
+        //         .expect("Failed to write normal game weapons");
+        // }
+        // for x in 0..DIFF_BULLETS {
+        //     let amount = if x == 0 { 1u32 } else { 0u32 };
+        //     file.write_all(&(amount).to_le_bytes())
+        //         .expect("Failed to write normal game bullets");
+        // }
+        // file.write_all(&(1u32).to_le_bytes())
+        //     .expect("Failed to write normal game energy crates");
+        // for x in 0..DIFF_WEAPONS {
+        //     let amount = if x == 0 { 1u32 } else { 0u32 };
+        //     file.write_all(&(amount).to_le_bytes())
+        //         .expect("Failed to write multiplayer game weapons");
+        // }
+        // for x in 0..DIFF_BULLETS {
+        //     let amount = if x == 0 { 1u32 } else { 0u32 };
+        //     file.write_all(&(amount).to_le_bytes())
+        //         .expect("Failed to write multiplayer game bullets");
+        // }
+        // file.write_all(&(1u32).to_le_bytes())
+        //     .expect("Failed to write multiplayer game energy crates");
+        // file.write_all(&(0u32).to_le_bytes())
+        //     .expect("Failed to write normal game crate amount");
+        // // TODO: Write normal game crates
+        // // fread( normal_crate_info, sizeof(Crate_info) * normal_crate_amount, 1, dat );
+        // file.write_all(&(0u32).to_le_bytes())
+        //     .expect("Failed to write deathmatch game crate amount");
+        // // TODO: Write deathmatch game crates
+        // // fread( deathmatch_crate_info, sizeof(Crate_info) * deathmatch_crate_amount, 1, dat );
 
         Ok(())
     }
