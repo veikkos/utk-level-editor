@@ -18,6 +18,14 @@ enum PromptType {
     Quit,
 }
 
+#[derive(PartialEq)]
+enum SpotlightType {
+    None,
+    Instructions(u32),
+    Place,
+    Delete,
+}
+
 pub fn exec(context: &mut Context) -> NextMode {
     let p1_text_texture = render::get_font_texture(&context.texture_creator, &context.font, "PL1");
     let p2_text_texture = render::get_font_texture(&context.texture_creator, &context.font, "PL2");
@@ -45,10 +53,26 @@ pub fn exec(context: &mut Context) -> NextMode {
         &context.font,
         "PRESS Y TO CONFIRM",
     );
+    let spotlight_place_text_texture = render::get_font_texture(
+        &context.texture_creator,
+        &context.font,
+        "PLACE SPOTLIGHT (ESC TO CANCEL)",
+    );
+    let spotlight_delete_text_texture = render::get_font_texture(
+        &context.texture_creator,
+        &context.font,
+        "DELETE SPOTLIGHT (ESC TO CANCEL)",
+    );
+    let spotlight_instructions_text_texture = render::get_font_texture(
+        &context.texture_creator,
+        &context.font,
+        "USE UP AND DOWN KEYS TO ADJUST SIZE, ENTER TO ACCEPT",
+    );
     let mut set_position: u8 = 0;
     let mut mouse_left_click = false;
     let mut mouse_right_click = false;
-    let mut prompt: PromptType = PromptType::None;
+    let mut prompt = PromptType::None;
+    let mut spotlight = SpotlightType::None;
 
     let mut event_pump = context.sdl.event_pump().unwrap();
     loop {
@@ -59,7 +83,8 @@ pub fn exec(context: &mut Context) -> NextMode {
                     keycode: Some(Keycode::Escape),
                     ..
                 } => {
-                    prompt = if prompt != PromptType::None {
+                    prompt = if prompt != PromptType::None || spotlight != SpotlightType::None {
+                        spotlight = SpotlightType::None;
                         PromptType::None
                     } else {
                         PromptType::Quit
@@ -91,6 +116,14 @@ pub fn exec(context: &mut Context) -> NextMode {
                         set_position = 2;
                         prompt = PromptType::None;
                     }
+                    Keycode::Q => {
+                        spotlight = SpotlightType::Place;
+                        prompt = PromptType::None;
+                    }
+                    Keycode::W => {
+                        spotlight = SpotlightType::Delete;
+                        prompt = PromptType::None;
+                    }
                     Keycode::Y => {
                         match prompt {
                             PromptType::NewLevel => context.level = Level::get_default_level(),
@@ -99,18 +132,36 @@ pub fn exec(context: &mut Context) -> NextMode {
                         }
                         prompt = PromptType::None;
                     }
-                    Keycode::Up => {
-                        if context.level.scroll.1 > 0 {
-                            context.level.scroll.1 = context.level.scroll.1 - 1;
+                    Keycode::Up => match spotlight {
+                        SpotlightType::Instructions(tile) => {
+                            let spotlight_intensity = context.level.get_spotlight_from_level(tile);
+                            context
+                                .level
+                                .put_spotlight_to_level(tile, spotlight_intensity + 1)
                         }
-                    }
-                    Keycode::Down => {
-                        if context.level.scroll.1 + TILES_Y_PER_SCREEN
-                            < (context.level.tiles.len()) as u32
-                        {
-                            context.level.scroll.1 = context.level.scroll.1 + 1;
+                        _ => {
+                            if context.level.scroll.1 > 0 {
+                                context.level.scroll.1 = context.level.scroll.1 - 1
+                            }
                         }
-                    }
+                    },
+                    Keycode::Down => match spotlight {
+                        SpotlightType::Instructions(tile) => {
+                            let spotlight_intensity = context.level.get_spotlight_from_level(tile);
+                            if spotlight_intensity > 1 {
+                                context
+                                    .level
+                                    .put_spotlight_to_level(tile, spotlight_intensity - 1)
+                            }
+                        }
+                        _ => {
+                            if context.level.scroll.1 + TILES_Y_PER_SCREEN
+                                < (context.level.tiles.len()) as u32
+                            {
+                                context.level.scroll.1 = context.level.scroll.1 + 1;
+                            }
+                        }
+                    },
                     Keycode::Left => {
                         if context.level.scroll.0 > 0 {
                             context.level.scroll.0 = context.level.scroll.0 - 1;
@@ -123,6 +174,11 @@ pub fn exec(context: &mut Context) -> NextMode {
                             context.level.scroll.0 = context.level.scroll.0 + 1;
                         }
                     }
+                    Keycode::Return | Keycode::KpEnter => {
+                        if matches!(spotlight, SpotlightType::Instructions(_)) {
+                            spotlight = SpotlightType::Place;
+                        }
+                    }
                     _ => prompt = PromptType::None,
                 },
                 Event::MouseMotion { x, y, .. } => {
@@ -130,7 +186,7 @@ pub fn exec(context: &mut Context) -> NextMode {
                         context.mouse.0 = x as u32;
                         context.mouse.1 = y as u32;
                         if mouse_left_click {
-                            handle_mouse_left_down(context, &mut set_position);
+                            handle_mouse_left_down(context, &mut set_position, &mut spotlight);
                         }
                         if mouse_right_click {
                             handle_mouse_right_down(context);
@@ -142,7 +198,7 @@ pub fn exec(context: &mut Context) -> NextMode {
                     ..
                 } => {
                     mouse_left_click = true;
-                    handle_mouse_left_down(context, &mut set_position);
+                    handle_mouse_left_down(context, &mut set_position, &mut spotlight);
                 }
                 Event::MouseButtonUp {
                     mouse_btn: MouseButton::Left,
@@ -183,28 +239,25 @@ pub fn exec(context: &mut Context) -> NextMode {
             Some(context.level.scroll),
         );
         let text_position = (8, 8);
-        if set_position == 1 {
-            render::render_text_texture_coordinates(
-                &mut context.canvas,
-                &p1_set_text_texture,
-                text_position,
-                None,
-            );
+        let text_texture = if set_position == 1 {
+            &p1_set_text_texture
         } else if set_position == 2 {
-            render::render_text_texture_coordinates(
-                &mut context.canvas,
-                &p2_set_text_texture,
-                text_position,
-                None,
-            );
+            &p2_set_text_texture
+        } else if matches!(spotlight, SpotlightType::Instructions(_)) {
+            &spotlight_instructions_text_texture
+        } else if spotlight == SpotlightType::Place {
+            &spotlight_place_text_texture
+        } else if spotlight == SpotlightType::Delete {
+            &spotlight_delete_text_texture
         } else {
-            render::render_text_texture_coordinates(
-                &mut context.canvas,
-                &help_text_texture,
-                text_position,
-                None,
-            );
+            &help_text_texture
         };
+        render::render_text_texture_coordinates(
+            &mut context.canvas,
+            text_texture,
+            text_position,
+            None,
+        );
         if prompt != PromptType::None {
             let prompt_texture = match prompt {
                 PromptType::NewLevel => &create_new_level_text_texture,
@@ -222,7 +275,11 @@ pub fn exec(context: &mut Context) -> NextMode {
     }
 }
 
-fn handle_mouse_left_down(context: &mut Context, set_position: &mut u8) {
+fn handle_mouse_left_down(
+    context: &mut Context,
+    set_position: &mut u8,
+    spotlight: &mut SpotlightType,
+) {
     if *set_position > 0 {
         let position = if *set_position == 1 {
             &mut context.level.p1_position
@@ -239,11 +296,18 @@ fn handle_mouse_left_down(context: &mut Context, set_position: &mut u8) {
             context.level.tiles[0].len() as u32,
             Some(context.level.scroll),
         );
-        context.level.put_tile_to_level(
-            pointed_tile,
-            Some(context.selected_tile_id),
-            &context.texture_type_selected,
-        );
+        if *spotlight == SpotlightType::Place {
+            *spotlight = SpotlightType::Instructions(pointed_tile);
+            context.level.put_spotlight_to_level(pointed_tile, 1);
+        } else if *spotlight == SpotlightType::Delete {
+            context.level.put_spotlight_to_level(pointed_tile, 0);
+        } else {
+            context.level.put_tile_to_level(
+                pointed_tile,
+                Some(context.selected_tile_id),
+                &context.texture_type_selected,
+            );
+        }
     }
 }
 

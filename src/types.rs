@@ -21,6 +21,7 @@ pub struct Tile {
     pub(crate) texture_type: TextureType,
     pub(crate) id: u32,
     pub(crate) shadow: u32,
+    pub(crate) spotlight: u8, // 0 = off, 1-10 = intensity
 }
 
 pub type Tiles = Vec<Vec<Tile>>;

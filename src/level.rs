@@ -65,18 +65,21 @@ impl Level {
                         texture_type: TextureType::WALLS,
                         id: 0,
                         shadow: 0,
+                        spotlight: 0,
                     }
                 } else if x == LEVEL_SIZE_X - 1 {
                     Tile {
                         texture_type: TextureType::WALLS,
                         id: 2,
                         shadow: 0,
+                        spotlight: 0,
                     }
                 } else {
                     Tile {
                         texture_type: TextureType::WALLS,
                         id: 1,
                         shadow: 0,
+                        spotlight: 0,
                     }
                 });
             }
@@ -93,12 +96,14 @@ impl Level {
                         texture_type: TextureType::WALLS,
                         id: 16,
                         shadow: 0,
+                        spotlight: 0,
                     }
                 } else if x == LEVEL_SIZE_X - 1 {
                     Tile {
                         texture_type: TextureType::WALLS,
                         id: 16,
                         shadow: 0,
+                        spotlight: 0,
                     }
                 } else {
                     Tile {
@@ -109,6 +114,7 @@ impl Level {
                         } else {
                             0
                         },
+                        spotlight: 0,
                     }
                 });
             }
@@ -124,18 +130,21 @@ impl Level {
                         texture_type: TextureType::WALLS,
                         id: 32,
                         shadow: 0,
+                        spotlight: 0,
                     }
                 } else if x == LEVEL_SIZE_X - 1 {
                     Tile {
                         texture_type: TextureType::WALLS,
                         id: 18,
                         shadow: 0,
+                        spotlight: 0,
                     }
                 } else {
                     Tile {
                         texture_type: TextureType::WALLS,
                         id: 1,
                         shadow: 0,
+                        spotlight: 0,
                     }
                 });
             }
@@ -144,19 +153,25 @@ impl Level {
         tiles
     }
 
+    fn get_tile_index(&mut self, pointed_tile: u32) -> (usize, usize) {
+        (
+            pointed_tile as usize % self.tiles[0].len(),
+            pointed_tile as usize / self.tiles[0].len(),
+        )
+    }
     pub fn put_tile_to_level(
         &mut self,
         pointed_tile: u32,
         selected_tile_id: Option<u32>,
         selected_texture: &TextureType,
     ) {
-        let x = pointed_tile as usize % self.tiles[0].len();
-        let y = pointed_tile as usize / self.tiles[0].len();
+        let (x, y) = self.get_tile_index(pointed_tile);
         if *selected_texture != TextureType::SHADOW {
             self.tiles[y][x] = Tile {
                 texture_type: *selected_texture,
                 id: selected_tile_id.unwrap(),
                 shadow: self.tiles[y][x].shadow,
+                spotlight: self.tiles[y][x].spotlight,
             }
         } else {
             self.tiles[y][x].shadow = match selected_tile_id {
@@ -164,6 +179,18 @@ impl Level {
                 None => 0,
             };
         }
+    }
+
+    pub fn put_spotlight_to_level(&mut self, pointed_tile: u32, spotlight: u8) {
+        let (x, y) = self.get_tile_index(pointed_tile);
+        if spotlight <= 10 {
+            self.tiles[y][x].spotlight = spotlight;
+        }
+    }
+
+    pub fn get_spotlight_from_level(&mut self, pointed_tile: u32) -> u8 {
+        let (x, y) = self.get_tile_index(pointed_tile);
+        self.tiles[y][x].spotlight
     }
 
     pub fn serialize(&self, filename: &str) -> std::io::Result<()> {
@@ -194,16 +221,32 @@ impl Level {
             .expect("Failed to write p2 start x");
         file.write_all(&(self.p2_position.1).to_le_bytes())
             .expect("Failed to write p2 start y");
-        file.write_all(&(0u32).to_le_bytes())
+
+        let mut spots = Vec::new();
+        for y in 0..(self.tiles.len()) {
+            for x in 0..self.tiles[0].len() {
+                let spotlight = self.tiles[y][x].spotlight;
+                if spotlight > 0 {
+                    spots.push((
+                        x as u32 * TILE_SIZE + TILE_SIZE / 2,
+                        y as u32 * TILE_SIZE + TILE_SIZE / 2,
+                        (spotlight - 1) as u32,
+                    ));
+                }
+            }
+        }
+
+        file.write_all(&(spots.len() as u32).to_le_bytes())
             .expect("Failed to write spot amount");
 
-        // TODO: Write spots
-        // for ( a = 0; a < Spot_amount; a ++  )
-        // {
-        //     fread( &spot_light[a].x, 4, 1, dat );
-        //     fread( &spot_light[a].y, 4, 1, dat );
-        //     fread( &spot_light[a].size, 4, 1, dat );
-        // }
+        for spot in spots {
+            file.write_all(&spot.0.to_le_bytes())
+                .expect("Failed to write spotlight x position");
+            file.write_all(&spot.1.to_le_bytes())
+                .expect("Failed to write spotlight x position");
+            file.write_all(&spot.2.to_le_bytes())
+                .expect("Failed to write spotlight intensity");
+        }
 
         file.write_all(&(0u32).to_le_bytes())
             .expect("Failed to write steam amount");
@@ -297,6 +340,7 @@ impl Level {
                     texture_type: TextureType::from_u32(file.read_u32::<LittleEndian>()?),
                     id: file.read_u32::<LittleEndian>()?,
                     shadow: file.read_u32::<LittleEndian>()?,
+                    spotlight: 0,
                 });
             }
             tiles.push(row);

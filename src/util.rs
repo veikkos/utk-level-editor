@@ -44,3 +44,10 @@ pub fn get_scroll_corrected_indexes(
 ) -> (usize, usize) {
     ((x_index + scroll.0) as usize, (y_index + scroll.1) as usize)
 }
+
+pub fn get_absolute_coordinates_from_logical(x: u32, y: u32) -> (i32, i32) {
+    (
+        (x * RENDER_SIZE).try_into().unwrap(),
+        (y * RENDER_SIZE).try_into().unwrap(),
+    )
+}

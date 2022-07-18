@@ -98,17 +98,64 @@ pub fn render_text_texture_coordinates(
     render_text_texture(canvas, texture, coordinates.0, coordinates.1, scroll);
 }
 
+fn draw_circle(canvas: &mut Canvas<Window>, x_center: i32, y_center: i32, radius: u32) {
+    // https://stackoverflow.com/a/48291620
+    let diameter: i32 = radius as i32 * 2;
+    let mut x: i32 = radius as i32 - 1;
+    let mut y: i32 = 0;
+    let mut tx: i32 = 1;
+    let mut ty: i32 = 1;
+    let mut error: i32 = tx - diameter;
+
+    canvas.set_draw_color(Color::from((0, 0, 255)));
+
+    while x >= y {
+        canvas
+            .draw_point(Point::new(x_center + x, y_center - y))
+            .unwrap();
+        canvas
+            .draw_point(Point::new(x_center + x, y_center + y))
+            .unwrap();
+        canvas
+            .draw_point(Point::new(x_center - x, y_center - y))
+            .unwrap();
+        canvas
+            .draw_point(Point::new(x_center - x, y_center + y))
+            .unwrap();
+        canvas
+            .draw_point(Point::new(x_center + y, y_center - x))
+            .unwrap();
+        canvas
+            .draw_point(Point::new(x_center + y, y_center + x))
+            .unwrap();
+        canvas
+            .draw_point(Point::new(x_center - y, y_center - x))
+            .unwrap();
+        canvas
+            .draw_point(Point::new(x_center - y, y_center + x))
+            .unwrap();
+
+        if error <= 0 {
+            y = y + 1;
+            error += ty;
+            ty += 2;
+        }
+
+        if error > 0 {
+            x = x - 1;
+            tx += 2;
+            error += tx - diameter;
+        }
+    }
+}
+
 pub fn render_level(canvas: &mut Canvas<Window>, level: &Level, textures: &Textures) {
     for y in 0..TILES_Y_PER_SCREEN {
         for x in 0..TILES_X_PER_SCREEN {
             let (x_index, y_index) = get_scroll_corrected_indexes(level.scroll, x, y);
             let src = get_block(level.tiles[y_index][x_index].id);
-            let dst = Rect::new(
-                (x * RENDER_SIZE).try_into().unwrap(),
-                (y * RENDER_SIZE).try_into().unwrap(),
-                RENDER_SIZE,
-                RENDER_SIZE,
-            );
+            let (x_absolute, y_absolute) = get_absolute_coordinates_from_logical(x, y);
+            let dst = Rect::new(x_absolute, y_absolute, RENDER_SIZE, RENDER_SIZE);
             let texture = match level.tiles[y_index][x_index].texture_type {
                 TextureType::FLOOR => &textures.floor,
                 TextureType::WALLS => &textures.walls,
@@ -118,6 +165,21 @@ pub fn render_level(canvas: &mut Canvas<Window>, level: &Level, textures: &Textu
             if level.tiles[y_index][x_index].shadow > 0 {
                 let src = get_block(level.tiles[y_index][x_index].shadow - 1);
                 canvas.copy(&textures.shadows, src, dst).unwrap();
+            }
+        }
+    }
+    for y in 0..TILES_Y_PER_SCREEN {
+        for x in 0..TILES_X_PER_SCREEN {
+            let (x_index, y_index) = get_scroll_corrected_indexes(level.scroll, x, y);
+            let spotlight = level.tiles[y_index][x_index].spotlight;
+            if spotlight > 0 {
+                let (x_absolute, y_absolute) = get_absolute_coordinates_from_logical(x, y);
+                draw_circle(
+                    canvas,
+                    x_absolute + RENDER_SIZE as i32 / 2,
+                    y_absolute + RENDER_SIZE as i32 / 2,
+                    spotlight as u32 * 5,
+                );
             }
         }
     }
