@@ -13,7 +13,7 @@ pub fn exec(context: &mut Context) -> NextMode {
         "ESC - QUIT",
         "F1   - THIS HELP",
         "F2   - SAVE LEVEL",
-        "F3   - LOAD LEVEL (WIP)",
+        "F3   - LOAD LEVEL",
         "F4   - MAKE NEW LEVEL",
         "1/2  - PLACE PL1/PL2 START",
         " ",
