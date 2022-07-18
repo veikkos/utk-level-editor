@@ -34,7 +34,7 @@ pub fn exec(context: &mut Context) -> NextMode {
                 | Event::KeyDown {
                     keycode: Some(Keycode::Escape),
                     ..
-                } => return Quit,
+                } => return Editor,
                 Event::KeyDown { keycode, .. } => match keycode.unwrap() {
                     Keycode::Space => {
                         return Editor;

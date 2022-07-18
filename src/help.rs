@@ -27,7 +27,7 @@ pub fn exec(context: &mut Context) -> NextMode {
     loop {
         for event in event_pump.poll_iter() {
             match event {
-                Event::Quit { .. } => return Quit,
+                Event::Quit { .. } => return Editor,
                 Event::KeyDown { .. } => {
                     return Editor;
                 }

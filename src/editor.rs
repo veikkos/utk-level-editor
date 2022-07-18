@@ -11,6 +11,13 @@ use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::mouse::MouseButton;
 
+#[derive(PartialEq)]
+enum PromptType {
+    None,
+    NewLevel,
+    Quit,
+}
+
 pub fn exec(context: &mut Context) -> NextMode {
     let p1_text_texture = render::get_font_texture(&context.texture_creator, &context.font, "PL1");
     let p2_text_texture = render::get_font_texture(&context.texture_creator, &context.font, "PL2");
@@ -28,6 +35,11 @@ pub fn exec(context: &mut Context) -> NextMode {
         render::get_font_texture(&context.texture_creator, &context.font, "F1 FOR HELP");
     let create_new_level_text_texture =
         render::get_font_texture(&context.texture_creator, &context.font, "CREATE NEW LEVEL?");
+    let wanna_quit_text_texture = render::get_font_texture(
+        &context.texture_creator,
+        &context.font,
+        "REALLY WANNA QUIT?",
+    );
     let press_y_text_texture = render::get_font_texture(
         &context.texture_creator,
         &context.font,
@@ -36,7 +48,7 @@ pub fn exec(context: &mut Context) -> NextMode {
     let mut set_position: u8 = 0;
     let mut mouse_left_click = false;
     let mut mouse_right_click = false;
-    let mut prompt_new_level = false;
+    let mut prompt: PromptType = PromptType::None;
 
     let mut event_pump = context.sdl.event_pump().unwrap();
     loop {
@@ -46,7 +58,13 @@ pub fn exec(context: &mut Context) -> NextMode {
                 | Event::KeyDown {
                     keycode: Some(Keycode::Escape),
                     ..
-                } => return Quit,
+                } => {
+                    prompt = if prompt != PromptType::None {
+                        PromptType::None
+                    } else {
+                        PromptType::Quit
+                    };
+                }
                 Event::KeyDown { keycode, .. } => match keycode.unwrap() {
                     Keycode::Space => {
                         return TileSelect;
@@ -56,26 +74,28 @@ pub fn exec(context: &mut Context) -> NextMode {
                     }
                     Keycode::F2 => {
                         context.level.serialize("./TEST.LEV").unwrap();
-                        prompt_new_level = false;
+                        prompt = PromptType::None;
                     }
                     Keycode::F4 => {
-                        prompt_new_level = true;
+                        prompt = PromptType::NewLevel;
                     }
                     Keycode::Num1 => {
                         set_position = 1;
-                        prompt_new_level = false;
+                        prompt = PromptType::None;
                     }
                     Keycode::Num2 => {
                         set_position = 2;
-                        prompt_new_level = false;
+                        prompt = PromptType::None;
                     }
                     Keycode::Y => {
-                        context.level = Level::get_default_level();
-                        prompt_new_level = false;
+                        match prompt {
+                            PromptType::NewLevel => context.level = Level::get_default_level(),
+                            PromptType::Quit => return Quit,
+                            PromptType::None => {}
+                        }
+                        prompt = PromptType::None;
                     }
-                    _ => {
-                        prompt_new_level = false;
-                    }
+                    _ => prompt = PromptType::None,
                 },
                 Event::MouseMotion { x, y, .. } => {
                     if x >= 0 && y >= 0 {
@@ -152,13 +172,13 @@ pub fn exec(context: &mut Context) -> NextMode {
                 text_position,
             );
         };
-        if prompt_new_level {
-            render::render_text_texture(
-                &mut context.canvas,
-                &create_new_level_text_texture,
-                200,
-                200,
-            );
+        if prompt != PromptType::None {
+            let prompt_texture = match prompt {
+                PromptType::NewLevel => &create_new_level_text_texture,
+                PromptType::Quit => &wanna_quit_text_texture,
+                PromptType::None => unreachable!(),
+            };
+            render::render_text_texture(&mut context.canvas, prompt_texture, 200, 200);
             render::render_text_texture(&mut context.canvas, &press_y_text_texture, 200, 230);
         }
         let highlighted_id = get_tile_id_from_coordinate(context.mouse.0, context.mouse.1);
