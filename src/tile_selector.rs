@@ -69,8 +69,12 @@ pub fn exec(context: &mut Context) -> NextMode {
                     mouse_btn: MouseButton::Left,
                     ..
                 } => {
-                    context.selected_tile_id =
-                        get_tile_id_from_coordinate(context.mouse.0, context.mouse.1);
+                    context.selected_tile_id = get_tile_id_from_coordinate(
+                        context.mouse.0,
+                        context.mouse.1,
+                        TILES_X_PER_SCREEN,
+                        None,
+                    );
                     return Editor;
                 }
                 _ => {}
@@ -88,7 +92,8 @@ pub fn exec(context: &mut Context) -> NextMode {
         context.canvas.set_draw_color(Color::from((200, 200, 200)));
         context.canvas.fill_rect(dst).unwrap();
         context.canvas.copy(texture_selected, None, dst).unwrap();
-        let highlighted_id = get_tile_id_from_coordinate(context.mouse.0, context.mouse.1);
+        let highlighted_id =
+            get_tile_id_from_coordinate(context.mouse.0, context.mouse.1, TILES_X_PER_SCREEN, None);
 
         render::highlight_selected_tile(&mut context.canvas, highlighted_id);
         let text_position = (8, 454);
@@ -97,7 +102,12 @@ pub fn exec(context: &mut Context) -> NextMode {
             TextureType::WALLS => &wall_blocks_text_texture,
             TextureType::SHADOW => &shadow_blocks_text_texture,
         };
-        render::render_text_texture_coordinates(&mut context.canvas, active_text, text_position);
+        render::render_text_texture_coordinates(
+            &mut context.canvas,
+            active_text,
+            text_position,
+            None,
+        );
         render::render_and_wait(&mut context.canvas);
     }
 }

@@ -14,6 +14,7 @@ mod types;
 mod util;
 use context::Context;
 use types::*;
+use util::*;
 
 pub fn main() {
     let sdl = sdl2::init().unwrap();
@@ -21,7 +22,11 @@ pub fn main() {
     let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string()).unwrap();
     let video_subsystem = sdl.video().unwrap();
     let window = video_subsystem
-        .window("Ultimate Tapan Kaikki - Level Editor", 640, 480)
+        .window(
+            "Ultimate Tapan Kaikki - Level Editor",
+            RESOLUTION_X,
+            RESOLUTION_Y,
+        )
         .position_centered()
         .build()
         .unwrap();

@@ -71,11 +71,18 @@ pub fn get_font_texture<'a>(
         .unwrap()
 }
 
-pub fn render_text_texture(canvas: &mut Canvas<Window>, texture: &Texture, x: u32, y: u32) {
+pub fn render_text_texture(
+    canvas: &mut Canvas<Window>,
+    texture: &Texture,
+    x: u32,
+    y: u32,
+    scroll: Option<(u32, u32)>,
+) {
     let TextureQuery { width, height, .. } = texture.query();
+    let scroll = scroll.unwrap_or((0, 0));
     let dst = Rect::new(
-        x as i32,
-        y as i32,
+        x as i32 - (scroll.0 * RENDER_SIZE) as i32,
+        y as i32 - (scroll.1 * RENDER_SIZE) as i32,
         width / TEXT_SIZE_DIVIDER,
         height / TEXT_SIZE_DIVIDER,
     );
@@ -86,28 +93,30 @@ pub fn render_text_texture_coordinates(
     canvas: &mut Canvas<Window>,
     texture: &Texture,
     coordinates: (u32, u32),
+    scroll: Option<(u32, u32)>,
 ) {
-    render_text_texture(canvas, texture, coordinates.0, coordinates.1);
+    render_text_texture(canvas, texture, coordinates.0, coordinates.1, scroll);
 }
 
 pub fn render_level(canvas: &mut Canvas<Window>, level: &Level, textures: &Textures) {
-    for y in 0..level.tiles.len() {
-        for x in 0..level.tiles[0].len() {
-            let src = get_block(level.tiles[y][x].id);
+    for y in 0..TILES_Y_PER_SCREEN {
+        for x in 0..TILES_X_PER_SCREEN {
+            let (x_index, y_index) = get_scroll_corrected_indexes(level.scroll, x, y);
+            let src = get_block(level.tiles[y_index][x_index].id);
             let dst = Rect::new(
-                (x * RENDER_SIZE as usize).try_into().unwrap(),
-                (y * RENDER_SIZE as usize).try_into().unwrap(),
+                (x * RENDER_SIZE).try_into().unwrap(),
+                (y * RENDER_SIZE).try_into().unwrap(),
                 RENDER_SIZE,
                 RENDER_SIZE,
             );
-            let texture = match level.tiles[y][x].texture_type {
+            let texture = match level.tiles[y_index][x_index].texture_type {
                 TextureType::FLOOR => &textures.floor,
                 TextureType::WALLS => &textures.walls,
                 TextureType::SHADOW => unreachable!(),
             };
             canvas.copy(texture, src, dst).unwrap();
-            if level.tiles[y][x].shadow > 0 {
-                let src = get_block(level.tiles[y][x].shadow - 1);
+            if level.tiles[y_index][x_index].shadow > 0 {
+                let src = get_block(level.tiles[y_index][x_index].shadow - 1);
                 canvas.copy(&textures.shadows, src, dst).unwrap();
             }
         }

@@ -99,6 +99,30 @@ pub fn exec(context: &mut Context) -> NextMode {
                         }
                         prompt = PromptType::None;
                     }
+                    Keycode::Up => {
+                        if context.level.scroll.1 > 0 {
+                            context.level.scroll.1 = context.level.scroll.1 - 1;
+                        }
+                    }
+                    Keycode::Down => {
+                        if context.level.scroll.1 + TILES_Y_PER_SCREEN
+                            < (context.level.tiles.len()) as u32
+                        {
+                            context.level.scroll.1 = context.level.scroll.1 + 1;
+                        }
+                    }
+                    Keycode::Left => {
+                        if context.level.scroll.0 > 0 {
+                            context.level.scroll.0 = context.level.scroll.0 - 1;
+                        }
+                    }
+                    Keycode::Right => {
+                        if context.level.scroll.0 + TILES_X_PER_SCREEN
+                            < (context.level.tiles[0].len()) as u32
+                        {
+                            context.level.scroll.0 = context.level.scroll.0 + 1;
+                        }
+                    }
                     _ => prompt = PromptType::None,
                 },
                 Event::MouseMotion { x, y, .. } => {
@@ -149,12 +173,14 @@ pub fn exec(context: &mut Context) -> NextMode {
             &p1_text_texture,
             context.level.p1_position.0 * RENDER_SIZE,
             context.level.p1_position.1 * RENDER_SIZE,
+            Some(context.level.scroll),
         );
         render::render_text_texture(
             &mut context.canvas,
             &p2_text_texture,
             context.level.p2_position.0 * RENDER_SIZE,
             context.level.p2_position.1 * RENDER_SIZE,
+            Some(context.level.scroll),
         );
         let text_position = (8, 8);
         if set_position == 1 {
@@ -162,18 +188,21 @@ pub fn exec(context: &mut Context) -> NextMode {
                 &mut context.canvas,
                 &p1_set_text_texture,
                 text_position,
+                None,
             );
         } else if set_position == 2 {
             render::render_text_texture_coordinates(
                 &mut context.canvas,
                 &p2_set_text_texture,
                 text_position,
+                None,
             );
         } else {
             render::render_text_texture_coordinates(
                 &mut context.canvas,
                 &help_text_texture,
                 text_position,
+                None,
             );
         };
         if prompt != PromptType::None {
@@ -182,10 +211,11 @@ pub fn exec(context: &mut Context) -> NextMode {
                 PromptType::Quit => &wanna_quit_text_texture,
                 PromptType::None => unreachable!(),
             };
-            render::render_text_texture(&mut context.canvas, prompt_texture, 200, 200);
-            render::render_text_texture(&mut context.canvas, &press_y_text_texture, 200, 230);
+            render::render_text_texture(&mut context.canvas, prompt_texture, 200, 200, None);
+            render::render_text_texture(&mut context.canvas, &press_y_text_texture, 200, 230, None);
         }
-        let highlighted_id = get_tile_id_from_coordinate(context.mouse.0, context.mouse.1);
+        let highlighted_id =
+            get_tile_id_from_coordinate(context.mouse.0, context.mouse.1, TILES_X_PER_SCREEN, None);
 
         render::highlight_selected_tile(&mut context.canvas, highlighted_id);
         render::render_and_wait(&mut context.canvas);
@@ -199,10 +229,16 @@ fn handle_mouse_left_down(context: &mut Context, set_position: &mut u8) {
         } else {
             &mut context.level.p2_position
         };
-        *position = get_logical_coordinates(context.mouse.0, context.mouse.1);
+        *position =
+            get_logical_coordinates(context.mouse.0, context.mouse.1, Some(context.level.scroll));
         *set_position = 0;
     } else {
-        let pointed_tile = get_tile_id_from_coordinate(context.mouse.0, context.mouse.1);
+        let pointed_tile = get_tile_id_from_coordinate(
+            context.mouse.0,
+            context.mouse.1,
+            context.level.tiles[0].len() as u32,
+            Some(context.level.scroll),
+        );
         context.level.put_tile_to_level(
             pointed_tile,
             Some(context.selected_tile_id),
@@ -212,7 +248,12 @@ fn handle_mouse_left_down(context: &mut Context, set_position: &mut u8) {
 }
 
 fn handle_mouse_right_down(context: &mut Context) {
-    let pointed_tile = get_tile_id_from_coordinate(context.mouse.0, context.mouse.1);
+    let pointed_tile = get_tile_id_from_coordinate(
+        context.mouse.0,
+        context.mouse.1,
+        context.level.tiles[0].len() as u32,
+        Some(context.level.scroll),
+    );
     context
         .level
         .put_tile_to_level(pointed_tile, None, &TextureType::SHADOW);

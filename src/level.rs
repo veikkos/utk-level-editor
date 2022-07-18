@@ -1,4 +1,5 @@
 use crate::types::*;
+use crate::util::*;
 use byteorder::{LittleEndian, ReadBytesExt};
 use std::{fs::File, io::Write};
 
@@ -12,6 +13,7 @@ pub struct Level {
     pub tiles: Tiles,
     pub p1_position: (u32, u32),
     pub p2_position: (u32, u32),
+    pub scroll: (u32, u32),
 }
 
 #[derive(Debug)]
@@ -42,14 +44,15 @@ impl Level {
     pub fn get_default_level() -> Level {
         Level {
             tiles: Level::init_default_level(),
-            p1_position: (1u32, 1u32),
-            p2_position: (1u32, 3u32),
+            p1_position: (1, 1),
+            p2_position: (1, 3),
+            scroll: (0, 0),
         }
     }
 
     fn init_default_level() -> Tiles {
-        const LEVEL_SIZE_X: u8 = 16;
-        const LEVEL_SIZE_Y: u8 = 12;
+        const LEVEL_SIZE_X: u8 = 32;
+        const LEVEL_SIZE_Y: u8 = 22;
 
         let mut tiles = Vec::new();
 
@@ -261,6 +264,8 @@ impl Level {
     }
 
     pub fn deserialize(&mut self, filename: &str) -> Result<(), DeserializationError> {
+        self.scroll = (0, 0);
+
         let mut file = File::open(filename)?;
         let version: u32 = file.read_u32::<LittleEndian>()?;
 
@@ -271,27 +276,32 @@ impl Level {
         }
 
         let x_size: u32 = file.read_u32::<LittleEndian>()?;
-        if x_size != self.tiles[0].len() as u32 {
+        if x_size < TILES_X_PER_SCREEN {
             return Err(DeserializationError::ContentError(
                 FileTypeError::InvalidLevelSize,
             ));
         }
 
         let y_size: u32 = file.read_u32::<LittleEndian>()?;
-        if y_size != self.tiles.len() as u32 {
+        if y_size < TILES_Y_PER_SCREEN {
             return Err(DeserializationError::ContentError(
                 FileTypeError::InvalidLevelSize,
             ));
         }
 
-        for y in 0..(self.tiles.len()) {
-            for x in 0..self.tiles[0].len() {
-                self.tiles[y][x].texture_type =
-                    TextureType::from_u32(file.read_u32::<LittleEndian>()?);
-                self.tiles[y][x].id = file.read_u32::<LittleEndian>()?;
-                self.tiles[y][x].shadow = file.read_u32::<LittleEndian>()?;
+        let mut tiles = Vec::new();
+        for _ in 0..y_size {
+            let mut row = Vec::new();
+            for _ in 0..x_size {
+                row.push(Tile {
+                    texture_type: TextureType::from_u32(file.read_u32::<LittleEndian>()?),
+                    id: file.read_u32::<LittleEndian>()?,
+                    shadow: file.read_u32::<LittleEndian>()?,
+                });
             }
+            tiles.push(row);
         }
+        self.tiles = tiles;
 
         self.p1_position.0 = file.read_u32::<LittleEndian>()?;
         self.p1_position.1 = file.read_u32::<LittleEndian>()?;

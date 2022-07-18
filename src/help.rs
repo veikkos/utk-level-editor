@@ -18,6 +18,7 @@ pub fn exec(context: &mut Context) -> NextMode {
         "1/2  - PLACE PL1/PL2 START",
         " ",
         "SPACE - SELECTION/EDITING MODE",
+        "ARROW KEYS - MOVE VIEWPORT",
     ];
     let line_textures: Vec<Texture> = lines
         .iter()
@@ -39,7 +40,7 @@ pub fn exec(context: &mut Context) -> NextMode {
         context.canvas.clear();
         let mut position = 10;
         for line_texture in &line_textures {
-            render::render_text_texture(&mut context.canvas, &line_texture, 10, position);
+            render::render_text_texture(&mut context.canvas, &line_texture, 10, position, None);
             position += 30;
         }
         render::render_and_wait(&mut context.canvas);
