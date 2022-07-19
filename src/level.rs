@@ -1,6 +1,7 @@
 use crate::types::*;
 use crate::util::*;
 use byteorder::{LittleEndian, ReadBytesExt};
+use std::collections::HashMap;
 use std::{fs::File, io::Write};
 
 const DIFF_BULLETS: u32 = 9;
@@ -14,6 +15,7 @@ pub struct Level {
     pub p1_position: (u32, u32),
     pub p2_position: (u32, u32),
     pub scroll: (u32, u32),
+    pub spotlights: HashMap<(u32, u32), u8>, // level coordinates: 0-9 intensity
 }
 
 #[derive(Debug)]
@@ -47,6 +49,7 @@ impl Level {
             p1_position: (1, 1),
             p2_position: (1, 3),
             scroll: (0, 0),
+            spotlights: HashMap::new(),
         }
     }
 
@@ -65,21 +68,18 @@ impl Level {
                         texture_type: TextureType::WALLS,
                         id: 0,
                         shadow: 0,
-                        spotlight: 0,
                     }
                 } else if x == LEVEL_SIZE_X - 1 {
                     Tile {
                         texture_type: TextureType::WALLS,
                         id: 2,
                         shadow: 0,
-                        spotlight: 0,
                     }
                 } else {
                     Tile {
                         texture_type: TextureType::WALLS,
                         id: 1,
                         shadow: 0,
-                        spotlight: 0,
                     }
                 });
             }
@@ -96,14 +96,12 @@ impl Level {
                         texture_type: TextureType::WALLS,
                         id: 16,
                         shadow: 0,
-                        spotlight: 0,
                     }
                 } else if x == LEVEL_SIZE_X - 1 {
                     Tile {
                         texture_type: TextureType::WALLS,
                         id: 16,
                         shadow: 0,
-                        spotlight: 0,
                     }
                 } else {
                     Tile {
@@ -114,7 +112,6 @@ impl Level {
                         } else {
                             0
                         },
-                        spotlight: 0,
                     }
                 });
             }
@@ -130,21 +127,18 @@ impl Level {
                         texture_type: TextureType::WALLS,
                         id: 32,
                         shadow: 0,
-                        spotlight: 0,
                     }
                 } else if x == LEVEL_SIZE_X - 1 {
                     Tile {
                         texture_type: TextureType::WALLS,
                         id: 18,
                         shadow: 0,
-                        spotlight: 0,
                     }
                 } else {
                     Tile {
                         texture_type: TextureType::WALLS,
                         id: 1,
                         shadow: 0,
-                        spotlight: 0,
                     }
                 });
             }
@@ -153,12 +147,13 @@ impl Level {
         tiles
     }
 
-    fn get_tile_index(&mut self, pointed_tile: u32) -> (usize, usize) {
+    fn get_tile_index(&self, pointed_tile: u32) -> (usize, usize) {
         (
             pointed_tile as usize % self.tiles[0].len(),
             pointed_tile as usize / self.tiles[0].len(),
         )
     }
+
     pub fn put_tile_to_level(
         &mut self,
         pointed_tile: u32,
@@ -171,7 +166,6 @@ impl Level {
                 texture_type: *selected_texture,
                 id: selected_tile_id.unwrap(),
                 shadow: self.tiles[y][x].shadow,
-                spotlight: self.tiles[y][x].spotlight,
             }
         } else {
             self.tiles[y][x].shadow = match selected_tile_id {
@@ -181,16 +175,40 @@ impl Level {
         }
     }
 
-    pub fn put_spotlight_to_level(&mut self, pointed_tile: u32, spotlight: u8) {
-        let (x, y) = self.get_tile_index(pointed_tile);
-        if spotlight <= 10 {
-            self.tiles[y][x].spotlight = spotlight;
+    pub fn put_spotlight_to_level(&mut self, level_coordinates: &(u32, u32), spotlight: u8) {
+        if spotlight < 10 {
+            self.spotlights.insert(*level_coordinates, spotlight);
         }
     }
 
-    pub fn get_spotlight_from_level(&mut self, pointed_tile: u32) -> u8 {
-        let (x, y) = self.get_tile_index(pointed_tile);
-        self.tiles[y][x].spotlight
+    pub fn get_spotlight_from_level(&self, level_coordinates: &(u32, u32)) -> u8 {
+        *self.spotlights.get(level_coordinates).unwrap()
+    }
+
+    pub fn delete_spotlight_if_near(&mut self, level_coordinates: &(u32, u32)) {
+        let mut to_be_removed = Vec::new();
+        {
+            let mut distances: Vec<_> = self
+                .spotlights
+                .iter()
+                .map(|(spotlight_coordinates, &spotlight)| {
+                    let distance =
+                        get_distance_between_points(level_coordinates, spotlight_coordinates);
+                    (spotlight_coordinates, spotlight, distance)
+                })
+                .collect();
+            distances.sort_by(|a, b| a.2.partial_cmp(&b.2).unwrap());
+            for spotlight in distances {
+                if get_spotlight_render_radius(&spotlight.1) as f64
+                    >= spotlight.2 * RENDER_MULTIPLIER as f64
+                {
+                    to_be_removed.push(*spotlight.0);
+                }
+            }
+        }
+        for key in to_be_removed {
+            self.spotlights.remove(&key);
+        }
     }
 
     pub fn serialize(&self, filename: &str) -> std::io::Result<()> {
@@ -222,29 +240,15 @@ impl Level {
         file.write_all(&(self.p2_position.1).to_le_bytes())
             .expect("Failed to write p2 start y");
 
-        let mut spots = Vec::new();
-        for y in 0..(self.tiles.len()) {
-            for x in 0..self.tiles[0].len() {
-                let spotlight = self.tiles[y][x].spotlight;
-                if spotlight > 0 {
-                    spots.push((
-                        x as u32 * TILE_SIZE + TILE_SIZE / 2,
-                        y as u32 * TILE_SIZE + TILE_SIZE / 2,
-                        (spotlight - 1) as u32,
-                    ));
-                }
-            }
-        }
-
-        file.write_all(&(spots.len() as u32).to_le_bytes())
+        file.write_all(&(self.spotlights.len() as u32).to_le_bytes())
             .expect("Failed to write spot amount");
 
-        for spot in spots {
-            file.write_all(&spot.0.to_le_bytes())
+        for (coordinates, spotlight) in &self.spotlights {
+            file.write_all(&coordinates.0.to_le_bytes())
                 .expect("Failed to write spotlight x position");
-            file.write_all(&spot.1.to_le_bytes())
-                .expect("Failed to write spotlight x position");
-            file.write_all(&spot.2.to_le_bytes())
+            file.write_all(&coordinates.1.to_le_bytes())
+                .expect("Failed to write spotlight y position");
+            file.write_all(&(*spotlight as u32).to_le_bytes())
                 .expect("Failed to write spotlight intensity");
         }
 
@@ -308,6 +312,7 @@ impl Level {
 
     pub fn deserialize(&mut self, filename: &str) -> Result<(), DeserializationError> {
         self.scroll = (0, 0);
+        self.spotlights.clear();
 
         let mut file = File::open(filename)?;
         let version: u32 = file.read_u32::<LittleEndian>()?;
@@ -340,7 +345,6 @@ impl Level {
                     texture_type: TextureType::from_u32(file.read_u32::<LittleEndian>()?),
                     id: file.read_u32::<LittleEndian>()?,
                     shadow: file.read_u32::<LittleEndian>()?,
-                    spotlight: 0,
                 });
             }
             tiles.push(row);
@@ -355,19 +359,13 @@ impl Level {
         let spotlight_amount = file.read_u32::<LittleEndian>()?;
 
         for _ in 0..spotlight_amount {
-            let spotlight_x = (file.read_u32::<LittleEndian>()? - TILE_SIZE / 2) / TILE_SIZE;
-            let spotlight_y = (file.read_u32::<LittleEndian>()? - TILE_SIZE / 2) / TILE_SIZE;
-            self.tiles[spotlight_y as usize][spotlight_x as usize].spotlight =
-                file.read_u32::<LittleEndian>()? as u8 + 1;
+            let spotlight_x = file.read_u32::<LittleEndian>()?;
+            let spotlight_y = file.read_u32::<LittleEndian>()?;
+            self.spotlights.insert(
+                (spotlight_x, spotlight_y),
+                file.read_u32::<LittleEndian>()? as u8,
+            );
         }
-
-        // // TODO: Write spots
-        // // for ( a = 0; a < Spot_amount; a ++  )
-        // // {
-        // //     fread( &spot_light[a].x, 4, 1, dat );
-        // //     fread( &spot_light[a].y, 4, 1, dat );
-        // //     fread( &spot_light[a].size, 4, 1, dat );
-        // // }
 
         // file.write_all(&(0u32).to_le_bytes())
         //     .expect("Failed to write steam amount");

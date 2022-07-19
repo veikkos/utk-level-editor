@@ -21,7 +21,7 @@ enum PromptType {
 #[derive(PartialEq)]
 enum SpotlightType {
     None,
-    Instructions(u32),
+    Instructions((u32, u32)), // level coordinates of currently manipulated spotlight
     Place,
     Delete,
 }
@@ -133,11 +133,12 @@ pub fn exec(context: &mut Context) -> NextMode {
                         prompt = PromptType::None;
                     }
                     Keycode::Up => match spotlight {
-                        SpotlightType::Instructions(tile) => {
-                            let spotlight_intensity = context.level.get_spotlight_from_level(tile);
+                        SpotlightType::Instructions(coordinates) => {
+                            let spotlight_intensity =
+                                context.level.get_spotlight_from_level(&coordinates);
                             context
                                 .level
-                                .put_spotlight_to_level(tile, spotlight_intensity + 1)
+                                .put_spotlight_to_level(&coordinates, spotlight_intensity + 1)
                         }
                         _ => {
                             if context.level.scroll.1 > 0 {
@@ -146,12 +147,13 @@ pub fn exec(context: &mut Context) -> NextMode {
                         }
                     },
                     Keycode::Down => match spotlight {
-                        SpotlightType::Instructions(tile) => {
-                            let spotlight_intensity = context.level.get_spotlight_from_level(tile);
-                            if spotlight_intensity > 1 {
+                        SpotlightType::Instructions(coordinates) => {
+                            let spotlight_intensity =
+                                context.level.get_spotlight_from_level(&coordinates);
+                            if spotlight_intensity > 0 {
                                 context
                                     .level
-                                    .put_spotlight_to_level(tile, spotlight_intensity - 1)
+                                    .put_spotlight_to_level(&coordinates, spotlight_intensity - 1)
                             }
                         }
                         _ => {
@@ -296,11 +298,17 @@ fn handle_mouse_left_down(
             context.level.tiles[0].len() as u32,
             Some(context.level.scroll),
         );
-        if *spotlight == SpotlightType::Place {
-            *spotlight = SpotlightType::Instructions(pointed_tile);
-            context.level.put_spotlight_to_level(pointed_tile, 1);
-        } else if *spotlight == SpotlightType::Delete {
-            context.level.put_spotlight_to_level(pointed_tile, 0);
+        if *spotlight == SpotlightType::Place || *spotlight == SpotlightType::Delete {
+            let level_coordinates = get_level_coordinates_from_screen_coordinates(
+                &context.mouse,
+                &context.level.scroll,
+            );
+            if *spotlight == SpotlightType::Place {
+                *spotlight = SpotlightType::Instructions(level_coordinates);
+                context.level.put_spotlight_to_level(&level_coordinates, 0);
+            } else {
+                context.level.delete_spotlight_if_near(&level_coordinates);
+            }
         } else {
             context.level.put_tile_to_level(
                 pointed_tile,

@@ -168,20 +168,15 @@ pub fn render_level(canvas: &mut Canvas<Window>, level: &Level, textures: &Textu
             }
         }
     }
-    for y in 0..TILES_Y_PER_SCREEN {
-        for x in 0..TILES_X_PER_SCREEN {
-            let (x_index, y_index) = get_scroll_corrected_indexes(level.scroll, x, y);
-            let spotlight = level.tiles[y_index][x_index].spotlight;
-            if spotlight > 0 {
-                let (x_absolute, y_absolute) = get_absolute_coordinates_from_logical(x, y);
-                draw_circle(
-                    canvas,
-                    x_absolute + RENDER_SIZE as i32 / 2,
-                    y_absolute + RENDER_SIZE as i32 / 2,
-                    spotlight as u32 * 5,
-                );
-            }
-        }
+    for (coordinates, spotlight) in &level.spotlights {
+        let (x_screen, y_screen) =
+            get_screen_coordinates_from_level_coordinates(coordinates, &level.scroll);
+        draw_circle(
+            canvas,
+            x_screen,
+            y_screen,
+            get_spotlight_render_radius(spotlight),
+        );
     }
 }
 

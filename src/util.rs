@@ -51,3 +51,35 @@ pub fn get_absolute_coordinates_from_logical(x: u32, y: u32) -> (i32, i32) {
         (y * RENDER_SIZE).try_into().unwrap(),
     )
 }
+
+pub fn get_level_coordinates_from_screen_coordinates(
+    coordinates: &(u32, u32),
+    scroll: &(u32, u32),
+) -> (u32, u32) {
+    (
+        coordinates.0 / RENDER_MULTIPLIER + scroll.0 * TILE_SIZE,
+        coordinates.1 / RENDER_MULTIPLIER + scroll.1 * TILE_SIZE,
+    )
+}
+
+pub fn get_screen_coordinates_from_level_coordinates(
+    coordinates: &(u32, u32),
+    scroll: &(u32, u32),
+) -> (i32, i32) {
+    (
+        (coordinates.0 * RENDER_MULTIPLIER) as i32 - (scroll.0 * RENDER_SIZE) as i32,
+        (coordinates.1 * RENDER_MULTIPLIER) as i32 - (scroll.1 * RENDER_SIZE) as i32,
+    )
+}
+
+pub fn get_distance_between_points(p0: &(u32, u32), p1: &(u32, u32)) -> f64 {
+    let x0 = p0.0 as i32;
+    let x1 = p1.0 as i32;
+    let y0 = p0.1 as i32;
+    let y1 = p1.1 as i32;
+    (((x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0)) as f64).sqrt()
+}
+
+pub fn get_spotlight_render_radius(spotlight: &u8) -> u32 {
+    *spotlight as u32 * 5 + 5
+}
