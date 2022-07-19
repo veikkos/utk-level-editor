@@ -351,8 +351,15 @@ impl Level {
         self.p1_position.1 = file.read_u32::<LittleEndian>()?;
         self.p2_position.0 = file.read_u32::<LittleEndian>()?;
         self.p2_position.1 = file.read_u32::<LittleEndian>()?;
-        // file.write_all(&(0u32).to_le_bytes())
-        //     .expect("Failed to write spot amount");
+
+        let spotlight_amount = file.read_u32::<LittleEndian>()?;
+
+        for _ in 0..spotlight_amount {
+            let spotlight_x = (file.read_u32::<LittleEndian>()? - TILE_SIZE / 2) / TILE_SIZE;
+            let spotlight_y = (file.read_u32::<LittleEndian>()? - TILE_SIZE / 2) / TILE_SIZE;
+            self.tiles[spotlight_y as usize][spotlight_x as usize].spotlight =
+                file.read_u32::<LittleEndian>()? as u8 + 1;
+        }
 
         // // TODO: Write spots
         // // for ( a = 0; a < Spot_amount; a ++  )
