@@ -11,9 +11,9 @@ const DIFF_ENEMIES: u32 = 8;
 const VERSION: u32 = 5;
 
 pub struct GeneralInfo {
-    comment: String, // max 19 characters + \0 termination
-    time_limit: u32,
-    enemy_table: [u32; DIFF_ENEMIES as usize],
+    pub comment: String, // max 19 characters + \0 termination
+    pub time_limit: u32,
+    pub enemy_table: [u32; DIFF_ENEMIES as usize],
 }
 
 pub struct Level {
@@ -58,7 +58,7 @@ impl Level {
             scroll: (0, 0),
             spotlights: HashMap::new(),
             general_info: GeneralInfo {
-                comment: "Rust UTK editor\0\0\0\0\0".to_string(),
+                comment: "Rust UTK editor".to_string(),
                 time_limit: 45,
                 enemy_table: [1, 0, 0, 0, 0, 1, 0, 0],
             },
@@ -278,6 +278,10 @@ impl Level {
 
         file.write_all(&self.general_info.comment.as_bytes())
             .expect("Failed to write comment");
+        for _ in 0..20 - self.general_info.comment.len() {
+            file.write_all(b"\0")
+                .expect("Failed to write comment padding");
+        }
         file.write_all(&self.general_info.time_limit.to_le_bytes())
             .expect("Failed to write time limit");
         for enemy_amount in self.general_info.enemy_table {
