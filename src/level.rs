@@ -10,12 +10,19 @@ const DIFF_ENEMIES: u32 = 8;
 
 const VERSION: u32 = 5;
 
+pub struct GeneralInfo {
+    comment: String, // max 19 characters + \0 termination
+    time_limit: u32,
+    enemy_table: [u32; DIFF_ENEMIES as usize],
+}
+
 pub struct Level {
     pub tiles: Tiles,
     pub p1_position: (u32, u32),
     pub p2_position: (u32, u32),
     pub scroll: (u32, u32),
     pub spotlights: HashMap<(u32, u32), u8>, // level coordinates: 0-9 intensity
+    pub general_info: GeneralInfo,
 }
 
 #[derive(Debug)]
@@ -50,6 +57,11 @@ impl Level {
             p2_position: (1, 3),
             scroll: (0, 0),
             spotlights: HashMap::new(),
+            general_info: GeneralInfo {
+                comment: "Rust UTK editor\0\0\0\0\0".to_string(),
+                time_limit: 45,
+                enemy_table: [1, 0, 0, 0, 0, 1, 0, 0],
+            },
         }
     }
 
@@ -264,14 +276,12 @@ impl Level {
         //     fread( &steam[a].speed, 4, 1, dat );
         // }
 
-        let comment = "Rust UTK editor\0\0\0\0\0";
-        file.write_all(&comment.as_bytes())
+        file.write_all(&self.general_info.comment.as_bytes())
             .expect("Failed to write comment");
-        file.write_all(&(45u32).to_le_bytes())
+        file.write_all(&self.general_info.time_limit.to_le_bytes())
             .expect("Failed to write time limit");
-        for x in 0..DIFF_ENEMIES {
-            let amount = if x == 0 { 1u32 } else { 0u32 };
-            file.write_all(&(amount).to_le_bytes())
+        for enemy_amount in self.general_info.enemy_table {
+            file.write_all(&enemy_amount.to_le_bytes())
                 .expect("Failed to write normal game enemies");
         }
         for x in 0..DIFF_WEAPONS {
