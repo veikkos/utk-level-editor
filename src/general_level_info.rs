@@ -76,6 +76,7 @@ pub fn exec(context: &mut Context) -> NextMode {
             value: Value::Number(&context.level.general_info.enemy_table[7]),
         },
     ];
+    let esc_instruction_text = &load_text(context, "PRESS ESC TO EXIT");
 
     let mut event_pump = context.sdl.event_pump().unwrap();
     loop {
@@ -113,6 +114,13 @@ pub fn exec(context: &mut Context) -> NextMode {
             option_position.1 += 30;
             value_position.1 = option_position.1;
         }
+        render::render_text_texture(
+            &mut context.canvas,
+            esc_instruction_text,
+            option_position.0,
+            425,
+            None,
+        );
         render::render_and_wait(&mut context.canvas);
     }
 }
