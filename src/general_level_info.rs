@@ -77,6 +77,8 @@ pub fn exec(context: &mut Context) -> NextMode {
         },
     ];
     let esc_instruction_text = &load_text(context, "PRESS ESC TO EXIT");
+    let selected_icon_text = &load_text(context, "*");
+    let mut selected = 1usize;
 
     let mut event_pump = context.sdl.event_pump().unwrap();
     loop {
@@ -87,6 +89,19 @@ pub fn exec(context: &mut Context) -> NextMode {
                     keycode: Some(Keycode::Escape),
                     ..
                 } => return Editor,
+                Event::KeyDown { keycode, .. } => match keycode.unwrap() {
+                    Keycode::Down => {
+                        if selected < options.len() - 1 {
+                            selected = selected + 1;
+                        }
+                    }
+                    Keycode::Up => {
+                        if selected > 1 {
+                            selected = selected - 1;
+                        }
+                    }
+                    _ => {}
+                },
                 _ => {}
             }
         }
@@ -95,7 +110,17 @@ pub fn exec(context: &mut Context) -> NextMode {
         context.canvas.clear();
         let mut option_position = (40, 20);
         let mut value_position = (300, option_position.1);
-        for option in &options {
+        for x in 0..options.len() {
+            let option = &options[x];
+            if selected == x {
+                render::render_text_texture(
+                    &mut context.canvas,
+                    selected_icon_text,
+                    option_position.0 - 20,
+                    option_position.1 + 3,
+                    None,
+                );
+            }
             render::render_text_texture(
                 &mut context.canvas,
                 option.texture,
