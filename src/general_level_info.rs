@@ -9,26 +9,26 @@ use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::render::Texture;
 
-enum Value<'a> {
-    StrRef(&'a str),
-    Seconds(&'a u32),
-    Number(&'a u32),
+enum Value {
+    Comment(),
+    TimeLimit(),
+    Number(usize),
 }
 
 struct ConfigOption<'a> {
     texture: &'a Texture<'a>,
-    value: Value<'a>,
+    value: Value,
 }
 
 fn load_text<'a>(context: &Context<'a>, text: &str) -> Texture<'a> {
     render::get_font_texture(&context.texture_creator, &context.font, text)
 }
 
-fn load_value_text<'a>(context: &Context<'a>, value: &Value<'a>) -> Texture<'a> {
+fn load_value_text<'a>(context: &mut Context<'a>, value: &Value) -> Texture<'a> {
     let string = match value {
-        Value::Number(number) => number.to_string(),
-        Value::Seconds(seconds) => format!("{} SECONDS", seconds),
-        Value::StrRef(str_ref) => str_ref.to_string(),
+        Value::Number(number) => context.level.general_info.enemy_table[*number].to_string(),
+        Value::TimeLimit() => format!("{} SECONDS", context.level.general_info.time_limit),
+        Value::Comment() => context.level.general_info.comment.to_string(),
     };
     render::get_font_texture(&context.texture_creator, &context.font, &string)
 }
@@ -37,43 +37,43 @@ pub fn exec(context: &mut Context) -> NextMode {
     let options = [
         ConfigOption {
             texture: &load_text(context, "LEVEL COMMENT:"),
-            value: Value::StrRef(&context.level.general_info.comment),
+            value: Value::Comment(),
         },
         ConfigOption {
             texture: &load_text(context, "TIME LIMIT:"),
-            value: Value::Seconds(&context.level.general_info.time_limit),
+            value: Value::TimeLimit(),
         },
         ConfigOption {
             texture: &load_text(context, "PISTOL BOYS:"),
-            value: Value::Number(&context.level.general_info.enemy_table[0]),
+            value: Value::Number(0),
         },
         ConfigOption {
             texture: &load_text(context, "SHOTGUN MANIACS:"),
-            value: Value::Number(&context.level.general_info.enemy_table[1]),
+            value: Value::Number(1),
         },
         ConfigOption {
             texture: &load_text(context, "UZI REBELS:"),
-            value: Value::Number(&context.level.general_info.enemy_table[2]),
+            value: Value::Number(2),
         },
         ConfigOption {
             texture: &load_text(context, "COMMANDOS:"),
-            value: Value::Number(&context.level.general_info.enemy_table[3]),
+            value: Value::Number(3),
         },
         ConfigOption {
             texture: &load_text(context, "GRANADE MOFOS:"),
-            value: Value::Number(&context.level.general_info.enemy_table[4]),
+            value: Value::Number(4),
         },
         ConfigOption {
             texture: &load_text(context, "CIVILIANS:"),
-            value: Value::Number(&context.level.general_info.enemy_table[5]),
+            value: Value::Number(5),
         },
         ConfigOption {
             texture: &load_text(context, "PUNISHERS:"),
-            value: Value::Number(&context.level.general_info.enemy_table[6]),
+            value: Value::Number(6),
         },
         ConfigOption {
             texture: &load_text(context, "FLAMERS:"),
-            value: Value::Number(&context.level.general_info.enemy_table[7]),
+            value: Value::Number(7),
         },
     ];
     let esc_instruction_text = &load_text(context, "PRESS ESC TO EXIT");
@@ -100,6 +100,26 @@ pub fn exec(context: &mut Context) -> NextMode {
                             selected = selected - 1;
                         }
                     }
+                    Keycode::Right => match &options[selected].value {
+                        Value::Number(index) => context.level.general_info.enemy_table[*index] += 1,
+                        Value::TimeLimit() => context.level.general_info.time_limit += 10,
+                        Value::Comment() => todo!(),
+                    },
+                    Keycode::Left => match &options[selected].value {
+                        Value::Number(index) => {
+                            let value = &mut context.level.general_info.enemy_table[*index];
+                            if *value > 0 {
+                                *value = *value - 1;
+                            }
+                        }
+                        Value::TimeLimit() => {
+                            let value = &mut context.level.general_info.time_limit;
+                            if *value > 0 {
+                                *value = *value - 10;
+                            }
+                        }
+                        Value::Comment() => todo!(),
+                    },
                     _ => {}
                 },
                 _ => {}

@@ -59,7 +59,7 @@ impl Level {
             spotlights: HashMap::new(),
             general_info: GeneralInfo {
                 comment: "Rust UTK editor".to_string(),
-                time_limit: 45,
+                time_limit: 60,
                 enemy_table: [1, 0, 0, 0, 0, 1, 0, 0],
             },
         }
