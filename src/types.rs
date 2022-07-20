@@ -29,5 +29,6 @@ pub enum NextMode {
     Editor,
     TileSelect,
     Help,
+    GeneralLevelInfo,
     Quit,
 }

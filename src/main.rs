@@ -6,6 +6,7 @@ use crate::types::NextMode::*;
 use sdl2::image::{InitFlag, LoadTexture};
 mod context;
 mod editor;
+mod general_level_info;
 mod help;
 mod level;
 mod render;
@@ -59,6 +60,7 @@ pub fn main() {
             Editor => editor::exec(&mut context),
             TileSelect => tile_selector::exec(&mut context),
             Help => help::exec(&mut context),
+            GeneralLevelInfo => general_level_info::exec(&mut context),
             Quit => break 'running,
         }
     }

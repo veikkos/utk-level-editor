@@ -108,6 +108,9 @@ pub fn exec(context: &mut Context) -> NextMode {
                     Keycode::F4 => {
                         prompt = PromptType::NewLevel;
                     }
+                    Keycode::F7 => {
+                        return GeneralLevelInfo;
+                    }
                     Keycode::Num1 => {
                         set_position = 1;
                         prompt = PromptType::None;
