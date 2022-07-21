@@ -10,11 +10,19 @@ use crate::TextureType;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::mouse::MouseButton;
+use sdl2::render::Texture;
+
+#[derive(PartialEq)]
+enum NewLevelType {
+    Prompt,
+    XSize,
+    YSize,
+}
 
 #[derive(PartialEq)]
 enum PromptType {
     None,
-    NewLevel,
+    NewLevel(NewLevelType),
     Quit,
 }
 
@@ -26,53 +34,89 @@ enum SpotlightType {
     Delete,
 }
 
+struct Textures<'a> {
+    p1_text_texture: Texture<'a>,
+    p2_text_texture: Texture<'a>,
+    p1_set_text_texture: Texture<'a>,
+    p2_set_text_texture: Texture<'a>,
+    help_text_texture: Texture<'a>,
+    create_new_level_text_texture: Texture<'a>,
+    wanna_quit_text_texture: Texture<'a>,
+    press_y_text_texture: Texture<'a>,
+    new_level_x_size_text_texture: Texture<'a>,
+    new_level_y_size_text_texture: Texture<'a>,
+    spotlight_place_text_texture: Texture<'a>,
+    spotlight_delete_text_texture: Texture<'a>,
+    spotlight_instructions_text_texture: Texture<'a>,
+}
+
 pub fn exec(context: &mut Context) -> NextMode {
-    let p1_text_texture = render::get_font_texture(&context.texture_creator, &context.font, "PL1");
-    let p2_text_texture = render::get_font_texture(&context.texture_creator, &context.font, "PL2");
-    let p1_set_text_texture = render::get_font_texture(
-        &context.texture_creator,
-        &context.font,
-        "PLACE PL1 START POINT",
-    );
-    let p2_set_text_texture = render::get_font_texture(
-        &context.texture_creator,
-        &context.font,
-        "PLACE PL2 START POINT",
-    );
-    let help_text_texture =
-        render::get_font_texture(&context.texture_creator, &context.font, "F1 FOR HELP");
-    let create_new_level_text_texture =
-        render::get_font_texture(&context.texture_creator, &context.font, "CREATE NEW LEVEL?");
-    let wanna_quit_text_texture = render::get_font_texture(
-        &context.texture_creator,
-        &context.font,
-        "REALLY WANNA QUIT?",
-    );
-    let press_y_text_texture = render::get_font_texture(
-        &context.texture_creator,
-        &context.font,
-        "PRESS Y TO CONFIRM",
-    );
-    let spotlight_place_text_texture = render::get_font_texture(
-        &context.texture_creator,
-        &context.font,
-        "PLACE SPOTLIGHT (ESC TO CANCEL)",
-    );
-    let spotlight_delete_text_texture = render::get_font_texture(
-        &context.texture_creator,
-        &context.font,
-        "DELETE SPOTLIGHT (ESC TO CANCEL)",
-    );
-    let spotlight_instructions_text_texture = render::get_font_texture(
-        &context.texture_creator,
-        &context.font,
-        "USE UP AND DOWN KEYS TO ADJUST SIZE, ENTER TO ACCEPT",
-    );
+    let textures = Textures {
+        p1_text_texture: render::get_font_texture(&context.texture_creator, &context.font, "PL1"),
+        p2_text_texture: render::get_font_texture(&context.texture_creator, &context.font, "PL2"),
+        p1_set_text_texture: render::get_font_texture(
+            &context.texture_creator,
+            &context.font,
+            "PLACE PL1 START POINT",
+        ),
+        p2_set_text_texture: render::get_font_texture(
+            &context.texture_creator,
+            &context.font,
+            "PLACE PL2 START POINT",
+        ),
+        help_text_texture: render::get_font_texture(
+            &context.texture_creator,
+            &context.font,
+            "F1 FOR HELP",
+        ),
+        create_new_level_text_texture: render::get_font_texture(
+            &context.texture_creator,
+            &context.font,
+            "CREATE NEW LEVEL?",
+        ),
+        wanna_quit_text_texture: render::get_font_texture(
+            &context.texture_creator,
+            &context.font,
+            "REALLY WANNA QUIT?",
+        ),
+        press_y_text_texture: render::get_font_texture(
+            &context.texture_creator,
+            &context.font,
+            "PRESS Y TO CONFIRM",
+        ),
+        new_level_x_size_text_texture: render::get_font_texture(
+            &context.texture_creator,
+            &context.font,
+            "X-SIZE (>= 16 BLOCKS):",
+        ),
+        new_level_y_size_text_texture: render::get_font_texture(
+            &context.texture_creator,
+            &context.font,
+            "Y-SIZE (>= 12 BLOCKS):",
+        ),
+        spotlight_place_text_texture: render::get_font_texture(
+            &context.texture_creator,
+            &context.font,
+            "PLACE SPOTLIGHT (ESC TO CANCEL)",
+        ),
+        spotlight_delete_text_texture: render::get_font_texture(
+            &context.texture_creator,
+            &context.font,
+            "DELETE SPOTLIGHT (ESC TO CANCEL)",
+        ),
+        spotlight_instructions_text_texture: render::get_font_texture(
+            &context.texture_creator,
+            &context.font,
+            "USE UP AND DOWN KEYS TO ADJUST SIZE, ENTER TO ACCEPT",
+        ),
+    };
     let mut set_position: u8 = 0;
     let mut mouse_left_click = false;
     let mut mouse_right_click = false;
     let mut prompt = PromptType::None;
     let mut spotlight = SpotlightType::None;
+    let mut new_level_size_x: String = String::new();
+    let mut new_level_size_y: String = String::new();
 
     let mut event_pump = context.sdl.event_pump().unwrap();
     loop {
@@ -85,11 +129,20 @@ pub fn exec(context: &mut Context) -> NextMode {
                 } => {
                     prompt = if prompt != PromptType::None || spotlight != SpotlightType::None {
                         spotlight = SpotlightType::None;
+                        context.sdl.video().unwrap().text_input().stop();
                         PromptType::None
                     } else {
                         PromptType::Quit
                     };
                 }
+                Event::TextInput { text, .. } => match &prompt {
+                    PromptType::NewLevel(new_level_state) => match new_level_state {
+                        NewLevelType::XSize => sanitize_numeric_input(&text, &mut new_level_size_x),
+                        NewLevelType::YSize => sanitize_numeric_input(&text, &mut new_level_size_y),
+                        _ => {}
+                    },
+                    _ => (),
+                },
                 Event::KeyDown { keycode, .. } => match keycode.unwrap() {
                     Keycode::Space => {
                         return TileSelect;
@@ -99,42 +152,57 @@ pub fn exec(context: &mut Context) -> NextMode {
                     }
                     Keycode::F2 => {
                         context.level.serialize("./TEST.LEV").unwrap();
+                        context.sdl.video().unwrap().text_input().stop();
                         prompt = PromptType::None;
                     }
                     Keycode::F3 => {
                         context.level.deserialize("./TEST.LEV").unwrap();
+                        context.sdl.video().unwrap().text_input().stop();
                         prompt = PromptType::None;
                     }
                     Keycode::F4 => {
-                        prompt = PromptType::NewLevel;
+                        prompt = PromptType::NewLevel(NewLevelType::Prompt);
+                        new_level_size_x.clear();
+                        new_level_size_y.clear();
                     }
                     Keycode::F7 => {
                         return GeneralLevelInfo;
                     }
                     Keycode::Num1 => {
-                        set_position = 1;
-                        prompt = PromptType::None;
+                        if !matches!(prompt, PromptType::NewLevel(_)) {
+                            set_position = 1;
+                            prompt = PromptType::None;
+                        }
                     }
                     Keycode::Num2 => {
-                        set_position = 2;
-                        prompt = PromptType::None;
+                        if !matches!(prompt, PromptType::NewLevel(_)) {
+                            set_position = 2;
+                            prompt = PromptType::None;
+                        }
                     }
                     Keycode::Q => {
                         spotlight = SpotlightType::Place;
+                        context.sdl.video().unwrap().text_input().stop();
                         prompt = PromptType::None;
                     }
                     Keycode::W => {
                         spotlight = SpotlightType::Delete;
+                        context.sdl.video().unwrap().text_input().stop();
                         prompt = PromptType::None;
                     }
-                    Keycode::Y => {
-                        match prompt {
-                            PromptType::NewLevel => context.level = Level::get_default_level(),
-                            PromptType::Quit => return Quit,
-                            PromptType::None => {}
+                    Keycode::Y => match &prompt {
+                        PromptType::NewLevel(new_level_state) => match new_level_state {
+                            NewLevelType::Prompt => {
+                                prompt = PromptType::NewLevel(NewLevelType::XSize);
+                                context.sdl.video().unwrap().text_input().start();
+                            }
+                            _ => {}
+                        },
+                        PromptType::Quit => return Quit,
+                        PromptType::None => {
+                            prompt = PromptType::None;
                         }
-                        prompt = PromptType::None;
-                    }
+                    },
                     Keycode::Up => match spotlight {
                         SpotlightType::Instructions(coordinates) => {
                             let spotlight_intensity =
@@ -182,9 +250,42 @@ pub fn exec(context: &mut Context) -> NextMode {
                     Keycode::Return | Keycode::KpEnter => {
                         if matches!(spotlight, SpotlightType::Instructions(_)) {
                             spotlight = SpotlightType::Place;
+                        } else if prompt == PromptType::NewLevel(NewLevelType::XSize)
+                            && new_level_size_x.len() > 1
+                            && new_level_size_x.parse::<u8>().unwrap() >= 16
+                        {
+                            prompt = PromptType::NewLevel(NewLevelType::YSize);
+                        } else if prompt == PromptType::NewLevel(NewLevelType::YSize)
+                            && new_level_size_x.len() > 1
+                            && new_level_size_y.parse::<u8>().unwrap() >= 12
+                        {
+                            context.level = Level::get_default_level((
+                                new_level_size_x.parse::<u8>().unwrap(),
+                                new_level_size_y.parse::<u8>().unwrap(),
+                            ));
+                            context.sdl.video().unwrap().text_input().stop();
+                            prompt = PromptType::None;
                         }
                     }
-                    _ => prompt = PromptType::None,
+                    Keycode::Backspace => match &prompt {
+                        PromptType::NewLevel(new_level_state) => match new_level_state {
+                            NewLevelType::XSize => {
+                                new_level_size_x.pop();
+                            }
+                            NewLevelType::YSize => {
+                                new_level_size_y.pop();
+                            }
+                            _ => {}
+                        },
+                        _ => (),
+                    },
+                    _ => {
+                        if prompt != PromptType::NewLevel(NewLevelType::XSize)
+                            && prompt != PromptType::NewLevel(NewLevelType::YSize)
+                        {
+                            prompt = PromptType::None
+                        }
+                    }
                 },
                 Event::MouseMotion { x, y, .. } => {
                     if x >= 0 && y >= 0 {
@@ -227,35 +328,37 @@ pub fn exec(context: &mut Context) -> NextMode {
                 _ => {}
             }
         }
-
         render::render_level(&mut context.canvas, &context.level, &context.textures);
+        let highlighted_id =
+            get_tile_id_from_coordinate(context.mouse.0, context.mouse.1, TILES_X_PER_SCREEN, None);
+        render::highlight_selected_tile(&mut context.canvas, highlighted_id);
         render::render_text_texture(
             &mut context.canvas,
-            &p1_text_texture,
+            &textures.p1_text_texture,
             context.level.p1_position.0 * RENDER_SIZE,
             context.level.p1_position.1 * RENDER_SIZE,
             Some(context.level.scroll),
         );
         render::render_text_texture(
             &mut context.canvas,
-            &p2_text_texture,
+            &textures.p2_text_texture,
             context.level.p2_position.0 * RENDER_SIZE,
             context.level.p2_position.1 * RENDER_SIZE,
             Some(context.level.scroll),
         );
         let text_position = (8, 8);
         let text_texture = if set_position == 1 {
-            &p1_set_text_texture
+            &textures.p1_set_text_texture
         } else if set_position == 2 {
-            &p2_set_text_texture
+            &textures.p2_set_text_texture
         } else if matches!(spotlight, SpotlightType::Instructions(_)) {
-            &spotlight_instructions_text_texture
+            &textures.spotlight_instructions_text_texture
         } else if spotlight == SpotlightType::Place {
-            &spotlight_place_text_texture
+            &textures.spotlight_place_text_texture
         } else if spotlight == SpotlightType::Delete {
-            &spotlight_delete_text_texture
+            &textures.spotlight_delete_text_texture
         } else {
-            &help_text_texture
+            &textures.help_text_texture
         };
         render::render_text_texture_coordinates(
             &mut context.canvas,
@@ -263,20 +366,110 @@ pub fn exec(context: &mut Context) -> NextMode {
             text_position,
             None,
         );
-        if prompt != PromptType::None {
-            let prompt_texture = match prompt {
-                PromptType::NewLevel => &create_new_level_text_texture,
-                PromptType::Quit => &wanna_quit_text_texture,
-                PromptType::None => unreachable!(),
-            };
-            render::render_text_texture(&mut context.canvas, prompt_texture, 200, 200, None);
-            render::render_text_texture(&mut context.canvas, &press_y_text_texture, 200, 230, None);
-        }
-        let highlighted_id =
-            get_tile_id_from_coordinate(context.mouse.0, context.mouse.1, TILES_X_PER_SCREEN, None);
-
-        render::highlight_selected_tile(&mut context.canvas, highlighted_id);
+        render_prompt_if_needed(
+            context,
+            &textures,
+            &prompt,
+            &new_level_size_x,
+            &new_level_size_y,
+        );
         render::render_and_wait(&mut context.canvas);
+    }
+}
+
+fn sanitize_numeric_input(new_text: &str, target_text: &mut String) {
+    if new_text.chars().all(char::is_numeric) && (target_text.len() + new_text.len() <= 3) {
+        *target_text += new_text;
+    }
+}
+
+fn render_prompt_if_needed(
+    context: &mut Context,
+    textures: &Textures,
+    prompt: &PromptType,
+    new_level_size_x: &str,
+    new_level_size_y: &str,
+) {
+    if *prompt != PromptType::None {
+        let prompt_position = (200, 200);
+        let prompt_line_spacing = 30;
+        let prompt_value_spacing = 250;
+        let prompt_texture = match &prompt {
+            PromptType::NewLevel(state) => {
+                match state {
+                    NewLevelType::Prompt => (),
+                    input_state => {
+                        if *input_state == NewLevelType::XSize
+                            || *input_state == NewLevelType::YSize
+                        {
+                            render::render_text_texture(
+                                &mut context.canvas,
+                                &textures.new_level_x_size_text_texture,
+                                prompt_position.0,
+                                prompt_position.1 + 2 * prompt_line_spacing,
+                                None,
+                            );
+
+                            if !new_level_size_x.is_empty() {
+                                let new_level_x_size_input_text_texture = render::get_font_texture(
+                                    &context.texture_creator,
+                                    &context.font,
+                                    &new_level_size_x,
+                                );
+                                render::render_text_texture(
+                                    &mut context.canvas,
+                                    &new_level_x_size_input_text_texture,
+                                    prompt_position.0 + prompt_value_spacing,
+                                    prompt_position.1 + 2 * prompt_line_spacing,
+                                    None,
+                                );
+                            }
+                        }
+                        if *input_state == NewLevelType::YSize {
+                            render::render_text_texture(
+                                &mut context.canvas,
+                                &textures.new_level_y_size_text_texture,
+                                prompt_position.0,
+                                prompt_position.1 + 3 * prompt_line_spacing,
+                                None,
+                            );
+
+                            if !new_level_size_y.is_empty() {
+                                let new_level_y_size_input_text_texture = render::get_font_texture(
+                                    &context.texture_creator,
+                                    &context.font,
+                                    &new_level_size_y,
+                                );
+                                render::render_text_texture(
+                                    &mut context.canvas,
+                                    &new_level_y_size_input_text_texture,
+                                    prompt_position.0 + prompt_value_spacing,
+                                    prompt_position.1 + 3 * prompt_line_spacing,
+                                    None,
+                                );
+                            }
+                        }
+                    }
+                }
+                &textures.create_new_level_text_texture
+            }
+            PromptType::Quit => &textures.wanna_quit_text_texture,
+            PromptType::None => unreachable!(),
+        };
+        render::render_text_texture(
+            &mut context.canvas,
+            prompt_texture,
+            prompt_position.0,
+            prompt_position.1,
+            None,
+        );
+        render::render_text_texture(
+            &mut context.canvas,
+            &textures.press_y_text_texture,
+            prompt_position.0,
+            prompt_position.1 + prompt_line_spacing,
+            None,
+        );
     }
 }
 

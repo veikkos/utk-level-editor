@@ -50,9 +50,9 @@ impl From<FileTypeError> for DeserializationError {
 }
 
 impl Level {
-    pub fn get_default_level() -> Level {
+    pub fn get_default_level(size: (u8, u8)) -> Level {
         Level {
-            tiles: Level::init_default_level(),
+            tiles: Level::init_default_level(size),
             p1_position: (1, 1),
             p2_position: (1, 3),
             scroll: (0, 0),
@@ -65,23 +65,23 @@ impl Level {
         }
     }
 
-    fn init_default_level() -> Tiles {
-        const LEVEL_SIZE_X: u8 = 32;
-        const LEVEL_SIZE_Y: u8 = 22;
+    fn init_default_level(size: (u8, u8)) -> Tiles {
+        let level_size_x = size.0;
+        let level_size_y = size.1;
 
         let mut tiles = Vec::new();
 
         // First row ...
         {
             let mut row = Vec::new();
-            for x in 0..LEVEL_SIZE_X {
+            for x in 0..level_size_x {
                 row.push(if x == 0 {
                     Tile {
                         texture_type: TextureType::WALLS,
                         id: 0,
                         shadow: 0,
                     }
-                } else if x == LEVEL_SIZE_X - 1 {
+                } else if x == level_size_x - 1 {
                     Tile {
                         texture_type: TextureType::WALLS,
                         id: 2,
@@ -99,17 +99,17 @@ impl Level {
         }
 
         // .. all but final row ...
-        for y in 1..LEVEL_SIZE_Y - 1 {
+        for y in 1..level_size_y - 1 {
             let mut row = Vec::new();
 
-            for x in 0..LEVEL_SIZE_X {
+            for x in 0..level_size_x {
                 row.push(if x == 0 {
                     Tile {
                         texture_type: TextureType::WALLS,
                         id: 16,
                         shadow: 0,
                     }
-                } else if x == LEVEL_SIZE_X - 1 {
+                } else if x == level_size_x - 1 {
                     Tile {
                         texture_type: TextureType::WALLS,
                         id: 16,
@@ -119,7 +119,7 @@ impl Level {
                     Tile {
                         texture_type: TextureType::FLOOR,
                         id: 0,
-                        shadow: if y == 1 || x == LEVEL_SIZE_X - 2 {
+                        shadow: if y == 1 || x == level_size_x - 2 {
                             1
                         } else {
                             0
@@ -133,14 +133,14 @@ impl Level {
         // ... and final row!
         {
             let mut row = Vec::new();
-            for x in 0..LEVEL_SIZE_X {
+            for x in 0..level_size_x {
                 row.push(if x == 0 {
                     Tile {
                         texture_type: TextureType::WALLS,
                         id: 32,
                         shadow: 0,
                     }
-                } else if x == LEVEL_SIZE_X - 1 {
+                } else if x == level_size_x - 1 {
                     Tile {
                         texture_type: TextureType::WALLS,
                         id: 18,

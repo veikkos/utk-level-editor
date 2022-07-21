@@ -47,7 +47,7 @@ pub fn main() {
                 .load_texture("./assets/SHADOWS_ALPHA.PNG")
                 .unwrap(),
         },
-        level: Level::get_default_level(),
+        level: Level::get_default_level((32, 22)),
         selected_tile_id: 0,
         texture_type_selected: TextureType::FLOOR,
         mouse: (0, 0),
