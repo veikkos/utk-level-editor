@@ -12,6 +12,7 @@ pub struct Textures<'a> {
     pub floor: Texture<'a>,
     pub walls: Texture<'a>,
     pub shadows: Texture<'a>,
+    pub selected_icon: Texture<'a>,
 }
 
 pub struct Context<'a> {

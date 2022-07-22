@@ -77,7 +77,6 @@ pub fn exec(context: &mut Context) -> NextMode {
         },
     ];
     let esc_instruction_text = &load_text(context, "PRESS ESC TO EXIT");
-    let selected_icon_text = &load_text(context, "*");
     let mut selected = 1usize;
 
     let mut event_pump = context.sdl.event_pump().unwrap();
@@ -135,7 +134,7 @@ pub fn exec(context: &mut Context) -> NextMode {
             if selected == x {
                 render::render_text_texture(
                     &mut context.canvas,
-                    selected_icon_text,
+                    &context.textures.selected_icon,
                     option_position.0 - 20,
                     option_position.1 + 3,
                     None,

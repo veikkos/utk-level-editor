@@ -15,7 +15,7 @@ Implementation is done using [SDL2](https://www.libsdl.org/) library for creatin
 - :heavy_check_mark: Spotlights
 - :heavy_check_mark: Single player enemies and time limit are configurable
 - :heavy_check_mark: Saving level
-- :heavy_check_mark::grey_exclamation: Loading level but with hard-coded file name
+- :heavy_check_mark: Loading level
 - :x: Level comment is read-only and hard-coded
 - :x: Setting random crates
 - :x: Setting static crates

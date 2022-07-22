@@ -9,6 +9,7 @@ mod editor;
 mod general_level_info;
 mod help;
 mod level;
+mod load_level;
 mod render;
 mod tile_selector;
 mod types;
@@ -33,19 +34,22 @@ pub fn main() {
         .unwrap();
     let canvas = window.into_canvas().build().unwrap();
     let texture_creator = canvas.texture_creator();
+    let font = ttf_context
+        .load_font("./assets/TheJewishBitmap.ttf", 24)
+        .unwrap();
+    let selected_icon = render::get_font_texture(&texture_creator, &font, "*");
     let mut context = Context {
         sdl,
         canvas,
         texture_creator: &texture_creator,
-        font: ttf_context
-            .load_font("./assets/TheJewishBitmap.ttf", 24)
-            .unwrap(),
+        font,
         textures: Textures {
             floor: texture_creator.load_texture("./assets/FLOOR1.PNG").unwrap(),
             walls: texture_creator.load_texture("./assets/WALLS1.PNG").unwrap(),
             shadows: texture_creator
                 .load_texture("./assets/SHADOWS_ALPHA.PNG")
                 .unwrap(),
+            selected_icon,
         },
         level: Level::get_default_level((32, 22)),
         selected_tile_id: 0,
@@ -61,6 +65,7 @@ pub fn main() {
             TileSelect => tile_selector::exec(&mut context),
             Help => help::exec(&mut context),
             GeneralLevelInfo => general_level_info::exec(&mut context),
+            LoadLevel => load_level::exec(&mut context),
             Quit => break 'running,
         }
     }

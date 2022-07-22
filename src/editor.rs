@@ -184,10 +184,8 @@ pub fn exec(context: &mut Context) -> NextMode {
                         prompt = PromptType::Save(SaveLevelType::Prompt);
                     }
                     Keycode::F3 => {
-                        context.level.deserialize("./TEST.LEV").unwrap();
-                        textures.saved_level_name_text_texture = None;
                         context.sdl.video().unwrap().text_input().stop();
-                        prompt = PromptType::None;
+                        return LoadLevel;
                     }
                     Keycode::F4 => {
                         prompt = PromptType::NewLevel(NewLevelType::Prompt);

@@ -30,5 +30,6 @@ pub enum NextMode {
     TileSelect,
     Help,
     GeneralLevelInfo,
+    LoadLevel,
     Quit,
 }
