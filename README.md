@@ -10,13 +10,13 @@ Implementation is done using [SDL2](https://www.libsdl.org/) library for creatin
 
 - :heavy_check_mark: Laying wall and floor tiles
 - :heavy_check_mark: Level size
+- :heavy_check_mark: Saving level
+- :heavy_check_mark: Loading level
 - :heavy_check_mark: Creating shadows
 - :heavy_check_mark: Setting player start positions
 - :heavy_check_mark: Spotlights
 - :heavy_check_mark: Single player enemies and time limit are configurable
-- :heavy_check_mark: Saving level
-- :heavy_check_mark: Loading level
-- :x: Level comment is read-only and hard-coded
+- :heavy_check_mark: Level comment is editable
 - :x: Setting random crates
 - :x: Setting static crates
 - :x: Setting steams

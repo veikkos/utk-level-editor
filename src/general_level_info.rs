@@ -24,13 +24,36 @@ fn load_text<'a>(context: &Context<'a>, text: &str) -> Texture<'a> {
     render::get_font_texture(&context.texture_creator, &context.font, text)
 }
 
-fn load_value_text<'a>(context: &mut Context<'a>, value: &Value) -> Texture<'a> {
+fn load_value_text<'a>(context: &mut Context<'a>, value: &Value) -> Option<Texture<'a>> {
     let string = match value {
         Value::Number(number) => context.level.general_info.enemy_table[*number].to_string(),
         Value::TimeLimit() => format!("{} SECONDS", context.level.general_info.time_limit),
         Value::Comment() => context.level.general_info.comment.to_string(),
     };
-    render::get_font_texture(&context.texture_creator, &context.font, &string)
+    if !string.is_empty() {
+        Some(render::get_font_texture(
+            &context.texture_creator,
+            &context.font,
+            &string,
+        ))
+    } else {
+        None
+    }
+}
+
+fn enable_text_editing_if_needed<'a>(context: &mut Context, selected_option: &ConfigOption<'a>) {
+    match selected_option.value {
+        Value::Comment() => context.sdl.video().unwrap().text_input().start(),
+        _ => context.sdl.video().unwrap().text_input().stop(),
+    }
+}
+
+fn sanitize_level_comment_input(new_text: &str, target_text: &mut String) {
+    if (new_text.chars().all(char::is_alphanumeric) || new_text.chars().all(char::is_whitespace))
+        && (target_text.len() + new_text.len() <= 19)
+    {
+        *target_text += new_text;
+    }
 }
 
 pub fn exec(context: &mut Context) -> NextMode {
@@ -77,7 +100,8 @@ pub fn exec(context: &mut Context) -> NextMode {
         },
     ];
     let esc_instruction_text = &load_text(context, "PRESS ESC TO EXIT");
-    let mut selected = 1usize;
+    let mut selected = 0usize;
+    enable_text_editing_if_needed(context, &options[selected]);
 
     let mut event_pump = context.sdl.event_pump().unwrap();
     loop {
@@ -87,22 +111,33 @@ pub fn exec(context: &mut Context) -> NextMode {
                 | Event::KeyDown {
                     keycode: Some(Keycode::Escape),
                     ..
-                } => return Editor,
+                } => {
+                    context.sdl.video().unwrap().text_input().stop();
+                    return Editor;
+                }
+                Event::TextInput { text, .. } => match &options[selected].value {
+                    Value::Comment() => {
+                        sanitize_level_comment_input(&text, &mut context.level.general_info.comment)
+                    }
+                    _ => (),
+                },
                 Event::KeyDown { keycode, .. } => match keycode.unwrap() {
                     Keycode::Down => {
                         if selected < options.len() - 1 {
                             selected = selected + 1;
+                            enable_text_editing_if_needed(context, &options[selected]);
                         }
                     }
                     Keycode::Up => {
-                        if selected > 1 {
+                        if selected > 0 {
                             selected = selected - 1;
+                            enable_text_editing_if_needed(context, &options[selected]);
                         }
                     }
                     Keycode::Right => match &options[selected].value {
                         Value::Number(index) => context.level.general_info.enemy_table[*index] += 1,
                         Value::TimeLimit() => context.level.general_info.time_limit += 10,
-                        Value::Comment() => todo!(),
+                        _ => (),
                     },
                     Keycode::Left => match &options[selected].value {
                         Value::Number(index) => {
@@ -117,9 +152,15 @@ pub fn exec(context: &mut Context) -> NextMode {
                                 *value = *value - 10;
                             }
                         }
-                        Value::Comment() => todo!(),
+                        _ => (),
                     },
-                    _ => {}
+                    Keycode::Backspace => match &options[selected].value {
+                        Value::Comment() => {
+                            context.level.general_info.comment.pop();
+                        }
+                        _ => (),
+                    },
+                    _ => (),
                 },
                 _ => {}
             }
@@ -148,13 +189,16 @@ pub fn exec(context: &mut Context) -> NextMode {
                 None,
             );
             let value_texture = &load_value_text(context, &option.value);
-            render::render_text_texture(
-                &mut context.canvas,
-                value_texture,
-                value_position.0,
-                value_position.1,
-                None,
-            );
+            match value_texture {
+                Some(texture) => render::render_text_texture(
+                    &mut context.canvas,
+                    texture,
+                    value_position.0,
+                    value_position.1,
+                    None,
+                ),
+                None => (),
+            };
             option_position.1 += 30;
             value_position.1 = option_position.1;
         }
