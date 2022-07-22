@@ -55,6 +55,7 @@ pub fn main() {
         level: Level::get_default_level((32, 22)),
         selected_tile_id: 0,
         texture_type_selected: TextureType::FLOOR,
+        texture_type_scrolled: TextureType::FLOOR,
         mouse: (0, 0),
         level_save_name: String::new(),
     };

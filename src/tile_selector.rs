@@ -40,20 +40,20 @@ pub fn exec(context: &mut Context) -> NextMode {
                         return Editor;
                     }
                     Keycode::PageDown => {
-                        context.texture_type_selected =
-                            if context.texture_type_selected == TextureType::FLOOR {
+                        context.texture_type_scrolled =
+                            if context.texture_type_scrolled == TextureType::FLOOR {
                                 TextureType::WALLS
-                            } else if context.texture_type_selected == TextureType::WALLS {
+                            } else if context.texture_type_scrolled == TextureType::WALLS {
                                 TextureType::SHADOW
                             } else {
                                 TextureType::FLOOR
                             }
                     }
                     Keycode::PageUp => {
-                        context.texture_type_selected =
-                            if context.texture_type_selected == TextureType::FLOOR {
+                        context.texture_type_scrolled =
+                            if context.texture_type_scrolled == TextureType::FLOOR {
                                 TextureType::SHADOW
-                            } else if context.texture_type_selected == TextureType::SHADOW {
+                            } else if context.texture_type_scrolled == TextureType::SHADOW {
                                 TextureType::WALLS
                             } else {
                                 TextureType::FLOOR
@@ -75,6 +75,7 @@ pub fn exec(context: &mut Context) -> NextMode {
                         TILES_X_PER_SCREEN,
                         None,
                     );
+                    context.texture_type_selected = context.texture_type_scrolled;
                     return Editor;
                 }
                 _ => {}
@@ -83,7 +84,7 @@ pub fn exec(context: &mut Context) -> NextMode {
 
         context.canvas.set_draw_color(Color::from((0, 0, 0)));
         context.canvas.clear();
-        let texture_selected = match context.texture_type_selected {
+        let texture_selected = match context.texture_type_scrolled {
             TextureType::FLOOR => &context.textures.floor,
             TextureType::WALLS => &context.textures.walls,
             TextureType::SHADOW => &context.textures.shadows,
@@ -95,9 +96,20 @@ pub fn exec(context: &mut Context) -> NextMode {
         let highlighted_id =
             get_tile_id_from_coordinate(context.mouse.0, context.mouse.1, TILES_X_PER_SCREEN, None);
 
-        render::highlight_selected_tile(&mut context.canvas, highlighted_id);
+        render::highlight_selected_tile(
+            &mut context.canvas,
+            highlighted_id,
+            &render::RendererColor::White,
+        );
+        if context.texture_type_selected == context.texture_type_scrolled {
+            render::highlight_selected_tile(
+                &mut context.canvas,
+                context.selected_tile_id,
+                &render::RendererColor::Red,
+            );
+        }
         let text_position = (8, 454);
-        let active_text = match context.texture_type_selected {
+        let active_text = match context.texture_type_scrolled {
             TextureType::FLOOR => &floor_blocks_text_texture,
             TextureType::WALLS => &wall_blocks_text_texture,
             TextureType::SHADOW => &shadow_blocks_text_texture,

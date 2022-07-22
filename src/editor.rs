@@ -384,7 +384,11 @@ pub fn exec(context: &mut Context) -> NextMode {
         render::render_level(&mut context.canvas, &context.level, &context.textures);
         let highlighted_id =
             get_tile_id_from_coordinate(context.mouse.0, context.mouse.1, TILES_X_PER_SCREEN, None);
-        render::highlight_selected_tile(&mut context.canvas, highlighted_id);
+        render::highlight_selected_tile(
+            &mut context.canvas,
+            highlighted_id,
+            &render::RendererColor::White,
+        );
         render::render_text_texture(
             &mut context.canvas,
             &textures.p1_text_texture,

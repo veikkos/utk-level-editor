@@ -25,6 +25,7 @@ pub struct Context<'a> {
     pub level: Level,
     pub selected_tile_id: u32,
     pub texture_type_selected: TextureType,
+    pub texture_type_scrolled: TextureType,
     pub mouse: (u32, u32),
     pub level_save_name: String,
 }

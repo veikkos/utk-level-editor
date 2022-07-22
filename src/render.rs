@@ -16,8 +16,17 @@ use std::time::Duration;
 
 const TEXT_SIZE_DIVIDER: u32 = 1;
 
-pub fn highlight_selected_tile(canvas: &mut Canvas<Window>, id: u32) {
-    canvas.set_draw_color(Color::from((255, 255, 255)));
+pub enum RendererColor {
+    White,
+    Red,
+}
+
+pub fn highlight_selected_tile(canvas: &mut Canvas<Window>, id: u32, color: &RendererColor) {
+    let sdl_color = match &color {
+        RendererColor::White => Color::from((255, 255, 255)),
+        RendererColor::Red => Color::from((255, 0, 0)),
+    };
+    canvas.set_draw_color(sdl_color);
 
     let (x_logical, y_logical) = get_tile_coordinates(id);
     let x = x_logical * RENDER_MULTIPLIER;
