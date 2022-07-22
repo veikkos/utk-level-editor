@@ -15,11 +15,12 @@ pub fn exec(context: &mut Context) -> NextMode {
         "F2   - SAVE LEVEL",
         "F3   - LOAD LEVEL",
         "F4   - MAKE NEW LEVEL",
-        "F7   - EDIT GENERAL LEVEL VARIABLES (READ ONLY)",
+        "F7   - EDIT GENERAL LEVEL VARIABLES",
+        " ",
+        "- EDITOR -",
         "Q/W  - PLACE/DELETE SPOTLIGHT",
         "1/2  - PLACE PL1/PL2 START",
-        " ",
-        "SPACE - SELECTION/EDITING MODE",
+        "SPACE - TILE SELECTION/EDITING MODE",
         "ARROW KEYS - MOVE VIEWPORT",
     ];
     let line_textures: Vec<Texture> = lines
