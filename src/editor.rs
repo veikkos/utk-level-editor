@@ -193,13 +193,17 @@ pub fn exec(context: &mut Context) -> NextMode {
                         return GeneralLevelInfo;
                     }
                     Keycode::Num1 => {
-                        if !matches!(prompt, PromptType::NewLevel(_)) {
+                        if !matches!(prompt, PromptType::NewLevel(_))
+                            && !matches!(prompt, PromptType::Save(_))
+                        {
                             set_position = 1;
                             prompt = PromptType::None;
                         }
                     }
                     Keycode::Num2 => {
-                        if !matches!(prompt, PromptType::NewLevel(_)) {
+                        if !matches!(prompt, PromptType::NewLevel(_))
+                            && !matches!(prompt, PromptType::Save(_))
+                        {
                             set_position = 2;
                             prompt = PromptType::None;
                         }
