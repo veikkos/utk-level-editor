@@ -11,6 +11,7 @@ use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::mouse::MouseButton;
 use sdl2::render::Texture;
+use sdl2::render::TextureQuery;
 
 #[derive(PartialEq)]
 enum NewLevelType {
@@ -184,6 +185,7 @@ pub fn exec(context: &mut Context) -> NextMode {
                     }
                     Keycode::F3 => {
                         context.level.deserialize("./TEST.LEV").unwrap();
+                        textures.saved_level_name_text_texture = None;
                         context.sdl.video().unwrap().text_input().stop();
                         prompt = PromptType::None;
                     }
@@ -298,6 +300,7 @@ pub fn exec(context: &mut Context) -> NextMode {
                                 new_level_size_y.parse::<u8>().unwrap(),
                             ));
                             context.sdl.video().unwrap().text_input().stop();
+                            textures.saved_level_name_text_texture = None;
                             prompt = PromptType::None;
                         } else if prompt == PromptType::Save(SaveLevelType::NameInput)
                             && level_save_name.len() > 1
@@ -454,6 +457,35 @@ fn sanitize_level_name_input(new_text: &str, target_text: &mut String) {
     }
 }
 
+fn render_input_prompt(
+    context: &mut Context,
+    prompt_position: (u32, u32),
+    prompt_line_spacing: u32,
+    instruction_texture: &Texture,
+    input_field: &str,
+) {
+    render::render_text_texture(
+        &mut context.canvas,
+        instruction_texture,
+        prompt_position.0,
+        prompt_position.1 + 2 * prompt_line_spacing,
+        None,
+    );
+
+    if !input_field.is_empty() {
+        let input_text_texture =
+            render::get_font_texture(&context.texture_creator, &context.font, &input_field);
+        let TextureQuery { width, .. } = instruction_texture.query();
+        render::render_text_texture(
+            &mut context.canvas,
+            &input_text_texture,
+            prompt_position.0 + width + 10,
+            prompt_position.1 + 2 * prompt_line_spacing,
+            None,
+        );
+    }
+}
+
 fn render_prompt_if_needed(
     context: &mut Context,
     textures: &Textures,
@@ -467,59 +499,28 @@ fn render_prompt_if_needed(
         let prompt_line_spacing = 30;
         let prompt_texture = match &prompt {
             PromptType::NewLevel(state) => {
-                let prompt_value_spacing = 250;
                 match state {
                     NewLevelType::Prompt => (),
                     input_state => {
                         if *input_state == NewLevelType::XSize
                             || *input_state == NewLevelType::YSize
                         {
-                            render::render_text_texture(
-                                &mut context.canvas,
+                            render_input_prompt(
+                                context,
+                                prompt_position,
+                                prompt_line_spacing,
                                 &textures.new_level_x_size_text_texture,
-                                prompt_position.0,
-                                prompt_position.1 + 2 * prompt_line_spacing,
-                                None,
+                                new_level_size_x,
                             );
-
-                            if !new_level_size_x.is_empty() {
-                                let new_level_x_size_input_text_texture = render::get_font_texture(
-                                    &context.texture_creator,
-                                    &context.font,
-                                    &new_level_size_x,
-                                );
-                                render::render_text_texture(
-                                    &mut context.canvas,
-                                    &new_level_x_size_input_text_texture,
-                                    prompt_position.0 + prompt_value_spacing,
-                                    prompt_position.1 + 2 * prompt_line_spacing,
-                                    None,
-                                );
-                            }
                         }
                         if *input_state == NewLevelType::YSize {
-                            render::render_text_texture(
-                                &mut context.canvas,
+                            render_input_prompt(
+                                context,
+                                (prompt_position.0, prompt_position.1 + prompt_line_spacing),
+                                prompt_line_spacing,
                                 &textures.new_level_y_size_text_texture,
-                                prompt_position.0,
-                                prompt_position.1 + 3 * prompt_line_spacing,
-                                None,
+                                new_level_size_y,
                             );
-
-                            if !new_level_size_y.is_empty() {
-                                let new_level_y_size_input_text_texture = render::get_font_texture(
-                                    &context.texture_creator,
-                                    &context.font,
-                                    &new_level_size_y,
-                                );
-                                render::render_text_texture(
-                                    &mut context.canvas,
-                                    &new_level_y_size_input_text_texture,
-                                    prompt_position.0 + prompt_value_spacing,
-                                    prompt_position.1 + 3 * prompt_line_spacing,
-                                    None,
-                                );
-                            }
                         }
                     }
                 }
@@ -529,28 +530,13 @@ fn render_prompt_if_needed(
                 match save_level_state {
                     SaveLevelType::Prompt => (),
                     SaveLevelType::NameInput => {
-                        render::render_text_texture(
-                            &mut context.canvas,
+                        render_input_prompt(
+                            context,
+                            prompt_position,
+                            prompt_line_spacing,
                             &textures.filename_text_texture,
-                            prompt_position.0,
-                            prompt_position.1 + 2 * prompt_line_spacing,
-                            None,
+                            level_save_name,
                         );
-
-                        if !level_save_name.is_empty() {
-                            let new_level_name_input_text_texture = render::get_font_texture(
-                                &context.texture_creator,
-                                &context.font,
-                                &level_save_name,
-                            );
-                            render::render_text_texture(
-                                &mut context.canvas,
-                                &new_level_name_input_text_texture,
-                                prompt_position.0 + 120,
-                                prompt_position.1 + 2 * prompt_line_spacing,
-                                None,
-                            );
-                        }
                     }
                 };
                 &textures.save_level_text_texture
