@@ -13,6 +13,7 @@ pub struct Textures<'a> {
     pub walls: Texture<'a>,
     pub shadows: Texture<'a>,
     pub selected_icon: Texture<'a>,
+    pub saved_level_name: Option<Texture<'a>>,
 }
 
 pub struct Context<'a> {
@@ -25,4 +26,5 @@ pub struct Context<'a> {
     pub selected_tile_id: u32,
     pub texture_type_selected: TextureType,
     pub mouse: (u32, u32),
+    pub level_save_name: String,
 }

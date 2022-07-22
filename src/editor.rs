@@ -51,7 +51,6 @@ struct Textures<'a> {
     create_new_level_text_texture: Texture<'a>,
     wanna_quit_text_texture: Texture<'a>,
     save_level_text_texture: Texture<'a>,
-    saved_level_name_text_texture: Option<Texture<'a>>,
     filename_text_texture: Texture<'a>,
     press_y_text_texture: Texture<'a>,
     new_level_x_size_text_texture: Texture<'a>,
@@ -62,7 +61,7 @@ struct Textures<'a> {
 }
 
 pub fn exec(context: &mut Context) -> NextMode {
-    let mut textures = Textures {
+    let textures = Textures {
         p1_text_texture: render::get_font_texture(&context.texture_creator, &context.font, "PL1"),
         p2_text_texture: render::get_font_texture(&context.texture_creator, &context.font, "PL2"),
         p1_set_text_texture: render::get_font_texture(
@@ -95,7 +94,6 @@ pub fn exec(context: &mut Context) -> NextMode {
             &context.font,
             "SAVE LEVEL?",
         ),
-        saved_level_name_text_texture: None,
         filename_text_texture: render::get_font_texture(
             &context.texture_creator,
             &context.font,
@@ -139,7 +137,6 @@ pub fn exec(context: &mut Context) -> NextMode {
     let mut spotlight = SpotlightType::None;
     let mut new_level_size_x: String = String::new();
     let mut new_level_size_y: String = String::new();
-    let mut level_save_name: String = String::new();
 
     let mut event_pump = context.sdl.event_pump().unwrap();
     loop {
@@ -166,7 +163,7 @@ pub fn exec(context: &mut Context) -> NextMode {
                     },
                     PromptType::Save(save_level_state) => match save_level_state {
                         SaveLevelType::NameInput => {
-                            sanitize_level_name_input(&text, &mut level_save_name)
+                            sanitize_level_name_input(&text, &mut context.level_save_name)
                         }
                         _ => {}
                     },
@@ -298,21 +295,21 @@ pub fn exec(context: &mut Context) -> NextMode {
                                 new_level_size_y.parse::<u8>().unwrap(),
                             ));
                             context.sdl.video().unwrap().text_input().stop();
-                            textures.saved_level_name_text_texture = None;
+                            context.textures.saved_level_name = None;
+                            context.level_save_name.clear();
                             prompt = PromptType::None;
                         } else if prompt == PromptType::Save(SaveLevelType::NameInput)
-                            && level_save_name.len() > 1
+                            && context.level_save_name.len() > 1
                         {
-                            let level_save_name_uppercase = level_save_name.to_uppercase();
+                            let level_save_name_uppercase = context.level_save_name.to_uppercase();
                             let level_saved_name = format!("{}.LEV", &level_save_name_uppercase);
                             context.level.serialize(&level_saved_name).unwrap();
                             context.sdl.video().unwrap().text_input().stop();
-                            textures.saved_level_name_text_texture =
-                                Some(render::get_font_texture(
-                                    &context.texture_creator,
-                                    &context.font,
-                                    &level_saved_name,
-                                ));
+                            context.textures.saved_level_name = Some(render::get_font_texture(
+                                &context.texture_creator,
+                                &context.font,
+                                &level_saved_name,
+                            ));
                             prompt = PromptType::None;
                         }
                     }
@@ -328,7 +325,7 @@ pub fn exec(context: &mut Context) -> NextMode {
                         },
                         PromptType::Save(save_level_state) => match save_level_state {
                             SaveLevelType::NameInput => {
-                                level_save_name.pop();
+                                context.level_save_name.pop();
                             }
                             _ => {}
                         },
@@ -428,9 +425,8 @@ pub fn exec(context: &mut Context) -> NextMode {
             &prompt,
             &new_level_size_x,
             &new_level_size_y,
-            &level_save_name,
         );
-        match &textures.saved_level_name_text_texture {
+        match &context.textures.saved_level_name {
             Some(texture) => render::render_text_texture_coordinates(
                 &mut context.canvas,
                 &texture,
@@ -490,7 +486,6 @@ fn render_prompt_if_needed(
     prompt: &PromptType,
     new_level_size_x: &str,
     new_level_size_y: &str,
-    level_save_name: &str,
 ) {
     if *prompt != PromptType::None {
         let prompt_position = (200, 200);
@@ -528,12 +523,13 @@ fn render_prompt_if_needed(
                 match save_level_state {
                     SaveLevelType::Prompt => (),
                     SaveLevelType::NameInput => {
+                        let level_save_name = context.level_save_name.clone();
                         render_input_prompt(
                             context,
                             prompt_position,
                             prompt_line_spacing,
                             &textures.filename_text_texture,
-                            level_save_name,
+                            &level_save_name,
                         );
                     }
                 };
