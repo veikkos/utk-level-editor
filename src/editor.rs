@@ -400,24 +400,21 @@ pub fn exec(context: &mut Context) -> NextMode {
                 } => {
                     if drag_tiles {
                         drag_tiles = false;
-                        match mouse_left_click {
-                            Some(coordinates) => {
-                                let selected_level_tiles = get_selected_level_tiles(
-                                    &coordinates,
-                                    &context.mouse,
-                                    context.level.tiles[0].len() as u32,
-                                    Some(context.level.scroll),
+                        if let Some(coordinates) = mouse_left_click {
+                            let selected_level_tiles = get_selected_level_tiles(
+                                &coordinates,
+                                &context.mouse,
+                                context.level.tiles[0].len() as u32,
+                                Some(context.level.scroll),
+                            );
+                            for level_tile_id in selected_level_tiles {
+                                context.level.put_tile_to_level(
+                                    level_tile_id,
+                                    Some(context.selected_tile_id),
+                                    &context.texture_type_selected,
                                 );
-                                for level_tile_id in selected_level_tiles {
-                                    context.level.put_tile_to_level(
-                                        level_tile_id,
-                                        Some(context.selected_tile_id),
-                                        &context.texture_type_selected,
-                                    );
-                                }
                             }
-                            _ => (),
-                        };
+                        }
                     };
                     mouse_left_click = None;
                 }
@@ -490,33 +487,24 @@ pub fn exec(context: &mut Context) -> NextMode {
             &new_level_size_y,
         );
         if insert_item == InsertType::None {
-            match mouse_left_click {
-                Some(coordinates) => {
-                    let selected_screen_tiles = get_selected_level_tiles(
-                        &coordinates,
-                        &context.mouse,
-                        TILES_X_PER_SCREEN,
-                        None,
+            if let Some(coordinates) = mouse_left_click {
+                let selected_screen_tiles = get_selected_level_tiles(
+                    &coordinates,
+                    &context.mouse,
+                    TILES_X_PER_SCREEN,
+                    None,
+                );
+                for screen_tile_id in selected_screen_tiles {
+                    render::highlight_selected_tile(
+                        &mut context.canvas,
+                        screen_tile_id,
+                        &render::RendererColor::White,
                     );
-                    for screen_tile_id in selected_screen_tiles {
-                        render::highlight_selected_tile(
-                            &mut context.canvas,
-                            screen_tile_id,
-                            &render::RendererColor::White,
-                        );
-                    }
                 }
-                _ => (),
-            };
+            }
         }
-        match &context.textures.saved_level_name {
-            Some(texture) => render::render_text_texture_coordinates(
-                &mut context.canvas,
-                &texture,
-                (10, 455),
-                None,
-            ),
-            None => {}
+        if let Some(texture) = &context.textures.saved_level_name {
+            render::render_text_texture_coordinates(&mut context.canvas, &texture, (10, 455), None);
         }
         render::render_and_wait(&mut context.canvas);
     }
