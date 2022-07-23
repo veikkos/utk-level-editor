@@ -1,4 +1,5 @@
 use sdl2::rect::Rect;
+use std::cmp;
 
 pub const TILE_SIZE: u32 = 20;
 pub const RENDER_MULTIPLIER: u32 = 2;
@@ -82,4 +83,25 @@ pub fn get_distance_between_points(p0: &(u32, u32), p1: &(u32, u32)) -> f64 {
 
 pub fn get_spotlight_render_radius(spotlight: &u8) -> u32 {
     *spotlight as u32 * 5 + 5
+}
+
+pub fn get_selected_level_tiles(
+    p0: &(u32, u32),
+    p1: &(u32, u32),
+    x_blocks: u32,
+    scroll: Option<(u32, u32)>,
+) -> Vec<u32> {
+    let tile_ids = (
+        get_tile_id_from_coordinate(cmp::min(p0.0, p1.0), cmp::min(p0.1, p1.1), x_blocks, scroll),
+        get_tile_id_from_coordinate(cmp::max(p0.0, p1.0), cmp::max(p0.1, p1.1), x_blocks, scroll),
+    );
+    let x_diff = (tile_ids.1 - tile_ids.0) % x_blocks + 1;
+    let y_diff = (tile_ids.1 - tile_ids.0) / x_blocks + 1;
+    let mut lines: Vec<u32> = Vec::new();
+    for y in 0..y_diff {
+        let mut line: Vec<u32> =
+            (tile_ids.0 + y * x_blocks..tile_ids.0 + x_diff + y * x_blocks).collect();
+        lines.append(&mut line);
+    }
+    lines
 }

@@ -131,12 +131,13 @@ pub fn exec(context: &mut Context) -> NextMode {
         ),
     };
     let mut set_position: u8 = 0;
-    let mut mouse_left_click = false;
+    let mut mouse_left_click: Option<(u32, u32)> = None;
     let mut mouse_right_click = false;
     let mut prompt = PromptType::None;
     let mut spotlight = SpotlightType::None;
     let mut new_level_size_x: String = String::new();
     let mut new_level_size_y: String = String::new();
+    let mut drag_tiles = false;
 
     let mut event_pump = context.sdl.event_pump().unwrap();
     loop {
@@ -343,8 +344,13 @@ pub fn exec(context: &mut Context) -> NextMode {
                     if x >= 0 && y >= 0 {
                         context.mouse.0 = x as u32;
                         context.mouse.1 = y as u32;
-                        if mouse_left_click {
-                            handle_mouse_left_down(context, &mut set_position, &mut spotlight);
+                        if mouse_left_click.is_some() {
+                            handle_mouse_left_down(
+                                context,
+                                &mut set_position,
+                                &mut spotlight,
+                                &mut drag_tiles,
+                            );
                         }
                         if mouse_right_click {
                             handle_mouse_right_down(context);
@@ -355,14 +361,40 @@ pub fn exec(context: &mut Context) -> NextMode {
                     mouse_btn: MouseButton::Left,
                     ..
                 } => {
-                    mouse_left_click = true;
-                    handle_mouse_left_down(context, &mut set_position, &mut spotlight);
+                    mouse_left_click = Some(context.mouse);
+                    handle_mouse_left_down(
+                        context,
+                        &mut set_position,
+                        &mut spotlight,
+                        &mut drag_tiles,
+                    );
                 }
                 Event::MouseButtonUp {
                     mouse_btn: MouseButton::Left,
                     ..
                 } => {
-                    mouse_left_click = false;
+                    if drag_tiles {
+                        drag_tiles = false;
+                        match mouse_left_click {
+                            Some(coordinates) => {
+                                let selected_level_tiles = get_selected_level_tiles(
+                                    &coordinates,
+                                    &context.mouse,
+                                    context.level.tiles[0].len() as u32,
+                                    Some(context.level.scroll),
+                                );
+                                for level_tile_id in selected_level_tiles {
+                                    context.level.put_tile_to_level(
+                                        level_tile_id,
+                                        Some(context.selected_tile_id),
+                                        &context.texture_type_selected,
+                                    );
+                                }
+                            }
+                            _ => (),
+                        };
+                    };
+                    mouse_left_click = None;
                 }
                 Event::MouseButtonDown {
                     mouse_btn: MouseButton::Right,
@@ -429,6 +461,26 @@ pub fn exec(context: &mut Context) -> NextMode {
             &new_level_size_x,
             &new_level_size_y,
         );
+        if spotlight == SpotlightType::None {
+            match mouse_left_click {
+                Some(coordinates) => {
+                    let selected_screen_tiles = get_selected_level_tiles(
+                        &coordinates,
+                        &context.mouse,
+                        TILES_X_PER_SCREEN,
+                        None,
+                    );
+                    for screen_tile_id in selected_screen_tiles {
+                        render::highlight_selected_tile(
+                            &mut context.canvas,
+                            screen_tile_id,
+                            &render::RendererColor::White,
+                        );
+                    }
+                }
+                _ => (),
+            };
+        }
         match &context.textures.saved_level_name {
             Some(texture) => render::render_text_texture_coordinates(
                 &mut context.canvas,
@@ -562,7 +614,12 @@ fn handle_mouse_left_down(
     context: &mut Context,
     set_position: &mut u8,
     spotlight: &mut SpotlightType,
+    drag_tiles: &mut bool,
 ) {
+    if *drag_tiles {
+        return;
+    }
+
     if *set_position > 0 {
         let position = if *set_position == 1 {
             &mut context.level.p1_position
@@ -572,31 +629,17 @@ fn handle_mouse_left_down(
         *position =
             get_logical_coordinates(context.mouse.0, context.mouse.1, Some(context.level.scroll));
         *set_position = 0;
-    } else {
-        let pointed_tile = get_tile_id_from_coordinate(
-            context.mouse.0,
-            context.mouse.1,
-            context.level.tiles[0].len() as u32,
-            Some(context.level.scroll),
-        );
-        if *spotlight == SpotlightType::Place || *spotlight == SpotlightType::Delete {
-            let level_coordinates = get_level_coordinates_from_screen_coordinates(
-                &context.mouse,
-                &context.level.scroll,
-            );
-            if *spotlight == SpotlightType::Place {
-                *spotlight = SpotlightType::Instructions(level_coordinates);
-                context.level.put_spotlight_to_level(&level_coordinates, 0);
-            } else {
-                context.level.delete_spotlight_if_near(&level_coordinates);
-            }
+    } else if *spotlight == SpotlightType::Place || *spotlight == SpotlightType::Delete {
+        let level_coordinates =
+            get_level_coordinates_from_screen_coordinates(&context.mouse, &context.level.scroll);
+        if *spotlight == SpotlightType::Place {
+            *spotlight = SpotlightType::Instructions(level_coordinates);
+            context.level.put_spotlight_to_level(&level_coordinates, 0);
         } else {
-            context.level.put_tile_to_level(
-                pointed_tile,
-                Some(context.selected_tile_id),
-                &context.texture_type_selected,
-            );
+            context.level.delete_spotlight_if_near(&level_coordinates);
         }
+    } else if *spotlight == SpotlightType::None {
+        *drag_tiles = true;
     }
 }
 
