@@ -192,29 +192,24 @@ pub fn exec(context: &mut Context) -> NextMode {
                     Keycode::F7 => {
                         return GeneralLevelInfo;
                     }
-                    Keycode::Num1 => {
+                    Keycode::Num1 | Keycode::Num2 => {
                         if !matches!(prompt, PromptType::NewLevel(_))
                             && !matches!(prompt, PromptType::Save(_))
                         {
-                            set_position = 1;
+                            set_position = if keycode.unwrap() == Keycode::Num1 {
+                                1
+                            } else {
+                                2
+                            };
                             prompt = PromptType::None;
                         }
                     }
-                    Keycode::Num2 => {
-                        if !matches!(prompt, PromptType::NewLevel(_))
-                            && !matches!(prompt, PromptType::Save(_))
-                        {
-                            set_position = 2;
-                            prompt = PromptType::None;
-                        }
-                    }
-                    Keycode::Q => {
-                        spotlight = SpotlightType::Place;
-                        context.sdl.video().unwrap().text_input().stop();
-                        prompt = PromptType::None;
-                    }
-                    Keycode::W => {
-                        spotlight = SpotlightType::Delete;
+                    Keycode::Q | Keycode::W => {
+                        spotlight = if keycode.unwrap() == Keycode::Q {
+                            SpotlightType::Place
+                        } else {
+                            SpotlightType::Delete
+                        };
                         context.sdl.video().unwrap().text_input().stop();
                         prompt = PromptType::None;
                     }
