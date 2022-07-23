@@ -69,9 +69,8 @@ pub fn exec(context: &mut Context) -> NextMode {
                     mouse_btn: MouseButton::Left,
                     ..
                 } => {
-                    context.selected_tile_id = get_tile_id_from_coordinate(
-                        context.mouse.0,
-                        context.mouse.1,
+                    context.selected_tile_id = get_tile_id_from_coordinates(
+                        &limit_screen_coordinates_to_window(&context.mouse),
                         TILES_X_PER_SCREEN,
                         None,
                     );
@@ -93,8 +92,11 @@ pub fn exec(context: &mut Context) -> NextMode {
         context.canvas.set_draw_color(Color::from((200, 200, 200)));
         context.canvas.fill_rect(dst).unwrap();
         context.canvas.copy(texture_selected, None, dst).unwrap();
-        let highlighted_id =
-            get_tile_id_from_coordinate(context.mouse.0, context.mouse.1, TILES_X_PER_SCREEN, None);
+        let highlighted_id = get_tile_id_from_coordinates(
+            &limit_screen_coordinates_to_window(&context.mouse),
+            TILES_X_PER_SCREEN,
+            None,
+        );
 
         render::highlight_selected_tile(
             &mut context.canvas,

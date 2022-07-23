@@ -435,8 +435,11 @@ pub fn exec(context: &mut Context) -> NextMode {
             }
         }
         render::render_level(&mut context.canvas, &context.level, &context.textures);
-        let highlighted_id =
-            get_tile_id_from_coordinate(context.mouse.0, context.mouse.1, TILES_X_PER_SCREEN, None);
+        let highlighted_id = get_tile_id_from_coordinates(
+            &limit_screen_coordinates_to_window(&context.mouse),
+            TILES_X_PER_SCREEN,
+            None,
+        );
         render::highlight_selected_tile(
             &mut context.canvas,
             highlighted_id,
@@ -490,7 +493,7 @@ pub fn exec(context: &mut Context) -> NextMode {
             if let Some(coordinates) = mouse_left_click {
                 let selected_screen_tiles = get_selected_level_tiles(
                     &coordinates,
-                    &context.mouse,
+                    &limit_screen_coordinates_to_window(&context.mouse),
                     TILES_X_PER_SCREEN,
                     None,
                 );
@@ -662,9 +665,8 @@ fn handle_mouse_left_down(
 }
 
 fn handle_mouse_right_down(context: &mut Context) {
-    let pointed_tile = get_tile_id_from_coordinate(
-        context.mouse.0,
-        context.mouse.1,
+    let pointed_tile = get_tile_id_from_coordinates(
+        &limit_screen_coordinates_to_window(&context.mouse),
         context.level.tiles[0].len() as u32,
         Some(context.level.scroll),
     );

@@ -28,13 +28,12 @@ pub fn get_logical_coordinates(x: u32, y: u32, scroll: Option<(u32, u32)>) -> (u
     )
 }
 
-pub fn get_tile_id_from_coordinate(
-    x: u32,
-    y: u32,
+pub fn get_tile_id_from_coordinates(
+    coordinates: &(u32, u32),
     x_blocks: u32,
     scroll: Option<(u32, u32)>,
 ) -> u32 {
-    let (x_logical, y_logical) = get_logical_coordinates(x, y, scroll);
+    let (x_logical, y_logical) = get_logical_coordinates(coordinates.0, coordinates.1, scroll);
     x_logical + y_logical * x_blocks
 }
 
@@ -92,8 +91,16 @@ pub fn get_selected_level_tiles(
     scroll: Option<(u32, u32)>,
 ) -> Vec<u32> {
     let tile_ids = (
-        get_tile_id_from_coordinate(cmp::min(p0.0, p1.0), cmp::min(p0.1, p1.1), x_blocks, scroll),
-        get_tile_id_from_coordinate(cmp::max(p0.0, p1.0), cmp::max(p0.1, p1.1), x_blocks, scroll),
+        get_tile_id_from_coordinates(
+            &(cmp::min(p0.0, p1.0), cmp::min(p0.1, p1.1)),
+            x_blocks,
+            scroll,
+        ),
+        get_tile_id_from_coordinates(
+            &(cmp::max(p0.0, p1.0), cmp::max(p0.1, p1.1)),
+            x_blocks,
+            scroll,
+        ),
     );
     let x_diff = (tile_ids.1 - tile_ids.0) % x_blocks + 1;
     let y_diff = (tile_ids.1 - tile_ids.0) / x_blocks + 1;
@@ -104,4 +111,11 @@ pub fn get_selected_level_tiles(
         lines.append(&mut line);
     }
     lines
+}
+
+pub fn limit_screen_coordinates_to_window(coordinates: &(u32, u32)) -> (u32, u32) {
+    (
+        std::cmp::min(coordinates.0, RESOLUTION_X - 1),
+        std::cmp::min(coordinates.1, RESOLUTION_Y - 1),
+    )
 }
