@@ -1,4 +1,5 @@
 use sdl2::rect::Rect;
+use sdl2::render::{Texture, TextureQuery};
 use std::cmp;
 
 pub const TILE_SIZE: u32 = 20;
@@ -118,4 +119,9 @@ pub fn limit_screen_coordinates_to_window(coordinates: &(u32, u32)) -> (u32, u32
         std::cmp::min(coordinates.0, RESOLUTION_X - 1),
         std::cmp::min(coordinates.1, RESOLUTION_Y - 1),
     )
+}
+
+pub fn get_number_of_tiles_in_texture(texture: &Texture) -> u32 {
+    let TextureQuery { width, height, .. } = texture.query();
+    width / TILE_SIZE * height / TILE_SIZE
 }

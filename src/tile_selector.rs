@@ -69,13 +69,21 @@ pub fn exec(context: &mut Context) -> NextMode {
                     mouse_btn: MouseButton::Left,
                     ..
                 } => {
-                    context.selected_tile_id = get_tile_id_from_coordinates(
+                    let clicked_tile_id = get_tile_id_from_coordinates(
                         &limit_screen_coordinates_to_window(&context.mouse),
                         TILES_X_PER_SCREEN,
                         None,
                     );
-                    context.texture_type_selected = context.texture_type_scrolled;
-                    return Editor;
+                    let texture_selected = match &context.texture_type_scrolled {
+                        TextureType::FLOOR => &context.textures.floor,
+                        TextureType::WALLS => &context.textures.walls,
+                        TextureType::SHADOW => &context.textures.shadows,
+                    };
+                    if clicked_tile_id < get_number_of_tiles_in_texture(texture_selected) {
+                        context.selected_tile_id = clicked_tile_id;
+                        context.texture_type_selected = context.texture_type_scrolled;
+                        return Editor;
+                    }
                 }
                 _ => {}
             }
@@ -97,12 +105,13 @@ pub fn exec(context: &mut Context) -> NextMode {
             TILES_X_PER_SCREEN,
             None,
         );
-
-        render::highlight_selected_tile(
-            &mut context.canvas,
-            highlighted_id,
-            &render::RendererColor::White,
-        );
+        if highlighted_id < get_number_of_tiles_in_texture(texture_selected) {
+            render::highlight_selected_tile(
+                &mut context.canvas,
+                highlighted_id,
+                &render::RendererColor::White,
+            );
+        }
         if context.texture_type_selected == context.texture_type_scrolled {
             render::highlight_selected_tile(
                 &mut context.canvas,
