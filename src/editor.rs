@@ -36,10 +36,15 @@ enum PromptType {
 
 #[derive(PartialEq)]
 enum SpotlightType {
-    None,
     Instructions((u32, u32)), // level coordinates of currently manipulated spotlight
     Place,
     Delete,
+}
+
+#[derive(PartialEq)]
+enum InsertType {
+    None,
+    Spotlight(SpotlightType),
 }
 
 struct Textures<'a> {
@@ -134,7 +139,7 @@ pub fn exec(context: &mut Context) -> NextMode {
     let mut mouse_left_click: Option<(u32, u32)> = None;
     let mut mouse_right_click = false;
     let mut prompt = PromptType::None;
-    let mut spotlight = SpotlightType::None;
+    let mut insert_item = InsertType::None;
     let mut new_level_size_x: String = String::new();
     let mut new_level_size_y: String = String::new();
     let mut drag_tiles = false;
@@ -148,8 +153,8 @@ pub fn exec(context: &mut Context) -> NextMode {
                     keycode: Some(Keycode::Escape),
                     ..
                 } => {
-                    prompt = if prompt != PromptType::None || spotlight != SpotlightType::None {
-                        spotlight = SpotlightType::None;
+                    prompt = if prompt != PromptType::None || insert_item != InsertType::None {
+                        insert_item = InsertType::None;
                         context.sdl.video().unwrap().text_input().stop();
                         PromptType::None
                     } else {
@@ -208,13 +213,15 @@ pub fn exec(context: &mut Context) -> NextMode {
                                 }
                             }
                             Keycode::Q | Keycode::W => {
-                                spotlight = if keycode.unwrap() == Keycode::Q {
-                                    SpotlightType::Place
-                                } else {
-                                    SpotlightType::Delete
-                                };
-                                context.sdl.video().unwrap().text_input().stop();
-                                prompt = PromptType::None;
+                                if !matches!(prompt, PromptType::Save(_)) {
+                                    insert_item = if keycode.unwrap() == Keycode::Q {
+                                        InsertType::Spotlight(SpotlightType::Place)
+                                    } else {
+                                        InsertType::Spotlight(SpotlightType::Delete)
+                                    };
+                                    context.sdl.video().unwrap().text_input().stop();
+                                    prompt = PromptType::None;
+                                }
                             }
                             Keycode::Y => match &prompt {
                                 PromptType::NewLevel(new_level_state) => match new_level_state {
@@ -236,32 +243,38 @@ pub fn exec(context: &mut Context) -> NextMode {
                                     prompt = PromptType::None;
                                 }
                             },
-                            Keycode::Up => match spotlight {
-                                SpotlightType::Instructions(coordinates) => {
-                                    let spotlight_intensity =
-                                        context.level.get_spotlight_from_level(&coordinates);
-                                    context.level.put_spotlight_to_level(
-                                        &coordinates,
-                                        spotlight_intensity + 1,
-                                    )
-                                }
+                            Keycode::Up => match &insert_item {
+                                InsertType::Spotlight(state) => match state {
+                                    SpotlightType::Instructions(coordinates) => {
+                                        let spotlight_intensity =
+                                            context.level.get_spotlight_from_level(&coordinates);
+                                        context.level.put_spotlight_to_level(
+                                            &coordinates,
+                                            spotlight_intensity + 1,
+                                        )
+                                    }
+                                    _ => (),
+                                },
                                 _ => {
                                     if context.level.scroll.1 > 0 {
                                         context.level.scroll.1 = context.level.scroll.1 - 1
                                     }
                                 }
                             },
-                            Keycode::Down => match spotlight {
-                                SpotlightType::Instructions(coordinates) => {
-                                    let spotlight_intensity =
-                                        context.level.get_spotlight_from_level(&coordinates);
-                                    if spotlight_intensity > 0 {
-                                        context.level.put_spotlight_to_level(
-                                            &coordinates,
-                                            spotlight_intensity - 1,
-                                        )
+                            Keycode::Down => match &insert_item {
+                                InsertType::Spotlight(state) => match state {
+                                    SpotlightType::Instructions(coordinates) => {
+                                        let spotlight_intensity =
+                                            context.level.get_spotlight_from_level(&coordinates);
+                                        if spotlight_intensity > 0 {
+                                            context.level.put_spotlight_to_level(
+                                                &coordinates,
+                                                spotlight_intensity - 1,
+                                            )
+                                        }
                                     }
-                                }
+                                    _ => (),
+                                },
                                 _ => {
                                     if context.level.scroll.1 + TILES_Y_PER_SCREEN
                                         < (context.level.tiles.len()) as u32
@@ -283,8 +296,11 @@ pub fn exec(context: &mut Context) -> NextMode {
                                 }
                             }
                             Keycode::Return | Keycode::KpEnter => {
-                                if matches!(spotlight, SpotlightType::Instructions(_)) {
-                                    spotlight = SpotlightType::Place;
+                                if matches!(
+                                    insert_item,
+                                    InsertType::Spotlight(SpotlightType::Instructions(_))
+                                ) {
+                                    insert_item = InsertType::Spotlight(SpotlightType::Place);
                                 } else if prompt == PromptType::NewLevel(NewLevelType::XSize)
                                     && new_level_size_x.len() > 1
                                     && new_level_size_x.parse::<u8>().unwrap() >= 16
@@ -357,7 +373,7 @@ pub fn exec(context: &mut Context) -> NextMode {
                             handle_mouse_left_down(
                                 context,
                                 &mut set_position,
-                                &mut spotlight,
+                                &mut insert_item,
                                 &mut drag_tiles,
                             );
                         }
@@ -374,7 +390,7 @@ pub fn exec(context: &mut Context) -> NextMode {
                     handle_mouse_left_down(
                         context,
                         &mut set_position,
-                        &mut spotlight,
+                        &mut insert_item,
                         &mut drag_tiles,
                     );
                 }
@@ -448,11 +464,14 @@ pub fn exec(context: &mut Context) -> NextMode {
             &textures.p1_set_text_texture
         } else if set_position == 2 {
             &textures.p2_set_text_texture
-        } else if matches!(spotlight, SpotlightType::Instructions(_)) {
+        } else if matches!(
+            insert_item,
+            InsertType::Spotlight(SpotlightType::Instructions(_))
+        ) {
             &textures.spotlight_instructions_text_texture
-        } else if spotlight == SpotlightType::Place {
+        } else if matches!(insert_item, InsertType::Spotlight(SpotlightType::Place)) {
             &textures.spotlight_place_text_texture
-        } else if spotlight == SpotlightType::Delete {
+        } else if matches!(insert_item, InsertType::Spotlight(SpotlightType::Delete)) {
             &textures.spotlight_delete_text_texture
         } else {
             &textures.help_text_texture
@@ -470,7 +489,7 @@ pub fn exec(context: &mut Context) -> NextMode {
             &new_level_size_x,
             &new_level_size_y,
         );
-        if spotlight == SpotlightType::None {
+        if insert_item == InsertType::None {
             match mouse_left_click {
                 Some(coordinates) => {
                     let selected_screen_tiles = get_selected_level_tiles(
@@ -622,7 +641,7 @@ fn render_prompt_if_needed(
 fn handle_mouse_left_down(
     context: &mut Context,
     set_position: &mut u8,
-    spotlight: &mut SpotlightType,
+    insert_item: &mut InsertType,
     drag_tiles: &mut bool,
 ) {
     if *drag_tiles {
@@ -638,16 +657,18 @@ fn handle_mouse_left_down(
         *position =
             get_logical_coordinates(context.mouse.0, context.mouse.1, Some(context.level.scroll));
         *set_position = 0;
-    } else if *spotlight == SpotlightType::Place || *spotlight == SpotlightType::Delete {
+    } else if matches!(insert_item, InsertType::Spotlight(SpotlightType::Place))
+        || matches!(insert_item, InsertType::Spotlight(SpotlightType::Delete))
+    {
         let level_coordinates =
             get_level_coordinates_from_screen_coordinates(&context.mouse, &context.level.scroll);
-        if *spotlight == SpotlightType::Place {
-            *spotlight = SpotlightType::Instructions(level_coordinates);
+        if matches!(insert_item, InsertType::Spotlight(SpotlightType::Place)) {
+            *insert_item = InsertType::Spotlight(SpotlightType::Instructions(level_coordinates));
             context.level.put_spotlight_to_level(&level_coordinates, 0);
         } else {
             context.level.delete_spotlight_if_near(&level_coordinates);
         }
-    } else if *spotlight == SpotlightType::None {
+    } else if *insert_item == InsertType::None {
         *drag_tiles = true;
     }
 }
