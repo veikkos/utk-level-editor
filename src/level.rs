@@ -173,17 +173,19 @@ impl Level {
         selected_texture: &TextureType,
     ) {
         let (x, y) = self.get_tile_index(pointed_tile);
-        if *selected_texture != TextureType::SHADOW {
-            self.tiles[y][x] = Tile {
-                texture_type: *selected_texture,
-                id: selected_tile_id.unwrap(),
-                shadow: self.tiles[y][x].shadow,
+        if y < self.tiles.len() && x < self.tiles[0].len() {
+            if *selected_texture != TextureType::SHADOW {
+                self.tiles[y][x] = Tile {
+                    texture_type: *selected_texture,
+                    id: selected_tile_id.unwrap(),
+                    shadow: self.tiles[y][x].shadow,
+                }
+            } else {
+                self.tiles[y][x].shadow = match selected_tile_id {
+                    Some(id) => id + 1,
+                    None => 0,
+                };
             }
-        } else {
-            self.tiles[y][x].shadow = match selected_tile_id {
-                Some(id) => id + 1,
-                None => 0,
-            };
         }
     }
 
