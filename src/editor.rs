@@ -153,9 +153,13 @@ pub fn exec(context: &mut Context) -> NextMode {
                     keycode: Some(Keycode::Escape),
                     ..
                 } => {
-                    prompt = if prompt != PromptType::None || insert_item != InsertType::None {
+                    prompt = if prompt != PromptType::None
+                        || insert_item != InsertType::None
+                        || set_position > 0
+                    {
                         insert_item = InsertType::None;
                         context.sdl.video().unwrap().text_input().stop();
+                        set_position = 0;
                         PromptType::None
                     } else {
                         PromptType::Quit
@@ -204,17 +208,13 @@ pub fn exec(context: &mut Context) -> NextMode {
                                 if !matches!(prompt, PromptType::NewLevel(_))
                                     && !matches!(prompt, PromptType::Save(_))
                                 {
-                                    set_position = if keycode.unwrap() == Keycode::Num1 {
-                                        1
-                                    } else {
-                                        2
-                                    };
+                                    set_position = if key == Keycode::Num1 { 1 } else { 2 };
                                     prompt = PromptType::None;
                                 }
                             }
                             Keycode::Q | Keycode::W => {
                                 if !matches!(prompt, PromptType::Save(_)) {
-                                    insert_item = if keycode.unwrap() == Keycode::Q {
+                                    insert_item = if key == Keycode::Q {
                                         InsertType::Spotlight(SpotlightType::Place)
                                     } else {
                                         InsertType::Spotlight(SpotlightType::Delete)
