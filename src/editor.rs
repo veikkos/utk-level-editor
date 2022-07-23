@@ -170,176 +170,185 @@ pub fn exec(context: &mut Context) -> NextMode {
                     },
                     _ => (),
                 },
-                Event::KeyDown { keycode, .. } => match keycode.unwrap() {
-                    Keycode::Space => {
-                        return TileSelect;
-                    }
-                    Keycode::F1 => {
-                        return Help;
-                    }
-                    Keycode::F2 => {
-                        context.sdl.video().unwrap().text_input().stop();
-                        prompt = PromptType::Save(SaveLevelType::Prompt);
-                    }
-                    Keycode::F3 => {
-                        context.sdl.video().unwrap().text_input().stop();
-                        return LoadLevel;
-                    }
-                    Keycode::F4 => {
-                        prompt = PromptType::NewLevel(NewLevelType::Prompt);
-                        new_level_size_x.clear();
-                        new_level_size_y.clear();
-                    }
-                    Keycode::F7 => {
-                        return GeneralLevelInfo;
-                    }
-                    Keycode::Num1 | Keycode::Num2 => {
-                        if !matches!(prompt, PromptType::NewLevel(_))
-                            && !matches!(prompt, PromptType::Save(_))
-                        {
-                            set_position = if keycode.unwrap() == Keycode::Num1 {
-                                1
-                            } else {
-                                2
-                            };
-                            prompt = PromptType::None;
-                        }
-                    }
-                    Keycode::Q | Keycode::W => {
-                        spotlight = if keycode.unwrap() == Keycode::Q {
-                            SpotlightType::Place
-                        } else {
-                            SpotlightType::Delete
-                        };
-                        context.sdl.video().unwrap().text_input().stop();
-                        prompt = PromptType::None;
-                    }
-                    Keycode::Y => match &prompt {
-                        PromptType::NewLevel(new_level_state) => match new_level_state {
-                            NewLevelType::Prompt => {
-                                prompt = PromptType::NewLevel(NewLevelType::XSize);
-                                context.sdl.video().unwrap().text_input().start();
+                Event::KeyDown { keycode, .. } => {
+                    if let Some(key) = keycode {
+                        match key {
+                            Keycode::Space => {
+                                return TileSelect;
                             }
-                            _ => {}
-                        },
-                        PromptType::Save(save_level_state) => match save_level_state {
-                            SaveLevelType::Prompt => {
-                                prompt = PromptType::Save(SaveLevelType::NameInput);
-                                context.sdl.video().unwrap().text_input().start();
+                            Keycode::F1 => {
+                                return Help;
                             }
-                            _ => {}
-                        },
-                        PromptType::Quit => return Quit,
-                        PromptType::None => {
-                            prompt = PromptType::None;
-                        }
-                    },
-                    Keycode::Up => match spotlight {
-                        SpotlightType::Instructions(coordinates) => {
-                            let spotlight_intensity =
-                                context.level.get_spotlight_from_level(&coordinates);
-                            context
-                                .level
-                                .put_spotlight_to_level(&coordinates, spotlight_intensity + 1)
-                        }
-                        _ => {
-                            if context.level.scroll.1 > 0 {
-                                context.level.scroll.1 = context.level.scroll.1 - 1
+                            Keycode::F2 => {
+                                context.sdl.video().unwrap().text_input().stop();
+                                prompt = PromptType::Save(SaveLevelType::Prompt);
                             }
-                        }
-                    },
-                    Keycode::Down => match spotlight {
-                        SpotlightType::Instructions(coordinates) => {
-                            let spotlight_intensity =
-                                context.level.get_spotlight_from_level(&coordinates);
-                            if spotlight_intensity > 0 {
-                                context
-                                    .level
-                                    .put_spotlight_to_level(&coordinates, spotlight_intensity - 1)
+                            Keycode::F3 => {
+                                context.sdl.video().unwrap().text_input().stop();
+                                return LoadLevel;
                             }
-                        }
-                        _ => {
-                            if context.level.scroll.1 + TILES_Y_PER_SCREEN
-                                < (context.level.tiles.len()) as u32
-                            {
-                                context.level.scroll.1 = context.level.scroll.1 + 1;
+                            Keycode::F4 => {
+                                prompt = PromptType::NewLevel(NewLevelType::Prompt);
+                                new_level_size_x.clear();
+                                new_level_size_y.clear();
                             }
-                        }
-                    },
-                    Keycode::Left => {
-                        if context.level.scroll.0 > 0 {
-                            context.level.scroll.0 = context.level.scroll.0 - 1;
+                            Keycode::F7 => {
+                                return GeneralLevelInfo;
+                            }
+                            Keycode::Num1 | Keycode::Num2 => {
+                                if !matches!(prompt, PromptType::NewLevel(_))
+                                    && !matches!(prompt, PromptType::Save(_))
+                                {
+                                    set_position = if keycode.unwrap() == Keycode::Num1 {
+                                        1
+                                    } else {
+                                        2
+                                    };
+                                    prompt = PromptType::None;
+                                }
+                            }
+                            Keycode::Q | Keycode::W => {
+                                spotlight = if keycode.unwrap() == Keycode::Q {
+                                    SpotlightType::Place
+                                } else {
+                                    SpotlightType::Delete
+                                };
+                                context.sdl.video().unwrap().text_input().stop();
+                                prompt = PromptType::None;
+                            }
+                            Keycode::Y => match &prompt {
+                                PromptType::NewLevel(new_level_state) => match new_level_state {
+                                    NewLevelType::Prompt => {
+                                        prompt = PromptType::NewLevel(NewLevelType::XSize);
+                                        context.sdl.video().unwrap().text_input().start();
+                                    }
+                                    _ => {}
+                                },
+                                PromptType::Save(save_level_state) => match save_level_state {
+                                    SaveLevelType::Prompt => {
+                                        prompt = PromptType::Save(SaveLevelType::NameInput);
+                                        context.sdl.video().unwrap().text_input().start();
+                                    }
+                                    _ => {}
+                                },
+                                PromptType::Quit => return Quit,
+                                PromptType::None => {
+                                    prompt = PromptType::None;
+                                }
+                            },
+                            Keycode::Up => match spotlight {
+                                SpotlightType::Instructions(coordinates) => {
+                                    let spotlight_intensity =
+                                        context.level.get_spotlight_from_level(&coordinates);
+                                    context.level.put_spotlight_to_level(
+                                        &coordinates,
+                                        spotlight_intensity + 1,
+                                    )
+                                }
+                                _ => {
+                                    if context.level.scroll.1 > 0 {
+                                        context.level.scroll.1 = context.level.scroll.1 - 1
+                                    }
+                                }
+                            },
+                            Keycode::Down => match spotlight {
+                                SpotlightType::Instructions(coordinates) => {
+                                    let spotlight_intensity =
+                                        context.level.get_spotlight_from_level(&coordinates);
+                                    if spotlight_intensity > 0 {
+                                        context.level.put_spotlight_to_level(
+                                            &coordinates,
+                                            spotlight_intensity - 1,
+                                        )
+                                    }
+                                }
+                                _ => {
+                                    if context.level.scroll.1 + TILES_Y_PER_SCREEN
+                                        < (context.level.tiles.len()) as u32
+                                    {
+                                        context.level.scroll.1 = context.level.scroll.1 + 1;
+                                    }
+                                }
+                            },
+                            Keycode::Left => {
+                                if context.level.scroll.0 > 0 {
+                                    context.level.scroll.0 = context.level.scroll.0 - 1;
+                                }
+                            }
+                            Keycode::Right => {
+                                if context.level.scroll.0 + TILES_X_PER_SCREEN
+                                    < (context.level.tiles[0].len()) as u32
+                                {
+                                    context.level.scroll.0 = context.level.scroll.0 + 1;
+                                }
+                            }
+                            Keycode::Return | Keycode::KpEnter => {
+                                if matches!(spotlight, SpotlightType::Instructions(_)) {
+                                    spotlight = SpotlightType::Place;
+                                } else if prompt == PromptType::NewLevel(NewLevelType::XSize)
+                                    && new_level_size_x.len() > 1
+                                    && new_level_size_x.parse::<u8>().unwrap() >= 16
+                                {
+                                    prompt = PromptType::NewLevel(NewLevelType::YSize);
+                                } else if prompt == PromptType::NewLevel(NewLevelType::YSize)
+                                    && new_level_size_x.len() > 1
+                                    && new_level_size_y.parse::<u8>().unwrap() >= 12
+                                {
+                                    context.level = Level::get_default_level((
+                                        new_level_size_x.parse::<u8>().unwrap(),
+                                        new_level_size_y.parse::<u8>().unwrap(),
+                                    ));
+                                    context.sdl.video().unwrap().text_input().stop();
+                                    context.textures.saved_level_name = None;
+                                    context.level_save_name.clear();
+                                    prompt = PromptType::None;
+                                } else if prompt == PromptType::Save(SaveLevelType::NameInput)
+                                    && context.level_save_name.len() > 1
+                                {
+                                    let level_save_name_uppercase =
+                                        context.level_save_name.to_uppercase();
+                                    let level_saved_name =
+                                        format!("{}.LEV", &level_save_name_uppercase);
+                                    context.level.serialize(&level_saved_name).unwrap();
+                                    context.sdl.video().unwrap().text_input().stop();
+                                    context.textures.saved_level_name =
+                                        Some(render::get_font_texture(
+                                            &context.texture_creator,
+                                            &context.font,
+                                            &level_saved_name,
+                                        ));
+                                    prompt = PromptType::None;
+                                }
+                            }
+                            Keycode::Backspace => match &prompt {
+                                PromptType::NewLevel(new_level_state) => match new_level_state {
+                                    NewLevelType::XSize => {
+                                        new_level_size_x.pop();
+                                    }
+                                    NewLevelType::YSize => {
+                                        new_level_size_y.pop();
+                                    }
+                                    _ => {}
+                                },
+                                PromptType::Save(save_level_state) => match save_level_state {
+                                    SaveLevelType::NameInput => {
+                                        context.level_save_name.pop();
+                                    }
+                                    _ => {}
+                                },
+                                _ => (),
+                            },
+                            _ => {
+                                if prompt != PromptType::NewLevel(NewLevelType::XSize)
+                                    && prompt != PromptType::NewLevel(NewLevelType::YSize)
+                                    && prompt != PromptType::Save(SaveLevelType::NameInput)
+                                {
+                                    prompt = PromptType::None
+                                }
+                            }
                         }
                     }
-                    Keycode::Right => {
-                        if context.level.scroll.0 + TILES_X_PER_SCREEN
-                            < (context.level.tiles[0].len()) as u32
-                        {
-                            context.level.scroll.0 = context.level.scroll.0 + 1;
-                        }
-                    }
-                    Keycode::Return | Keycode::KpEnter => {
-                        if matches!(spotlight, SpotlightType::Instructions(_)) {
-                            spotlight = SpotlightType::Place;
-                        } else if prompt == PromptType::NewLevel(NewLevelType::XSize)
-                            && new_level_size_x.len() > 1
-                            && new_level_size_x.parse::<u8>().unwrap() >= 16
-                        {
-                            prompt = PromptType::NewLevel(NewLevelType::YSize);
-                        } else if prompt == PromptType::NewLevel(NewLevelType::YSize)
-                            && new_level_size_x.len() > 1
-                            && new_level_size_y.parse::<u8>().unwrap() >= 12
-                        {
-                            context.level = Level::get_default_level((
-                                new_level_size_x.parse::<u8>().unwrap(),
-                                new_level_size_y.parse::<u8>().unwrap(),
-                            ));
-                            context.sdl.video().unwrap().text_input().stop();
-                            context.textures.saved_level_name = None;
-                            context.level_save_name.clear();
-                            prompt = PromptType::None;
-                        } else if prompt == PromptType::Save(SaveLevelType::NameInput)
-                            && context.level_save_name.len() > 1
-                        {
-                            let level_save_name_uppercase = context.level_save_name.to_uppercase();
-                            let level_saved_name = format!("{}.LEV", &level_save_name_uppercase);
-                            context.level.serialize(&level_saved_name).unwrap();
-                            context.sdl.video().unwrap().text_input().stop();
-                            context.textures.saved_level_name = Some(render::get_font_texture(
-                                &context.texture_creator,
-                                &context.font,
-                                &level_saved_name,
-                            ));
-                            prompt = PromptType::None;
-                        }
-                    }
-                    Keycode::Backspace => match &prompt {
-                        PromptType::NewLevel(new_level_state) => match new_level_state {
-                            NewLevelType::XSize => {
-                                new_level_size_x.pop();
-                            }
-                            NewLevelType::YSize => {
-                                new_level_size_y.pop();
-                            }
-                            _ => {}
-                        },
-                        PromptType::Save(save_level_state) => match save_level_state {
-                            SaveLevelType::NameInput => {
-                                context.level_save_name.pop();
-                            }
-                            _ => {}
-                        },
-                        _ => (),
-                    },
-                    _ => {
-                        if prompt != PromptType::NewLevel(NewLevelType::XSize)
-                            && prompt != PromptType::NewLevel(NewLevelType::YSize)
-                            && prompt != PromptType::Save(SaveLevelType::NameInput)
-                        {
-                            prompt = PromptType::None
-                        }
-                    }
-                },
+                }
                 Event::MouseMotion { x, y, .. } => {
                     if x >= 0 && y >= 0 {
                         context.mouse.0 = x as u32;
