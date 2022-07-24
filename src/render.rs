@@ -19,13 +19,19 @@ const TEXT_SIZE_DIVIDER: u32 = 1;
 pub enum RendererColor {
     White,
     Red,
+    Blue,
+}
+
+fn get_sdl_color(color: &RendererColor) -> Color {
+    match &color {
+        RendererColor::White => Color::from((255, 255, 255)),
+        RendererColor::Red => Color::from((255, 0, 0)),
+        RendererColor::Blue => Color::from((0, 0, 255)),
+    }
 }
 
 pub fn highlight_selected_tile(canvas: &mut Canvas<Window>, id: u32, color: &RendererColor) {
-    let sdl_color = match &color {
-        RendererColor::White => Color::from((255, 255, 255)),
-        RendererColor::Red => Color::from((255, 0, 0)),
-    };
+    let sdl_color = get_sdl_color(color);
     canvas.set_draw_color(sdl_color);
 
     let (x_logical, y_logical) = get_tile_coordinates(id);
@@ -107,7 +113,16 @@ pub fn render_text_texture_coordinates(
     render_text_texture(canvas, texture, coordinates.0, coordinates.1, scroll);
 }
 
-fn draw_circle(canvas: &mut Canvas<Window>, x_center: i32, y_center: i32, radius: u32) {
+fn draw_circle(
+    canvas: &mut Canvas<Window>,
+    x_center: i32,
+    y_center: i32,
+    radius: u32,
+    color: &RendererColor,
+) {
+    let sdl_color = get_sdl_color(color);
+    canvas.set_draw_color(sdl_color);
+
     // https://stackoverflow.com/a/48291620
     let diameter: i32 = radius as i32 * 2;
     let mut x: i32 = radius as i32 - 1;
@@ -115,8 +130,6 @@ fn draw_circle(canvas: &mut Canvas<Window>, x_center: i32, y_center: i32, radius
     let mut tx: i32 = 1;
     let mut ty: i32 = 1;
     let mut error: i32 = tx - diameter;
-
-    canvas.set_draw_color(Color::from((0, 0, 255)));
 
     while x >= y {
         canvas
@@ -185,6 +198,18 @@ pub fn render_level(canvas: &mut Canvas<Window>, level: &Level, textures: &Textu
             x_screen,
             y_screen,
             get_spotlight_render_radius(spotlight),
+            &RendererColor::Blue,
+        );
+    }
+    for (coordinates, _steam) in &level.steams {
+        let (x_screen, y_screen) =
+            get_screen_coordinates_from_level_coordinates(coordinates, &level.scroll);
+        draw_circle(
+            canvas,
+            x_screen,
+            y_screen,
+            get_spotlight_render_radius(&2), // TODO: Steam implementation
+            &RendererColor::Red,
         );
     }
 }

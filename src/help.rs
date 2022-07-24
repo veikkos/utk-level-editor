@@ -19,6 +19,7 @@ pub fn exec(context: &mut Context) -> NextMode {
         " ",
         "- EDITOR -",
         "Q/W  - PLACE/DELETE SPOTLIGHT",
+        "A/S  - PLACE/DELETE STEAM",
         "1/2  - PLACE PL1/PL2 START",
         "SPACE - TILE SELECTION/EDITING MODE",
         "ARROW KEYS - MOVE VIEWPORT",

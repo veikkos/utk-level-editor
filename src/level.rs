@@ -18,10 +18,10 @@ pub struct GeneralInfo {
     pub enemy_table: [u32; DIFF_ENEMIES as usize],
 }
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct Steam {
-    range: u8,  // 0-6
-    angle: u16, // 0-355 degress in 5 degree steps. 0 is downwards, direction counter clockwise.
+    pub range: u8,  // 0-6
+    pub angle: u16, // 0-355 degress in 5 degree steps. 0 is downwards, direction counter clockwise.
 }
 
 pub struct Level {
@@ -232,6 +232,12 @@ impl Level {
         }
         for key in to_be_removed {
             self.spotlights.remove(&key);
+        }
+    }
+
+    pub fn put_steam_to_level(&mut self, level_coordinates: &Position, steam: &Steam) {
+        if steam.range < 7 {
+            self.steams.insert(*level_coordinates, *steam);
         }
     }
 

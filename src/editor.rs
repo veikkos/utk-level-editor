@@ -1,5 +1,6 @@
 extern crate sdl2;
 
+use crate::level::Steam;
 use crate::render;
 use crate::util::*;
 use crate::Context;
@@ -45,6 +46,7 @@ enum InsertState {
 enum InsertType {
     None,
     Spotlight(InsertState),
+    Steam(InsertState),
 }
 
 struct Textures<'a> {
@@ -63,6 +65,9 @@ struct Textures<'a> {
     spotlight_place_text_texture: Texture<'a>,
     spotlight_delete_text_texture: Texture<'a>,
     spotlight_instructions_text_texture: Texture<'a>,
+    steam_place_text_texture: Texture<'a>,
+    steam_delete_text_texture: Texture<'a>,
+    steam_instructions_text_texture: Texture<'a>,
 }
 
 pub fn exec(context: &mut Context) -> NextMode {
@@ -133,6 +138,22 @@ pub fn exec(context: &mut Context) -> NextMode {
             &context.texture_creator,
             &context.font,
             "USE UP AND DOWN KEYS TO ADJUST SIZE, ENTER TO ACCEPT",
+        ),
+        steam_place_text_texture: render::get_font_texture(
+            &context.texture_creator,
+            &context.font,
+            "PLACE STEAM (ESC TO CANCEL)",
+        ),
+        steam_delete_text_texture: render::get_font_texture(
+            &context.texture_creator,
+            &context.font,
+            "DELETE STEAM (ESC TO CANCEL) *UNSUPPORTED*",
+        ),
+        steam_instructions_text_texture: render::get_font_texture(
+            &context.texture_creator,
+            &context.font,
+            // "UP/DOWN FOR RANGE, LEFT/RIGHT FOR DIRECTION, ENTER TO ACCEPT", // TODO
+            "ENTER TO ACCEPT",
         ),
     };
     let mut set_position: u8 = 0;
@@ -227,6 +248,17 @@ pub fn exec(context: &mut Context) -> NextMode {
                                     prompt = PromptType::None;
                                 }
                             }
+                            Keycode::A | Keycode::S => {
+                                if !matches!(prompt, PromptType::Save(_)) {
+                                    insert_item = if key == Keycode::A {
+                                        InsertType::Steam(InsertState::Place)
+                                    } else {
+                                        InsertType::Steam(InsertState::Delete)
+                                    };
+                                    context.sdl.video().unwrap().text_input().stop();
+                                    prompt = PromptType::None;
+                                }
+                            }
                             Keycode::Y => match &prompt {
                                 PromptType::NewLevel(new_level_state) => match new_level_state {
                                     NewLevelState::Prompt => {
@@ -305,6 +337,12 @@ pub fn exec(context: &mut Context) -> NextMode {
                                     InsertType::Spotlight(InsertState::Instructions(_))
                                 ) {
                                     insert_item = InsertType::Spotlight(InsertState::Place);
+                                }
+                                if matches!(
+                                    insert_item,
+                                    InsertType::Steam(InsertState::Instructions(_))
+                                ) {
+                                    insert_item = InsertType::Steam(InsertState::Place);
                                 } else if prompt == PromptType::NewLevel(NewLevelState::XSize)
                                     && new_level_size_x.len() > 1
                                     && new_level_size_x.parse::<u8>().unwrap() >= 16
@@ -477,6 +515,12 @@ pub fn exec(context: &mut Context) -> NextMode {
             &textures.spotlight_place_text_texture
         } else if matches!(insert_item, InsertType::Spotlight(InsertState::Delete)) {
             &textures.spotlight_delete_text_texture
+        } else if matches!(insert_item, InsertType::Steam(InsertState::Instructions(_))) {
+            &textures.steam_instructions_text_texture
+        } else if matches!(insert_item, InsertType::Steam(InsertState::Place)) {
+            &textures.steam_place_text_texture
+        } else if matches!(insert_item, InsertType::Steam(InsertState::Delete)) {
+            &textures.steam_delete_text_texture
         } else {
             &textures.help_text_texture
         };
@@ -660,6 +704,19 @@ fn handle_mouse_left_down(
         if matches!(insert_item, InsertType::Spotlight(InsertState::Place)) {
             *insert_item = InsertType::Spotlight(InsertState::Instructions(level_coordinates));
             context.level.put_spotlight_to_level(&level_coordinates, 0);
+        } else {
+            context.level.delete_spotlight_if_near(&level_coordinates);
+        }
+    } else if matches!(insert_item, InsertType::Steam(InsertState::Place))
+        || matches!(insert_item, InsertType::Steam(InsertState::Delete))
+    {
+        let level_coordinates =
+            get_level_coordinates_from_screen_coordinates(&context.mouse, &context.level.scroll);
+        if matches!(insert_item, InsertType::Steam(InsertState::Place)) {
+            *insert_item = InsertType::Steam(InsertState::Instructions(level_coordinates));
+            context
+                .level
+                .put_steam_to_level(&level_coordinates, &Steam { angle: 0, range: 1 });
         } else {
             context.level.delete_spotlight_if_near(&level_coordinates);
         }
