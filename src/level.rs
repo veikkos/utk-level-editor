@@ -375,6 +375,7 @@ impl Level {
         self.scroll = (0, 0);
         self.spotlights.clear();
         self.steams.clear();
+        self.general_info.comment = String::new();
 
         let mut file = File::open(filename)?;
         let version: u32 = file.read_u32::<LittleEndian>()?;
@@ -443,16 +444,19 @@ impl Level {
             );
         }
 
-        // let comment = "Rust UTK editor\0\0\0\0\0";
-        // file.write_all(&comment.as_bytes())
-        //     .expect("Failed to write comment");
-        // file.write_all(&(45u32).to_le_bytes())
-        //     .expect("Failed to write time limit");
-        // for x in 0..DIFF_ENEMIES {
-        //     let amount = if x == 0 { 1u32 } else { 0u32 };
-        //     file.write_all(&(amount).to_le_bytes())
-        //         .expect("Failed to write normal game enemies");
-        // }
+        for _ in 0..20 {
+            let c = file.read_u8()? as char;
+            if c != '\0' {
+                self.general_info.comment.push(c);
+            }
+        }
+
+        self.general_info.time_limit = file.read_u32::<LittleEndian>()?;
+
+        for enemy_number in 0..self.general_info.enemy_table.len() {
+            self.general_info.enemy_table[enemy_number] = file.read_u32::<LittleEndian>()?;
+        }
+
         // for x in 0..DIFF_WEAPONS {
         //     let amount = if x == 0 { 1u32 } else { 0u32 };
         //     file.write_all(&(amount).to_le_bytes())
