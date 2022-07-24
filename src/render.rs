@@ -171,7 +171,12 @@ fn draw_circle(
     }
 }
 
-pub fn render_level(canvas: &mut Canvas<Window>, level: &Level, textures: &Textures) {
+pub fn render_level(
+    canvas: &mut Canvas<Window>,
+    level: &Level,
+    textures: &Textures,
+    trigonometry: &Trigonometry,
+) {
     for y in 0..TILES_Y_PER_SCREEN {
         for x in 0..TILES_X_PER_SCREEN {
             let (x_index, y_index) = get_scroll_corrected_indexes(level.scroll, x, y);
@@ -201,16 +206,19 @@ pub fn render_level(canvas: &mut Canvas<Window>, level: &Level, textures: &Textu
             &RendererColor::Blue,
         );
     }
-    for (coordinates, _steam) in &level.steams {
+    for (coordinates, steam) in &level.steams {
         let (x_screen, y_screen) =
             get_screen_coordinates_from_level_coordinates(coordinates, &level.scroll);
-        draw_circle(
-            canvas,
-            x_screen,
-            y_screen,
-            get_spotlight_render_radius(&2), // TODO: Steam implementation
-            &RendererColor::Red,
-        );
+        for x in 0..6 {
+            let multiplier = x as f32 * 6.0 * steam.range as f32;
+            draw_circle(
+                canvas,
+                x_screen + (trigonometry.sin[steam.angle as usize] * multiplier) as i32,
+                y_screen + (trigonometry.cos[steam.angle as usize] * multiplier) as i32,
+                get_steam_render_radius() + x * 2,
+                &RendererColor::Red,
+            );
+        }
     }
 }
 

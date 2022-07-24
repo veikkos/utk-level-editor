@@ -241,6 +241,34 @@ impl Level {
         }
     }
 
+    pub fn get_steam_from_level(&self, level_coordinates: &Position) -> Steam {
+        *self.steams.get(level_coordinates).unwrap()
+    }
+
+    pub fn delete_steam_if_near(&mut self, level_coordinates: &Position) {
+        let mut to_be_removed = Vec::new();
+        {
+            let mut distances: Vec<_> = self
+                .steams
+                .iter()
+                .map(|(steam_coordinates, &_steam)| {
+                    let distance =
+                        get_distance_between_points(level_coordinates, steam_coordinates);
+                    (steam_coordinates, distance)
+                })
+                .collect();
+            distances.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
+            for steam in distances {
+                if get_steam_render_radius() as f64 >= steam.1 * RENDER_MULTIPLIER as f64 {
+                    to_be_removed.push(*steam.0);
+                }
+            }
+        }
+        for key in to_be_removed {
+            self.steams.remove(&key);
+        }
+    }
+
     pub fn serialize(&self, filename: &str) -> std::io::Result<()> {
         let mut file = File::create(filename)?;
 

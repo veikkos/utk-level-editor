@@ -1,3 +1,4 @@
+use crate::types::Trigonometry;
 use sdl2::rect::Rect;
 use sdl2::render::{Texture, TextureQuery};
 use std::cmp;
@@ -85,6 +86,10 @@ pub fn get_spotlight_render_radius(spotlight: &u8) -> u32 {
     *spotlight as u32 * 5 + 5
 }
 
+pub fn get_steam_render_radius() -> u32 {
+    5
+}
+
 pub fn get_selected_level_tiles(
     p0: &(u32, u32),
     p1: &(u32, u32),
@@ -124,4 +129,21 @@ pub fn limit_screen_coordinates_to_window(coordinates: &(u32, u32)) -> (u32, u32
 pub fn get_number_of_tiles_in_texture(texture: &Texture) -> u32 {
     let TextureQuery { width, height, .. } = texture.query();
     width / TILE_SIZE * height / TILE_SIZE
+}
+
+impl Trigonometry {
+    pub fn new() -> Self {
+        Trigonometry {
+            sin: (0..360)
+                .map(|x| ((x as f32).to_radians()).sin())
+                .collect::<Vec<f32>>()
+                .try_into()
+                .unwrap(),
+            cos: (0..360)
+                .map(|x| ((x as f32).to_radians()).cos())
+                .collect::<Vec<f32>>()
+                .try_into()
+                .unwrap(),
+        }
+    }
 }

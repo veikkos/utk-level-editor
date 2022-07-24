@@ -147,13 +147,12 @@ pub fn exec(context: &mut Context) -> NextMode {
         steam_delete_text_texture: render::get_font_texture(
             &context.texture_creator,
             &context.font,
-            "DELETE STEAM (ESC TO CANCEL) *UNSUPPORTED*",
+            "DELETE STEAM (ESC TO CANCEL)",
         ),
         steam_instructions_text_texture: render::get_font_texture(
             &context.texture_creator,
             &context.font,
-            // "UP/DOWN FOR RANGE, LEFT/RIGHT FOR DIRECTION, ENTER TO ACCEPT", // TODO
-            "ENTER TO ACCEPT",
+            "UP/DOWN: RANGE, LEFT/RIGHT: DIR, ENTER TO ACCEPT",
         ),
     };
     let mut set_position: u8 = 0;
@@ -291,6 +290,22 @@ pub fn exec(context: &mut Context) -> NextMode {
                                     }
                                     _ => (),
                                 },
+                                InsertType::Steam(state) => match state {
+                                    InsertState::Instructions(coordinates) => {
+                                        let steam =
+                                            context.level.get_steam_from_level(&coordinates);
+                                        if steam.range < 6 {
+                                            context.level.put_steam_to_level(
+                                                &coordinates,
+                                                &Steam {
+                                                    angle: steam.angle,
+                                                    range: steam.range + 1,
+                                                },
+                                            )
+                                        }
+                                    }
+                                    _ => (),
+                                },
                                 _ => {
                                     if context.level.scroll.1 > 0 {
                                         context.level.scroll.1 = context.level.scroll.1 - 1
@@ -311,6 +326,22 @@ pub fn exec(context: &mut Context) -> NextMode {
                                     }
                                     _ => (),
                                 },
+                                InsertType::Steam(state) => match state {
+                                    InsertState::Instructions(coordinates) => {
+                                        let steam =
+                                            context.level.get_steam_from_level(&coordinates);
+                                        if steam.range > 0 {
+                                            context.level.put_steam_to_level(
+                                                &coordinates,
+                                                &Steam {
+                                                    angle: steam.angle,
+                                                    range: steam.range - 1,
+                                                },
+                                            )
+                                        }
+                                    }
+                                    _ => (),
+                                },
                                 _ => {
                                     if context.level.scroll.1 + TILES_Y_PER_SCREEN
                                         < (context.level.tiles.len()) as u32
@@ -319,18 +350,50 @@ pub fn exec(context: &mut Context) -> NextMode {
                                     }
                                 }
                             },
-                            Keycode::Left => {
-                                if context.level.scroll.0 > 0 {
-                                    context.level.scroll.0 = context.level.scroll.0 - 1;
+                            Keycode::Left => match &insert_item {
+                                InsertType::Steam(state) => match state {
+                                    InsertState::Instructions(coordinates) => {
+                                        let steam =
+                                            context.level.get_steam_from_level(&coordinates);
+                                        context.level.put_steam_to_level(
+                                            &coordinates,
+                                            &Steam {
+                                                angle: (steam.angle + 360 - 5) % 360,
+                                                range: steam.range,
+                                            },
+                                        )
+                                    }
+                                    _ => (),
+                                },
+                                _ => {
+                                    if context.level.scroll.0 > 0 {
+                                        context.level.scroll.0 = context.level.scroll.0 - 1;
+                                    }
                                 }
-                            }
-                            Keycode::Right => {
-                                if context.level.scroll.0 + TILES_X_PER_SCREEN
-                                    < (context.level.tiles[0].len()) as u32
-                                {
-                                    context.level.scroll.0 = context.level.scroll.0 + 1;
+                            },
+                            Keycode::Right => match &insert_item {
+                                InsertType::Steam(state) => match state {
+                                    InsertState::Instructions(coordinates) => {
+                                        let steam =
+                                            context.level.get_steam_from_level(&coordinates);
+                                        context.level.put_steam_to_level(
+                                            &coordinates,
+                                            &Steam {
+                                                angle: (steam.angle + 5) % 360,
+                                                range: steam.range,
+                                            },
+                                        )
+                                    }
+                                    _ => (),
+                                },
+                                _ => {
+                                    if context.level.scroll.0 + TILES_X_PER_SCREEN
+                                        < (context.level.tiles[0].len()) as u32
+                                    {
+                                        context.level.scroll.0 = context.level.scroll.0 + 1;
+                                    }
                                 }
-                            }
+                            },
                             Keycode::Return | Keycode::KpEnter => {
                                 if matches!(
                                     insert_item,
@@ -476,7 +539,12 @@ pub fn exec(context: &mut Context) -> NextMode {
                 _ => {}
             }
         }
-        render::render_level(&mut context.canvas, &context.level, &context.textures);
+        render::render_level(
+            &mut context.canvas,
+            &context.level,
+            &context.textures,
+            &context.trigonometry,
+        );
         let highlighted_id = get_tile_id_from_coordinates(
             &limit_screen_coordinates_to_window(&context.mouse),
             TILES_X_PER_SCREEN,
@@ -718,7 +786,7 @@ fn handle_mouse_left_down(
                 .level
                 .put_steam_to_level(&level_coordinates, &Steam { angle: 0, range: 1 });
         } else {
-            context.level.delete_spotlight_if_near(&level_coordinates);
+            context.level.delete_steam_if_near(&level_coordinates);
         }
     } else if *insert_item == InsertType::None {
         *drag_tiles = true;

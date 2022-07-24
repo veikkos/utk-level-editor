@@ -58,6 +58,7 @@ pub fn main() {
         texture_type_scrolled: TextureType::FLOOR,
         mouse: (0, 0),
         level_save_name: String::new(),
+        trigonometry: Trigonometry::new(),
     };
 
     let mut next_mode = NextMode::Editor;

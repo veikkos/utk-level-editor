@@ -33,3 +33,8 @@ pub enum NextMode {
     LoadLevel,
     Quit,
 }
+
+pub struct Trigonometry {
+    pub(crate) sin: [f32; 360],
+    pub(crate) cos: [f32; 360],
+}

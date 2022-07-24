@@ -1,5 +1,6 @@
 use crate::Level;
 use crate::TextureType;
+use crate::Trigonometry;
 use sdl2::render::Canvas;
 use sdl2::render::Texture;
 use sdl2::render::TextureCreator;
@@ -28,4 +29,5 @@ pub struct Context<'a> {
     pub texture_type_scrolled: TextureType,
     pub mouse: (u32, u32),
     pub level_save_name: String,
+    pub trigonometry: Trigonometry,
 }
