@@ -32,6 +32,7 @@ enum PromptType {
     None,
     NewLevel(NewLevelState),
     Save(SaveLevelType),
+    CreateShadows,
     Quit,
 }
 
@@ -68,6 +69,7 @@ struct Textures<'a> {
     steam_place_text_texture: Texture<'a>,
     steam_delete_text_texture: Texture<'a>,
     steam_instructions_text_texture: Texture<'a>,
+    create_shadows_instructions_text_texture: Texture<'a>,
 }
 
 pub fn exec(context: &mut Context) -> NextMode {
@@ -154,6 +156,11 @@ pub fn exec(context: &mut Context) -> NextMode {
             &context.font,
             "UP/DOWN: RANGE, LEFT/RIGHT: DIR, ENTER TO ACCEPT",
         ),
+        create_shadows_instructions_text_texture: render::get_font_texture(
+            &context.texture_creator,
+            &context.font,
+            "CREATE SHADOWS?",
+        ),
     };
     let mut set_position: u8 = 0;
     let mut mouse_left_click: Option<(u32, u32)> = None;
@@ -225,6 +232,10 @@ pub fn exec(context: &mut Context) -> NextMode {
                                 new_level_size_x.clear();
                                 new_level_size_y.clear();
                             }
+                            Keycode::F6 => {
+                                context.sdl.video().unwrap().text_input().stop();
+                                prompt = PromptType::CreateShadows;
+                            }
                             Keycode::F7 => {
                                 return GeneralLevelInfo;
                             }
@@ -273,6 +284,10 @@ pub fn exec(context: &mut Context) -> NextMode {
                                     }
                                     _ => {}
                                 },
+                                PromptType::CreateShadows => {
+                                    context.level.create_shadows();
+                                    prompt = PromptType::None;
+                                }
                                 PromptType::Quit => return Quit,
                                 PromptType::None => {
                                     prompt = PromptType::None;
@@ -726,6 +741,7 @@ fn render_prompt_if_needed(
                 &textures.save_level_text_texture
             }
             PromptType::Quit => &textures.wanna_quit_text_texture,
+            PromptType::CreateShadows => &textures.create_shadows_instructions_text_texture,
             PromptType::None => unreachable!(),
         };
         render::render_text_texture(

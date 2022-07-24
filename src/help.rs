@@ -15,6 +15,7 @@ pub fn exec(context: &mut Context) -> NextMode {
         "F2   - SAVE LEVEL",
         "F3   - LOAD LEVEL",
         "F4   - MAKE NEW LEVEL",
+        "F6   - MAKE SHADOWS",
         "F7   - EDIT GENERAL LEVEL VARIABLES",
         " ",
         "- EDITOR -",

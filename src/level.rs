@@ -60,7 +60,7 @@ impl From<FileTypeError> for DeserializationError {
 
 impl Level {
     pub fn get_default_level(size: (u8, u8)) -> Level {
-        Level {
+        let mut level = Level {
             tiles: Level::init_default_level(size),
             p1_position: (1, 1),
             p2_position: (1, 3),
@@ -72,7 +72,9 @@ impl Level {
                 time_limit: 60,
                 enemy_table: [1, 0, 0, 0, 0, 1, 0, 0],
             },
-        }
+        };
+        level.create_shadows();
+        level
     }
 
     fn init_default_level(size: (u8, u8)) -> Tiles {
@@ -109,7 +111,7 @@ impl Level {
         }
 
         // .. all but final row ...
-        for y in 1..level_size_y - 1 {
+        for _y in 1..level_size_y - 1 {
             let mut row = Vec::new();
 
             for x in 0..level_size_x {
@@ -129,11 +131,7 @@ impl Level {
                     Tile {
                         texture_type: TextureType::FLOOR,
                         id: 0,
-                        shadow: if y == 1 || x == level_size_x - 2 {
-                            1
-                        } else {
-                            0
-                        },
+                        shadow: 0,
                     }
                 });
             }
@@ -266,6 +264,41 @@ impl Level {
         }
         for key in to_be_removed {
             self.steams.remove(&key);
+        }
+    }
+
+    pub fn create_shadows(&mut self) {
+        for y in (0..self.tiles.len()).rev() {
+            for x in 0..self.tiles[y].len() {
+                if self.tiles[y][x].texture_type != TextureType::WALLS {
+                    let on_right = if x < self.tiles[y].len() - 1 {
+                        self.tiles[y][x + 1].texture_type
+                    } else {
+                        TextureType::FLOOR
+                    };
+                    let on_top_right = if y > 0 && x < self.tiles[y].len() - 1 {
+                        self.tiles[y - 1][x + 1].texture_type
+                    } else {
+                        TextureType::FLOOR
+                    };
+                    let on_top = if y > 0 {
+                        self.tiles[y - 1][x].texture_type
+                    } else {
+                        TextureType::FLOOR
+                    };
+                    self.tiles[y][x].shadow = if on_top_right == TextureType::WALLS
+                        || (on_right == TextureType::WALLS && on_top == TextureType::WALLS)
+                    {
+                        1
+                    } else if on_top == TextureType::WALLS {
+                        3
+                    } else if on_right == TextureType::WALLS {
+                        2
+                    } else {
+                        0
+                    };
+                }
+            }
         }
     }
 
