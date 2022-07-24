@@ -10,18 +10,27 @@ const DIFF_ENEMIES: u32 = 8;
 
 const VERSION: u32 = 5;
 
+type Position = (u32, u32);
+
 pub struct GeneralInfo {
     pub comment: String, // max 19 characters + \0 termination
     pub time_limit: u32,
     pub enemy_table: [u32; DIFF_ENEMIES as usize],
 }
 
+#[derive(Debug)]
+pub struct Steam {
+    range: u8,  // 0-6
+    angle: u16, // 0-355 degress in 5 degree steps. 0 is downwards, direction counter clockwise.
+}
+
 pub struct Level {
     pub tiles: Tiles,
-    pub p1_position: (u32, u32),
-    pub p2_position: (u32, u32),
-    pub scroll: (u32, u32),
-    pub spotlights: HashMap<(u32, u32), u8>, // level coordinates: 0-9 intensity
+    pub p1_position: Position,
+    pub p2_position: Position,
+    pub scroll: Position,
+    pub spotlights: HashMap<Position, u8>, // 0-9 intensity
+    pub steams: HashMap<Position, Steam>,
     pub general_info: GeneralInfo,
 }
 
@@ -57,6 +66,7 @@ impl Level {
             p2_position: (1, 3),
             scroll: (0, 0),
             spotlights: HashMap::new(),
+            steams: HashMap::new(),
             general_info: GeneralInfo {
                 comment: "Rust UTK editor".to_string(),
                 time_limit: 60,
@@ -189,17 +199,17 @@ impl Level {
         }
     }
 
-    pub fn put_spotlight_to_level(&mut self, level_coordinates: &(u32, u32), spotlight: u8) {
+    pub fn put_spotlight_to_level(&mut self, level_coordinates: &Position, spotlight: u8) {
         if spotlight < 10 {
             self.spotlights.insert(*level_coordinates, spotlight);
         }
     }
 
-    pub fn get_spotlight_from_level(&self, level_coordinates: &(u32, u32)) -> u8 {
+    pub fn get_spotlight_from_level(&self, level_coordinates: &Position) -> u8 {
         *self.spotlights.get(level_coordinates).unwrap()
     }
 
-    pub fn delete_spotlight_if_near(&mut self, level_coordinates: &(u32, u32)) {
+    pub fn delete_spotlight_if_near(&mut self, level_coordinates: &Position) {
         let mut to_be_removed = Vec::new();
         {
             let mut distances: Vec<_> = self
@@ -266,18 +276,19 @@ impl Level {
                 .expect("Failed to write spotlight intensity");
         }
 
-        file.write_all(&(0u32).to_le_bytes())
+        file.write_all(&(self.steams.len() as u32).to_le_bytes())
             .expect("Failed to write steam amount");
 
-        // TODO: Write steams
-        // for ( a = 0; a < Steam_amount; a ++  )
-        // {
-        //     fread( &steam[a].x, 4, 1, dat );
-        //     fread( &steam[a].y, 4, 1, dat );
-        //     fread( &steam[a].angle, 4, 1, dat );
-        //     fread( &steam[a].speed, 4, 1, dat );
-        // }
-
+        for (coordinates, steam) in &self.steams {
+            file.write_all(&coordinates.0.to_le_bytes())
+                .expect("Failed to write steam x position");
+            file.write_all(&coordinates.1.to_le_bytes())
+                .expect("Failed to write steam y position");
+            file.write_all(&(steam.angle as u32).to_le_bytes())
+                .expect("Failed to write steam angle");
+            file.write_all(&(steam.range as u32).to_le_bytes())
+                .expect("Failed to write steam range");
+        }
         file.write_all(&self.general_info.comment.as_bytes())
             .expect("Failed to write comment");
         for _ in 0..20 - self.general_info.comment.len() {
@@ -329,6 +340,7 @@ impl Level {
     pub fn deserialize(&mut self, filename: &str) -> Result<(), DeserializationError> {
         self.scroll = (0, 0);
         self.spotlights.clear();
+        self.steams.clear();
 
         let mut file = File::open(filename)?;
         let version: u32 = file.read_u32::<LittleEndian>()?;
@@ -383,17 +395,19 @@ impl Level {
             );
         }
 
-        // file.write_all(&(0u32).to_le_bytes())
-        //     .expect("Failed to write steam amount");
+        let steam_amount = file.read_u32::<LittleEndian>()?;
 
-        // // TODO: Write steams
-        // // for ( a = 0; a < Steam_amount; a ++  )
-        // // {
-        // //     fread( &steam[a].x, 4, 1, dat );
-        // //     fread( &steam[a].y, 4, 1, dat );
-        // //     fread( &steam[a].angle, 4, 1, dat );
-        // //     fread( &steam[a].speed, 4, 1, dat );
-        // // }
+        for _ in 0..steam_amount {
+            let steam_x = file.read_u32::<LittleEndian>()?;
+            let steam_y = file.read_u32::<LittleEndian>()?;
+            self.steams.insert(
+                (steam_x, steam_y),
+                Steam {
+                    angle: file.read_u32::<LittleEndian>()? as u16,
+                    range: file.read_u32::<LittleEndian>()? as u8,
+                },
+            );
+        }
 
         // let comment = "Rust UTK editor\0\0\0\0\0";
         // file.write_all(&comment.as_bytes())
