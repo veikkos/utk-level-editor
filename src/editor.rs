@@ -14,7 +14,7 @@ use sdl2::render::Texture;
 use sdl2::render::TextureQuery;
 
 #[derive(PartialEq)]
-enum NewLevelType {
+enum NewLevelState {
     Prompt,
     XSize,
     YSize,
@@ -29,14 +29,14 @@ enum SaveLevelType {
 #[derive(PartialEq)]
 enum PromptType {
     None,
-    NewLevel(NewLevelType),
+    NewLevel(NewLevelState),
     Save(SaveLevelType),
     Quit,
 }
 
 #[derive(PartialEq)]
-enum SpotlightType {
-    Instructions((u32, u32)), // level coordinates of currently manipulated spotlight
+enum InsertState {
+    Instructions((u32, u32)), // level coordinates of currently manipulated item
     Place,
     Delete,
 }
@@ -44,7 +44,7 @@ enum SpotlightType {
 #[derive(PartialEq)]
 enum InsertType {
     None,
-    Spotlight(SpotlightType),
+    Spotlight(InsertState),
 }
 
 struct Textures<'a> {
@@ -167,8 +167,12 @@ pub fn exec(context: &mut Context) -> NextMode {
                 }
                 Event::TextInput { text, .. } => match &prompt {
                     PromptType::NewLevel(new_level_state) => match new_level_state {
-                        NewLevelType::XSize => sanitize_numeric_input(&text, &mut new_level_size_x),
-                        NewLevelType::YSize => sanitize_numeric_input(&text, &mut new_level_size_y),
+                        NewLevelState::XSize => {
+                            sanitize_numeric_input(&text, &mut new_level_size_x)
+                        }
+                        NewLevelState::YSize => {
+                            sanitize_numeric_input(&text, &mut new_level_size_y)
+                        }
                         _ => {}
                     },
                     PromptType::Save(save_level_state) => match save_level_state {
@@ -197,7 +201,7 @@ pub fn exec(context: &mut Context) -> NextMode {
                                 return LoadLevel;
                             }
                             Keycode::F4 => {
-                                prompt = PromptType::NewLevel(NewLevelType::Prompt);
+                                prompt = PromptType::NewLevel(NewLevelState::Prompt);
                                 new_level_size_x.clear();
                                 new_level_size_y.clear();
                             }
@@ -215,9 +219,9 @@ pub fn exec(context: &mut Context) -> NextMode {
                             Keycode::Q | Keycode::W => {
                                 if !matches!(prompt, PromptType::Save(_)) {
                                     insert_item = if key == Keycode::Q {
-                                        InsertType::Spotlight(SpotlightType::Place)
+                                        InsertType::Spotlight(InsertState::Place)
                                     } else {
-                                        InsertType::Spotlight(SpotlightType::Delete)
+                                        InsertType::Spotlight(InsertState::Delete)
                                     };
                                     context.sdl.video().unwrap().text_input().stop();
                                     prompt = PromptType::None;
@@ -225,8 +229,8 @@ pub fn exec(context: &mut Context) -> NextMode {
                             }
                             Keycode::Y => match &prompt {
                                 PromptType::NewLevel(new_level_state) => match new_level_state {
-                                    NewLevelType::Prompt => {
-                                        prompt = PromptType::NewLevel(NewLevelType::XSize);
+                                    NewLevelState::Prompt => {
+                                        prompt = PromptType::NewLevel(NewLevelState::XSize);
                                         context.sdl.video().unwrap().text_input().start();
                                     }
                                     _ => {}
@@ -245,7 +249,7 @@ pub fn exec(context: &mut Context) -> NextMode {
                             },
                             Keycode::Up => match &insert_item {
                                 InsertType::Spotlight(state) => match state {
-                                    SpotlightType::Instructions(coordinates) => {
+                                    InsertState::Instructions(coordinates) => {
                                         let spotlight_intensity =
                                             context.level.get_spotlight_from_level(&coordinates);
                                         context.level.put_spotlight_to_level(
@@ -263,7 +267,7 @@ pub fn exec(context: &mut Context) -> NextMode {
                             },
                             Keycode::Down => match &insert_item {
                                 InsertType::Spotlight(state) => match state {
-                                    SpotlightType::Instructions(coordinates) => {
+                                    InsertState::Instructions(coordinates) => {
                                         let spotlight_intensity =
                                             context.level.get_spotlight_from_level(&coordinates);
                                         if spotlight_intensity > 0 {
@@ -298,15 +302,15 @@ pub fn exec(context: &mut Context) -> NextMode {
                             Keycode::Return | Keycode::KpEnter => {
                                 if matches!(
                                     insert_item,
-                                    InsertType::Spotlight(SpotlightType::Instructions(_))
+                                    InsertType::Spotlight(InsertState::Instructions(_))
                                 ) {
-                                    insert_item = InsertType::Spotlight(SpotlightType::Place);
-                                } else if prompt == PromptType::NewLevel(NewLevelType::XSize)
+                                    insert_item = InsertType::Spotlight(InsertState::Place);
+                                } else if prompt == PromptType::NewLevel(NewLevelState::XSize)
                                     && new_level_size_x.len() > 1
                                     && new_level_size_x.parse::<u8>().unwrap() >= 16
                                 {
-                                    prompt = PromptType::NewLevel(NewLevelType::YSize);
-                                } else if prompt == PromptType::NewLevel(NewLevelType::YSize)
+                                    prompt = PromptType::NewLevel(NewLevelState::YSize);
+                                } else if prompt == PromptType::NewLevel(NewLevelState::YSize)
                                     && new_level_size_x.len() > 1
                                     && new_level_size_y.parse::<u8>().unwrap() >= 12
                                 {
@@ -338,10 +342,10 @@ pub fn exec(context: &mut Context) -> NextMode {
                             }
                             Keycode::Backspace => match &prompt {
                                 PromptType::NewLevel(new_level_state) => match new_level_state {
-                                    NewLevelType::XSize => {
+                                    NewLevelState::XSize => {
                                         new_level_size_x.pop();
                                     }
-                                    NewLevelType::YSize => {
+                                    NewLevelState::YSize => {
                                         new_level_size_y.pop();
                                     }
                                     _ => {}
@@ -355,8 +359,8 @@ pub fn exec(context: &mut Context) -> NextMode {
                                 _ => (),
                             },
                             _ => {
-                                if prompt != PromptType::NewLevel(NewLevelType::XSize)
-                                    && prompt != PromptType::NewLevel(NewLevelType::YSize)
+                                if prompt != PromptType::NewLevel(NewLevelState::XSize)
+                                    && prompt != PromptType::NewLevel(NewLevelState::YSize)
                                     && prompt != PromptType::Save(SaveLevelType::NameInput)
                                 {
                                     prompt = PromptType::None
@@ -466,12 +470,12 @@ pub fn exec(context: &mut Context) -> NextMode {
             &textures.p2_set_text_texture
         } else if matches!(
             insert_item,
-            InsertType::Spotlight(SpotlightType::Instructions(_))
+            InsertType::Spotlight(InsertState::Instructions(_))
         ) {
             &textures.spotlight_instructions_text_texture
-        } else if matches!(insert_item, InsertType::Spotlight(SpotlightType::Place)) {
+        } else if matches!(insert_item, InsertType::Spotlight(InsertState::Place)) {
             &textures.spotlight_place_text_texture
-        } else if matches!(insert_item, InsertType::Spotlight(SpotlightType::Delete)) {
+        } else if matches!(insert_item, InsertType::Spotlight(InsertState::Delete)) {
             &textures.spotlight_delete_text_texture
         } else {
             &textures.help_text_texture
@@ -567,10 +571,10 @@ fn render_prompt_if_needed(
         let prompt_texture = match &prompt {
             PromptType::NewLevel(state) => {
                 match state {
-                    NewLevelType::Prompt => (),
+                    NewLevelState::Prompt => (),
                     input_state => {
-                        if *input_state == NewLevelType::XSize
-                            || *input_state == NewLevelType::YSize
+                        if *input_state == NewLevelState::XSize
+                            || *input_state == NewLevelState::YSize
                         {
                             render_input_prompt(
                                 context,
@@ -580,7 +584,7 @@ fn render_prompt_if_needed(
                                 new_level_size_x,
                             );
                         }
-                        if *input_state == NewLevelType::YSize {
+                        if *input_state == NewLevelState::YSize {
                             render_input_prompt(
                                 context,
                                 (prompt_position.0, prompt_position.1 + prompt_line_spacing),
@@ -648,13 +652,13 @@ fn handle_mouse_left_down(
         *position =
             get_logical_coordinates(context.mouse.0, context.mouse.1, Some(context.level.scroll));
         *set_position = 0;
-    } else if matches!(insert_item, InsertType::Spotlight(SpotlightType::Place))
-        || matches!(insert_item, InsertType::Spotlight(SpotlightType::Delete))
+    } else if matches!(insert_item, InsertType::Spotlight(InsertState::Place))
+        || matches!(insert_item, InsertType::Spotlight(InsertState::Delete))
     {
         let level_coordinates =
             get_level_coordinates_from_screen_coordinates(&context.mouse, &context.level.scroll);
-        if matches!(insert_item, InsertType::Spotlight(SpotlightType::Place)) {
-            *insert_item = InsertType::Spotlight(SpotlightType::Instructions(level_coordinates));
+        if matches!(insert_item, InsertType::Spotlight(InsertState::Place)) {
+            *insert_item = InsertType::Spotlight(InsertState::Instructions(level_coordinates));
             context.level.put_spotlight_to_level(&level_coordinates, 0);
         } else {
             context.level.delete_spotlight_if_near(&level_coordinates);
