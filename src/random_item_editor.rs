@@ -1,5 +1,6 @@
 extern crate sdl2;
 
+use crate::level::Level;
 use crate::render;
 use crate::types::*;
 use crate::Context;
@@ -13,33 +14,41 @@ fn load_text<'a>(context: &Context<'a>, text: &str) -> Texture<'a> {
     render::get_font_texture(&context.texture_creator, &context.font, text)
 }
 
-fn get_value<'a>(context: &'a Context<'_>, index: usize) -> &'a u32 {
-    if index < context.level.crates.normal.weapons.len() {
-        &context.level.crates.normal.weapons[index]
+fn get_value(level: &Level, game_type: &GameType, index: usize) -> u32 {
+    let crates = match game_type {
+        GameType::Normal => &level.crates.normal,
+        GameType::Deathmatch => &level.crates.deathmatch,
+    };
+    if index < crates.weapons.len() {
+        crates.weapons[index]
     } else {
-        let index = index - context.level.crates.normal.weapons.len();
-        if index < context.level.crates.normal.bullets.len() {
-            &context.level.crates.normal.bullets[index]
+        let index = index - crates.weapons.len();
+        if index < crates.bullets.len() {
+            crates.bullets[index]
         } else {
-            &context.level.crates.normal.energy
+            crates.energy
         }
     }
 }
 
-fn set_value<'a>(context: &'a mut Context<'_>, index: usize, value: u32) {
-    if index < context.level.crates.normal.weapons.len() {
-        context.level.crates.normal.weapons[index] = value;
+fn set_value(level: &mut Level, game_type: &GameType, index: usize, value: u32) {
+    let crates = match game_type {
+        GameType::Normal => &mut level.crates.normal,
+        GameType::Deathmatch => &mut level.crates.deathmatch,
+    };
+    if index < crates.weapons.len() {
+        crates.weapons[index] = value;
     } else {
-        let index = index - context.level.crates.normal.weapons.len();
-        if index < context.level.crates.normal.bullets.len() {
-            context.level.crates.normal.bullets[index] = value;
+        let index = index - crates.weapons.len();
+        if index < crates.bullets.len() {
+            crates.bullets[index] = value;
         } else {
-            context.level.crates.normal.energy = value;
+            crates.energy = value;
         }
     }
 }
 
-pub fn exec(context: &mut Context) -> NextMode {
+pub fn exec(context: &mut Context, game_type: GameType) -> NextMode {
     let options = [
         "PISTOL",
         "SHOTGUN",
@@ -64,6 +73,8 @@ pub fn exec(context: &mut Context) -> NextMode {
         "ENERGY",
     ]
     .map(|name| render::get_font_texture(&context.texture_creator, &context.font, name));
+    let normal_game_instruction_text = &load_text(context, "NORMAL GAME CRATES");
+    let deatchmatch_instruction_text = &load_text(context, "DEATHMATCH CRATES");
     let esc_instruction_text = &load_text(context, "PRESS ESC TO EXIT");
     let mut selected = 0;
 
@@ -91,13 +102,13 @@ pub fn exec(context: &mut Context) -> NextMode {
                         }
                     }
                     Keycode::Right => {
-                        let value = get_value(context, selected);
-                        set_value(context, selected, value + 1);
+                        let value = get_value(&context.level, &game_type, selected);
+                        set_value(&mut context.level, &game_type, selected, value + 1);
                     }
                     Keycode::Left => {
-                        let value = get_value(context, selected);
-                        if *value > 0 {
-                            set_value(context, selected, value - 1);
+                        let value = get_value(&context.level, &game_type, selected);
+                        if value > 0 {
+                            set_value(&mut context.level, &game_type, selected, value - 1);
                         }
                     }
                     _ => (),
@@ -108,7 +119,20 @@ pub fn exec(context: &mut Context) -> NextMode {
 
         context.canvas.set_draw_color(Color::from((0, 0, 0)));
         context.canvas.clear();
-        let mut option_position = (40, 20);
+
+        render::render_text_texture(
+            &mut context.canvas,
+            match game_type {
+                GameType::Normal => &normal_game_instruction_text,
+                GameType::Deathmatch => &deatchmatch_instruction_text,
+            },
+            20,
+            10,
+            None,
+        );
+
+        let y = 50;
+        let mut option_position = (40, y);
         let mut value_position = (280, option_position.1);
         for x in 0..options.len() {
             let option = &options[x];
@@ -131,7 +155,7 @@ pub fn exec(context: &mut Context) -> NextMode {
             let value_texture = render::get_font_texture(
                 &context.texture_creator,
                 &context.font,
-                &get_value(&context, x).to_string(),
+                &get_value(&context.level, &game_type, x).to_string(),
             );
             render::render_text_texture(
                 &mut context.canvas,
@@ -141,7 +165,7 @@ pub fn exec(context: &mut Context) -> NextMode {
                 None,
             );
             if x == 10 {
-                option_position.1 = 20;
+                option_position.1 = y;
                 value_position.1 = option_position.1;
                 option_position.0 = 330;
                 value_position.0 = option_position.0 + 250;

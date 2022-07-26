@@ -32,6 +32,7 @@ pub struct CrateSet {
 
 pub struct Crates {
     pub normal: CrateSet,
+    pub deathmatch: CrateSet,
 }
 
 pub struct Level {
@@ -85,6 +86,11 @@ impl Level {
             },
             crates: Crates {
                 normal: CrateSet {
+                    weapons: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    bullets: [1, 0, 0, 0, 0, 0, 0, 0, 0],
+                    energy: 1,
+                },
+                deathmatch: CrateSet {
                     weapons: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                     bullets: [1, 0, 0, 0, 0, 0, 0, 0, 0],
                     energy: 1,
@@ -398,18 +404,16 @@ impl Level {
         }
         file.write_all(&self.crates.normal.energy.to_le_bytes())
             .expect("Failed to write normal game energy crates");
-        for x in 0..DIFF_WEAPONS {
-            let amount = if x == 0 { 1u32 } else { 0u32 };
-            file.write_all(&(amount).to_le_bytes())
-                .expect("Failed to write multiplayer game weapons");
+        for weapon_amount in self.crates.deathmatch.weapons {
+            file.write_all(&weapon_amount.to_le_bytes())
+                .expect("Failed to write deathmatch game weapons");
         }
-        for x in 0..DIFF_BULLETS {
-            let amount = if x == 0 { 1u32 } else { 0u32 };
-            file.write_all(&(amount).to_le_bytes())
-                .expect("Failed to write multiplayer game bullets");
+        for bullet_amount in self.crates.deathmatch.bullets {
+            file.write_all(&bullet_amount.to_le_bytes())
+                .expect("Failed to write deathmatch game bullets");
         }
-        file.write_all(&(1u32).to_le_bytes())
-            .expect("Failed to write multiplayer game energy crates");
+        file.write_all(&self.crates.deathmatch.energy.to_le_bytes())
+            .expect("Failed to write deathmatch game energy crates");
         file.write_all(&(0u32).to_le_bytes())
             .expect("Failed to write normal game crate amount");
         // TODO: Write normal game crates
@@ -511,25 +515,19 @@ impl Level {
         for weapon_number in 0..self.crates.normal.weapons.len() {
             self.crates.normal.weapons[weapon_number] = file.read_u32::<LittleEndian>()?;
         }
-
         for bullet_number in 0..self.crates.normal.bullets.len() {
             self.crates.normal.bullets[bullet_number] = file.read_u32::<LittleEndian>()?;
         }
-
         self.crates.normal.energy = file.read_u32::<LittleEndian>()?;
 
-        // for x in 0..DIFF_WEAPONS {
-        //     let amount = if x == 0 { 1u32 } else { 0u32 };
-        //     file.write_all(&(amount).to_le_bytes())
-        //         .expect("Failed to write multiplayer game weapons");
-        // }
-        // for x in 0..DIFF_BULLETS {
-        //     let amount = if x == 0 { 1u32 } else { 0u32 };
-        //     file.write_all(&(amount).to_le_bytes())
-        //         .expect("Failed to write multiplayer game bullets");
-        // }
-        // file.write_all(&(1u32).to_le_bytes())
-        //     .expect("Failed to write multiplayer game energy crates");
+        for weapon_number in 0..self.crates.deathmatch.weapons.len() {
+            self.crates.deathmatch.weapons[weapon_number] = file.read_u32::<LittleEndian>()?;
+        }
+        for bullet_number in 0..self.crates.deathmatch.bullets.len() {
+            self.crates.deathmatch.bullets[bullet_number] = file.read_u32::<LittleEndian>()?;
+        }
+        self.crates.deathmatch.energy = file.read_u32::<LittleEndian>()?;
+
         // file.write_all(&(0u32).to_le_bytes())
         //     .expect("Failed to write normal game crate amount");
         // // TODO: Write normal game crates

@@ -2,6 +2,7 @@ extern crate sdl2;
 
 use crate::level::Steam;
 use crate::render;
+use crate::types::GameType;
 use crate::util::*;
 use crate::Context;
 use crate::Level;
@@ -256,7 +257,10 @@ pub fn exec(context: &mut Context) -> NextMode {
                                 return GeneralLevelInfo;
                             }
                             Keycode::F8 => {
-                                return RandomItemEditor;
+                                return RandomItemEditor(GameType::Normal);
+                            }
+                            Keycode::F9 => {
+                                return RandomItemEditor(GameType::Deathmatch);
                             }
                             Keycode::Num1 | Keycode::Num2 => {
                                 if !matches!(prompt, PromptType::NewLevel(_))

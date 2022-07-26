@@ -17,7 +17,8 @@ pub fn exec(context: &mut Context) -> NextMode {
         "F4   - MAKE NEW LEVEL",
         "F6   - ENABLE/DISABLE AUTOMATIC SHADOWS",
         "F7   - EDIT GENERAL LEVEL VARIABLES",
-        "F8   - EDIT RANDOM CRATES FOR NORMAL GAME",
+        "F8   - EDIT RANDOM CRATES FOR NORMAL GAMES",
+        "F9   - EDIT RANDOM CRATES FOR DEATHMATCH GAMES",
         " ",
         "- EDITOR -",
         "Q/W  - PLACE/DELETE SPOTLIGHT",
@@ -44,7 +45,7 @@ pub fn exec(context: &mut Context) -> NextMode {
         }
         context.canvas.set_draw_color(Color::from((0, 0, 0)));
         context.canvas.clear();
-        let mut position = 10;
+        let mut position = 6;
         for line_texture in &line_textures {
             render::render_text_texture(&mut context.canvas, &line_texture, 10, position, None);
             position += 30;

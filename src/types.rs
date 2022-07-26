@@ -25,12 +25,17 @@ pub struct Tile {
 
 pub type Tiles = Vec<Vec<Tile>>;
 
+pub enum GameType {
+    Normal,
+    Deathmatch,
+}
+
 pub enum NextMode {
     Editor,
     TileSelect,
     Help,
     GeneralLevelInfo,
-    RandomItemEditor,
+    RandomItemEditor(GameType),
     LoadLevel,
     Quit,
 }

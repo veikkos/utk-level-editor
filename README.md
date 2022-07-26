@@ -20,5 +20,5 @@ Implementation is done using [SDL2](https://www.libsdl.org/) library for creatin
 - :heavy_check_mark: Level comment is editable
 - :heavy_check_mark: Tile fill feature
 - :heavy_check_mark: Automated shadow creation
-- :heavy_check_mark::grey_exclamation: Random crates are supported for single player only
-- :x: Setting static crates
+- :heavy_check_mark: Random crates
+- :x: Static crates

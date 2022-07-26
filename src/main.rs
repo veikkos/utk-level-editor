@@ -71,7 +71,7 @@ pub fn main() {
             TileSelect => tile_selector::exec(&mut context),
             Help => help::exec(&mut context),
             GeneralLevelInfo => general_level_info::exec(&mut context),
-            RandomItemEditor => random_item_editor::exec(&mut context),
+            RandomItemEditor(game_type) => random_item_editor::exec(&mut context, game_type),
             LoadLevel => load_level::exec(&mut context),
             Quit => break 'running,
         }
