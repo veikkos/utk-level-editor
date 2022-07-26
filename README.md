@@ -1,8 +1,10 @@
-# WIP / "Not-Sure-If-Ever-Finished" level editor for TK321
+# Level editor for Ultimate Tapan Kaikki (TK321)
 
-Working but only partial level editor written in Rust for TK321 (https://github.com/suomipelit/ultimatetapankaikki).
+Almost feature complete level editor written in Rust for Ultimate Tapan Kaikki (TK321) DOS game classic. See also [opensourced game itself](https://github.com/suomipelit/ultimatetapankaikki).
 
-Implementation is done using [SDL2](https://www.libsdl.org/) library for creating window, loading assets and providing user input interface.
+Editor is heavily based on original DOS era editor but does not aim to be a carbon copy. Hopefully most of the differences can be considered as improvements.
+
+Implementation is done using [SDL2](https://www.libsdl.org/).
 
 ![Cover image](./media/cover.png)
 
@@ -22,3 +24,14 @@ Implementation is done using [SDL2](https://www.libsdl.org/) library for creatin
 - :heavy_check_mark: Automated shadow creation
 - :heavy_check_mark: Random crates
 - :x: Static crates
+- :x: Level minimap (very niche)
+
+## Improvement considerations
+
+- Proper bitmap font
+- Layout tweaks
+- Rendering optimizations by reducing texture creation of dynamic values
+- More accurate frame rate
+- Support for older level files (version < 5)
+- Somehow make the options directly referenced in code instead of using workaround indexing
+- ...?
