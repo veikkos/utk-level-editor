@@ -30,4 +30,5 @@ pub struct Context<'a> {
     pub mouse: (u32, u32),
     pub level_save_name: String,
     pub trigonometry: Trigonometry,
+    pub automatic_shadows: bool,
 }

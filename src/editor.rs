@@ -28,11 +28,17 @@ enum SaveLevelType {
 }
 
 #[derive(PartialEq)]
+enum ShadowPromptType {
+    Enabled,
+    Disabled,
+}
+
+#[derive(PartialEq)]
 enum PromptType {
     None,
     NewLevel(NewLevelState),
     Save(SaveLevelType),
-    CreateShadows,
+    CreateShadows(ShadowPromptType),
     Quit,
 }
 
@@ -69,7 +75,8 @@ struct Textures<'a> {
     steam_place_text_texture: Texture<'a>,
     steam_delete_text_texture: Texture<'a>,
     steam_instructions_text_texture: Texture<'a>,
-    create_shadows_instructions_text_texture: Texture<'a>,
+    create_shadows_enabled_instructions_text_texture: Texture<'a>,
+    create_shadows_disabled_instructions_text_texture: Texture<'a>,
 }
 
 pub fn exec(context: &mut Context) -> NextMode {
@@ -156,10 +163,15 @@ pub fn exec(context: &mut Context) -> NextMode {
             &context.font,
             "UP/DOWN: RANGE, LEFT/RIGHT: DIR, ENTER TO ACCEPT",
         ),
-        create_shadows_instructions_text_texture: render::get_font_texture(
+        create_shadows_enabled_instructions_text_texture: render::get_font_texture(
             &context.texture_creator,
             &context.font,
-            "CREATE SHADOWS?",
+            "DISABLE AUTO SHADOW?",
+        ),
+        create_shadows_disabled_instructions_text_texture: render::get_font_texture(
+            &context.texture_creator,
+            &context.font,
+            "ENABLE AUTO SHADOW?",
         ),
     };
     let mut set_position: u8 = 0;
@@ -234,7 +246,11 @@ pub fn exec(context: &mut Context) -> NextMode {
                             }
                             Keycode::F6 => {
                                 context.sdl.video().unwrap().text_input().stop();
-                                prompt = PromptType::CreateShadows;
+                                prompt = PromptType::CreateShadows(if context.automatic_shadows {
+                                    ShadowPromptType::Enabled
+                                } else {
+                                    ShadowPromptType::Disabled
+                                });
                             }
                             Keycode::F7 => {
                                 return GeneralLevelInfo;
@@ -284,8 +300,14 @@ pub fn exec(context: &mut Context) -> NextMode {
                                     }
                                     _ => {}
                                 },
-                                PromptType::CreateShadows => {
-                                    context.level.create_shadows();
+                                PromptType::CreateShadows(shadow_state) => {
+                                    context.automatic_shadows = match shadow_state {
+                                        ShadowPromptType::Enabled => false,
+                                        ShadowPromptType::Disabled => {
+                                            context.level.create_shadows();
+                                            true
+                                        }
+                                    };
                                     prompt = PromptType::None;
                                 }
                                 PromptType::Quit => return Quit,
@@ -534,6 +556,11 @@ pub fn exec(context: &mut Context) -> NextMode {
                                     &context.texture_type_selected,
                                 );
                             }
+                            if context.texture_type_selected == TextureType::SHADOW {
+                                context.automatic_shadows = false;
+                            } else if context.automatic_shadows {
+                                context.level.create_shadows();
+                            }
                         }
                     };
                     mouse_left_click = None;
@@ -741,7 +768,14 @@ fn render_prompt_if_needed(
                 &textures.save_level_text_texture
             }
             PromptType::Quit => &textures.wanna_quit_text_texture,
-            PromptType::CreateShadows => &textures.create_shadows_instructions_text_texture,
+            PromptType::CreateShadows(shadow_state) => match shadow_state {
+                ShadowPromptType::Enabled => {
+                    &textures.create_shadows_enabled_instructions_text_texture
+                }
+                ShadowPromptType::Disabled => {
+                    &textures.create_shadows_disabled_instructions_text_texture
+                }
+            },
             PromptType::None => unreachable!(),
         };
         render::render_text_texture(
@@ -818,4 +852,5 @@ fn handle_mouse_right_down(context: &mut Context) {
     context
         .level
         .put_tile_to_level(pointed_tile, None, &TextureType::SHADOW);
+    context.automatic_shadows = false;
 }

@@ -59,6 +59,7 @@ pub fn main() {
         mouse: (0, 0),
         level_save_name: String::new(),
         trigonometry: Trigonometry::new(),
+        automatic_shadows: true,
     };
 
     let mut next_mode = NextMode::Editor;
