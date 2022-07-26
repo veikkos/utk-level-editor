@@ -297,6 +297,8 @@ impl Level {
                     } else {
                         0
                     };
+                } else {
+                    self.tiles[y][x].shadow = 0;
                 }
             }
         }
