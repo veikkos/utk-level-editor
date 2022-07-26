@@ -61,22 +61,24 @@ pub fn exec(context: &mut Context) -> NextMode {
                         }
                     }
                     Keycode::Return | Keycode::KpEnter => {
-                        context
-                            .level
-                            .deserialize(&files[selected].filename)
-                            .unwrap();
-                        let level_name = files[selected]
-                            .filename
-                            .strip_prefix("./")
-                            .unwrap()
-                            .to_string();
-                        context.textures.saved_level_name = Some(render::get_font_texture(
-                            &context.texture_creator,
-                            &context.font,
-                            &level_name,
-                        ));
-                        context.level_save_name =
-                            level_name.strip_suffix(".LEV").unwrap().to_string();
+                        if files.len() > 0 {
+                            context
+                                .level
+                                .deserialize(&files[selected].filename)
+                                .unwrap();
+                            let level_name = files[selected]
+                                .filename
+                                .strip_prefix("./")
+                                .unwrap()
+                                .to_string();
+                            context.textures.saved_level_name = Some(render::get_font_texture(
+                                &context.texture_creator,
+                                &context.font,
+                                &level_name,
+                            ));
+                            context.level_save_name =
+                                level_name.strip_suffix(".LEV").unwrap().to_string();
+                        }
                         return Editor;
                     }
                     _ => {}
