@@ -255,6 +255,9 @@ pub fn exec(context: &mut Context) -> NextMode {
                             Keycode::F7 => {
                                 return GeneralLevelInfo;
                             }
+                            Keycode::F8 => {
+                                return RandomItemEditor;
+                            }
                             Keycode::Num1 | Keycode::Num2 => {
                                 if !matches!(prompt, PromptType::NewLevel(_))
                                     && !matches!(prompt, PromptType::Save(_))

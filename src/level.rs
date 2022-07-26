@@ -24,6 +24,16 @@ pub struct Steam {
     pub angle: u16, // 0-355 degress in 5 degree steps. 0 is downwards, direction counter clockwise.
 }
 
+pub struct CrateSet {
+    pub weapons: [u32; DIFF_WEAPONS as usize],
+    pub bullets: [u32; DIFF_BULLETS as usize],
+    pub energy: u32,
+}
+
+pub struct Crates {
+    pub normal: CrateSet,
+}
+
 pub struct Level {
     pub tiles: Tiles,
     pub p1_position: Position,
@@ -32,6 +42,7 @@ pub struct Level {
     pub spotlights: HashMap<Position, u8>, // 0-9 intensity
     pub steams: HashMap<Position, Steam>,
     pub general_info: GeneralInfo,
+    pub crates: Crates,
 }
 
 #[derive(Debug)]
@@ -71,6 +82,13 @@ impl Level {
                 comment: "Rust UTK editor".to_string(),
                 time_limit: 60,
                 enemy_table: [1, 0, 0, 0, 0, 1, 0, 0],
+            },
+            crates: Crates {
+                normal: CrateSet {
+                    weapons: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    bullets: [1, 0, 0, 0, 0, 0, 0, 0, 0],
+                    energy: 1,
+                },
             },
         };
         level.create_shadows();
@@ -370,17 +388,15 @@ impl Level {
             file.write_all(&enemy_amount.to_le_bytes())
                 .expect("Failed to write normal game enemies");
         }
-        for x in 0..DIFF_WEAPONS {
-            let amount = if x == 0 { 1u32 } else { 0u32 };
-            file.write_all(&(amount).to_le_bytes())
+        for weapon_amount in self.crates.normal.weapons {
+            file.write_all(&weapon_amount.to_le_bytes())
                 .expect("Failed to write normal game weapons");
         }
-        for x in 0..DIFF_BULLETS {
-            let amount = if x == 0 { 1u32 } else { 0u32 };
-            file.write_all(&(amount).to_le_bytes())
+        for bullet_amount in self.crates.normal.bullets {
+            file.write_all(&bullet_amount.to_le_bytes())
                 .expect("Failed to write normal game bullets");
         }
-        file.write_all(&(1u32).to_le_bytes())
+        file.write_all(&self.crates.normal.energy.to_le_bytes())
             .expect("Failed to write normal game energy crates");
         for x in 0..DIFF_WEAPONS {
             let amount = if x == 0 { 1u32 } else { 0u32 };
@@ -492,18 +508,16 @@ impl Level {
             self.general_info.enemy_table[enemy_number] = file.read_u32::<LittleEndian>()?;
         }
 
-        // for x in 0..DIFF_WEAPONS {
-        //     let amount = if x == 0 { 1u32 } else { 0u32 };
-        //     file.write_all(&(amount).to_le_bytes())
-        //         .expect("Failed to write normal game weapons");
-        // }
-        // for x in 0..DIFF_BULLETS {
-        //     let amount = if x == 0 { 1u32 } else { 0u32 };
-        //     file.write_all(&(amount).to_le_bytes())
-        //         .expect("Failed to write normal game bullets");
-        // }
-        // file.write_all(&(1u32).to_le_bytes())
-        //     .expect("Failed to write normal game energy crates");
+        for weapon_number in 0..self.crates.normal.weapons.len() {
+            self.crates.normal.weapons[weapon_number] = file.read_u32::<LittleEndian>()?;
+        }
+
+        for bullet_number in 0..self.crates.normal.bullets.len() {
+            self.crates.normal.bullets[bullet_number] = file.read_u32::<LittleEndian>()?;
+        }
+
+        self.crates.normal.energy = file.read_u32::<LittleEndian>()?;
+
         // for x in 0..DIFF_WEAPONS {
         //     let amount = if x == 0 { 1u32 } else { 0u32 };
         //     file.write_all(&(amount).to_le_bytes())

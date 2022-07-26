@@ -17,6 +17,7 @@ pub fn exec(context: &mut Context) -> NextMode {
         "F4   - MAKE NEW LEVEL",
         "F6   - ENABLE/DISABLE AUTOMATIC SHADOWS",
         "F7   - EDIT GENERAL LEVEL VARIABLES",
+        "F8   - EDIT RANDOM CRATES FOR NORMAL GAME",
         " ",
         "- EDITOR -",
         "Q/W  - PLACE/DELETE SPOTLIGHT",

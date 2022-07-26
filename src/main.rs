@@ -10,6 +10,7 @@ mod general_level_info;
 mod help;
 mod level;
 mod load_level;
+mod random_item_editor;
 mod render;
 mod tile_selector;
 mod types;
@@ -70,6 +71,7 @@ pub fn main() {
             TileSelect => tile_selector::exec(&mut context),
             Help => help::exec(&mut context),
             GeneralLevelInfo => general_level_info::exec(&mut context),
+            RandomItemEditor => random_item_editor::exec(&mut context),
             LoadLevel => load_level::exec(&mut context),
             Quit => break 'running,
         }
