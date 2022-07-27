@@ -498,15 +498,20 @@ impl Level {
         self.spotlights.clear();
         self.steams.clear();
         self.general_info.comment = String::new();
+        self.general_info.enemy_table.fill(0);
         self.crates.staticc = StaticCrates {
             normal: Vec::new(),
             deathmatch: Vec::new(),
         };
+        self.crates.random.normal.weapons.fill(0);
+        self.crates.random.normal.bullets.fill(0);
+        self.crates.random.deathmatch.weapons.fill(0);
+        self.crates.random.deathmatch.bullets.fill(0);
 
         let mut file = File::open(filename)?;
         let version: u32 = file.read_u32::<LittleEndian>()?;
 
-        if version != VERSION {
+        if version > VERSION {
             return Err(DeserializationError::ContentError(
                 FileTypeError::InvalidVersion,
             ));
@@ -579,50 +584,71 @@ impl Level {
 
         self.general_info.time_limit = file.read_u32::<LittleEndian>()?;
 
-        for enemy_number in 0..self.general_info.enemy_table.len() {
+        let number_of_enemy_types = if version >= 4 {
+            DIFF_ENEMIES
+        } else {
+            DIFF_ENEMIES - 1
+        } as usize;
+        for enemy_number in 0..number_of_enemy_types {
             self.general_info.enemy_table[enemy_number] = file.read_u32::<LittleEndian>()?;
         }
 
-        for weapon_number in 0..self.crates.random.normal.weapons.len() {
+        let number_of_weapons = if version == 1 {
+            DIFF_WEAPONS - 2
+        } else if version == 2 {
+            DIFF_WEAPONS - 1
+        } else {
+            DIFF_WEAPONS
+        } as usize;
+        for weapon_number in 0..number_of_weapons {
             self.crates.random.normal.weapons[weapon_number] = file.read_u32::<LittleEndian>()?;
         }
-        for bullet_number in 0..self.crates.random.normal.bullets.len() {
+        let number_of_bullets = if version == 1 {
+            DIFF_BULLETS - 2
+        } else if version == 2 {
+            DIFF_BULLETS - 1
+        } else {
+            DIFF_BULLETS
+        } as usize;
+        for bullet_number in 0..number_of_bullets {
             self.crates.random.normal.bullets[bullet_number] = file.read_u32::<LittleEndian>()?;
         }
         self.crates.random.normal.energy = file.read_u32::<LittleEndian>()?;
 
-        for weapon_number in 0..self.crates.random.deathmatch.weapons.len() {
+        for weapon_number in 0..number_of_weapons {
             self.crates.random.deathmatch.weapons[weapon_number] =
                 file.read_u32::<LittleEndian>()?;
         }
-        for bullet_number in 0..self.crates.random.deathmatch.bullets.len() {
+        for bullet_number in 0..number_of_bullets {
             self.crates.random.deathmatch.bullets[bullet_number] =
                 file.read_u32::<LittleEndian>()?;
         }
         self.crates.random.deathmatch.energy = file.read_u32::<LittleEndian>()?;
 
-        let number_of_crates = file.read_u32::<LittleEndian>()?;
-        for _crate_index in 0..number_of_crates {
-            self.crates.staticc.normal.push(StaticCrateType {
-                crate_class: CrateClass::from_u32(file.read_u32::<LittleEndian>()?),
-                crate_type: file.read_u32::<LittleEndian>()? as u8,
-                position: (
-                    file.read_u32::<LittleEndian>()?,
-                    file.read_u32::<LittleEndian>()?,
-                ),
-            })
-        }
+        if version >= 5 {
+            let number_of_crates = file.read_u32::<LittleEndian>()?;
+            for _crate_index in 0..number_of_crates {
+                self.crates.staticc.normal.push(StaticCrateType {
+                    crate_class: CrateClass::from_u32(file.read_u32::<LittleEndian>()?),
+                    crate_type: file.read_u32::<LittleEndian>()? as u8,
+                    position: (
+                        file.read_u32::<LittleEndian>()?,
+                        file.read_u32::<LittleEndian>()?,
+                    ),
+                })
+            }
 
-        let number_of_crates = file.read_u32::<LittleEndian>()?;
-        for _crate_index in 0..number_of_crates {
-            self.crates.staticc.deathmatch.push(StaticCrateType {
-                crate_class: CrateClass::from_u32(file.read_u32::<LittleEndian>()?),
-                crate_type: file.read_u32::<LittleEndian>()? as u8,
-                position: (
-                    file.read_u32::<LittleEndian>()?,
-                    file.read_u32::<LittleEndian>()?,
-                ),
-            })
+            let number_of_crates = file.read_u32::<LittleEndian>()?;
+            for _crate_index in 0..number_of_crates {
+                self.crates.staticc.deathmatch.push(StaticCrateType {
+                    crate_class: CrateClass::from_u32(file.read_u32::<LittleEndian>()?),
+                    crate_type: file.read_u32::<LittleEndian>()? as u8,
+                    position: (
+                        file.read_u32::<LittleEndian>()?,
+                        file.read_u32::<LittleEndian>()?,
+                    ),
+                })
+            }
         }
 
         Ok(())

@@ -23,6 +23,7 @@ Implementation is done using [SDL2](https://www.libsdl.org/).
 - :heavy_check_mark: Tile fill feature
 - :heavy_check_mark: Automated shadow creation
 - :heavy_check_mark: Random crates
+- :heavy_check_mark: Support all level file versions (<= 5)
 - :x::grey_exclamation: Static crate support is read-only
 - :x: Level minimap (very niche)
 
@@ -32,6 +33,5 @@ Implementation is done using [SDL2](https://www.libsdl.org/).
 - Layout tweaks
 - Rendering optimizations by reducing texture creation of dynamic values
 - More accurate frame rate
-- Support for older level files (version < 5)
 - Somehow make the options directly referenced in code instead of using workaround indexing
 - ...?
