@@ -15,6 +15,7 @@ pub struct Textures<'a> {
     pub shadows: Texture<'a>,
     pub selected_icon: Texture<'a>,
     pub saved_level_name: Option<Texture<'a>>,
+    pub crates: [Texture<'a>; 21],
 }
 
 pub struct Context<'a> {

@@ -5,6 +5,7 @@ use crate::level::Level;
 use crate::types::NextMode::*;
 use sdl2::image::{InitFlag, LoadTexture};
 mod context;
+mod crates;
 mod editor;
 mod general_level_info;
 mod help;
@@ -39,6 +40,8 @@ pub fn main() {
         .load_font("./assets/TheJewishBitmap.ttf", 24)
         .unwrap();
     let selected_icon = render::get_font_texture(&texture_creator, &font, "*");
+    let crate_textures =
+        crates::CRATES.map(|name| render::get_font_texture(&texture_creator, &font, name));
     let mut context = Context {
         sdl,
         canvas,
@@ -52,6 +55,7 @@ pub fn main() {
                 .unwrap(),
             selected_icon,
             saved_level_name: None,
+            crates: crate_textures,
         },
         level: Level::get_default_level((32, 22)),
         selected_tile_id: 0,

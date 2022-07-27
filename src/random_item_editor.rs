@@ -49,30 +49,6 @@ fn set_value(level: &mut Level, game_type: &GameType, index: usize, value: u32) 
 }
 
 pub fn exec(context: &mut Context, game_type: GameType) -> NextMode {
-    let options = [
-        "PISTOL",
-        "SHOTGUN",
-        "UZI",
-        "AUTO RIFLE",
-        "GRENADE LAUNCHER",
-        "AUTO GRENADIER",
-        "HEAVY LAUNCHER",
-        "AUTO SHOTGUN",
-        "C4-ACTIVATOR",
-        "FLAME THROWER",
-        "MINE DROPPER",
-        "9MM BULLETS (50)",
-        "12MM BULLETS (50)",
-        "SHOTGUN SHELLS (20)",
-        "LIGHT GRENADES (15)",
-        "MEDIUM GRENADES (10)",
-        "HEAVY GRENADES (5)",
-        "C4-EXPLOSIVES (5)",
-        "GAS (50)",
-        "MINES (5)",
-        "ENERGY",
-    ]
-    .map(|name| render::get_font_texture(&context.texture_creator, &context.font, name));
     let normal_game_instruction_text = &load_text(context, "NORMAL GAME CRATES");
     let deatchmatch_instruction_text = &load_text(context, "DEATHMATCH CRATES");
     let esc_instruction_text = &load_text(context, "PRESS ESC TO EXIT");
@@ -92,7 +68,7 @@ pub fn exec(context: &mut Context, game_type: GameType) -> NextMode {
                 }
                 Event::KeyDown { keycode, .. } => match keycode.unwrap() {
                     Keycode::Down => {
-                        if selected < options.len() - 1 {
+                        if selected < context.textures.crates.len() - 1 {
                             selected = selected + 1;
                         }
                     }
@@ -134,8 +110,8 @@ pub fn exec(context: &mut Context, game_type: GameType) -> NextMode {
         let y = 50;
         let mut option_position = (40, y);
         let mut value_position = (280, option_position.1);
-        for x in 0..options.len() {
-            let option = &options[x];
+        for x in 0..context.textures.crates.len() {
+            let option = &context.textures.crates[x];
             if selected == x {
                 render::render_text_texture(
                     &mut context.canvas,
