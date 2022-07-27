@@ -23,7 +23,7 @@ Implementation is done using [SDL2](https://www.libsdl.org/).
 - :heavy_check_mark: Tile fill feature
 - :heavy_check_mark: Automated shadow creation
 - :heavy_check_mark: Random crates
-- :x: Static crates
+- :x::grey_exclamation: Static crate support is read-only
 - :x: Level minimap (very niche)
 
 ## Improvement considerations

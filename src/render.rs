@@ -252,17 +252,21 @@ fn render_crates(
     color: &RendererColor,
 ) {
     for crate_item in crates {
-        static RECT_SIZE: u32 = 16;
+        static RECT_SIZE: u32 = 28;
         let (x_screen, y_screen) =
             get_screen_coordinates_from_level_coordinates(&crate_item.position, scroll);
-        let rect = Rect::new(
-            x_screen - RECT_SIZE as i32 / 2,
-            y_screen - RECT_SIZE as i32 / 2,
-            RECT_SIZE,
-            RECT_SIZE,
-        );
         canvas.set_draw_color(get_sdl_color(color));
-        canvas.draw_rect(rect).unwrap();
+        canvas
+            .draw_rect(Rect::new(x_screen, y_screen, RECT_SIZE, RECT_SIZE))
+            .unwrap();
+        canvas
+            .draw_rect(Rect::new(
+                x_screen + 1,
+                y_screen + 1,
+                RECT_SIZE - 2,
+                RECT_SIZE - 2,
+            ))
+            .unwrap();
 
         let texture_index = match crate_item.crate_class {
             CrateClass::Weapon => 0,
@@ -274,9 +278,9 @@ fn render_crates(
         render_text_texture(
             canvas,
             texture,
-            std::cmp::max(x_screen - 20, 2) as u32,
-            std::cmp::max(y_screen - 5 - height as i32, 2) as u32,
-            Some(*scroll),
+            (x_screen - 10) as u32,
+            (y_screen - 5 - height as i32) as u32,
+            None,
         );
     }
 }
