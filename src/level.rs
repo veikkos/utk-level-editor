@@ -135,7 +135,7 @@ impl Level {
                 staticc: StaticCrates {
                     normal: [StaticCrateType {
                         crate_class: CrateClass::Weapon,
-                        crate_type: 1,
+                        crate_type: 2,
                         position: (120, 100),
                     }]
                     .to_vec(),
@@ -465,7 +465,7 @@ impl Level {
         }
         file.write_all(&self.crates.random.deathmatch.energy.to_le_bytes())
             .expect("Failed to write deathmatch game energy crates");
-        file.write_all(&self.crates.staticc.normal.len().to_le_bytes())
+        file.write_all(&(self.crates.staticc.normal.len() as u32).to_le_bytes())
             .expect("Failed to write normal game crate amount");
         for crate_item in &self.crates.staticc.normal {
             file.write_all(&(crate_item.crate_class as u32).to_le_bytes())
@@ -477,7 +477,7 @@ impl Level {
             file.write_all(&crate_item.position.1.to_le_bytes())
                 .expect("Failed to write normal game static crate y position");
         }
-        file.write_all(&self.crates.staticc.deathmatch.len().to_le_bytes())
+        file.write_all(&(self.crates.staticc.deathmatch.len() as u32).to_le_bytes())
             .expect("Failed to write deathmatch game crate amount");
         for crate_item in &self.crates.staticc.deathmatch {
             file.write_all(&(crate_item.crate_class as u32).to_le_bytes())
