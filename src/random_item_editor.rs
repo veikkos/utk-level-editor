@@ -16,8 +16,8 @@ fn load_text<'a>(context: &Context<'a>, text: &str) -> Texture<'a> {
 
 fn get_value(level: &Level, game_type: &GameType, index: usize) -> u32 {
     let crates = match game_type {
-        GameType::Normal => &level.crates.normal,
-        GameType::Deathmatch => &level.crates.deathmatch,
+        GameType::Normal => &level.crates.random.normal,
+        GameType::Deathmatch => &level.crates.random.deathmatch,
     };
     if index < crates.weapons.len() {
         crates.weapons[index]
@@ -33,8 +33,8 @@ fn get_value(level: &Level, game_type: &GameType, index: usize) -> u32 {
 
 fn set_value(level: &mut Level, game_type: &GameType, index: usize, value: u32) {
     let crates = match game_type {
-        GameType::Normal => &mut level.crates.normal,
-        GameType::Deathmatch => &mut level.crates.deathmatch,
+        GameType::Normal => &mut level.crates.random.normal,
+        GameType::Deathmatch => &mut level.crates.random.deathmatch,
     };
     if index < crates.weapons.len() {
         crates.weapons[index] = value;

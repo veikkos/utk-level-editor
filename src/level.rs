@@ -30,9 +30,43 @@ pub struct CrateSet {
     pub energy: u32,
 }
 
-pub struct Crates {
+pub struct RandomCrates {
     pub normal: CrateSet,
     pub deathmatch: CrateSet,
+}
+
+#[derive(Clone, Copy)]
+pub enum CrateClass {
+    Weapon = 0,
+    Bullet = 1,
+    Energy = 2,
+}
+
+impl CrateClass {
+    pub fn from_u32(value: u32) -> CrateClass {
+        match value {
+            0 => CrateClass::Weapon,
+            1 => CrateClass::Bullet,
+            2 => CrateClass::Energy,
+            _ => panic!("Unknown value: {}", value),
+        }
+    }
+}
+
+pub struct StaticCrateType {
+    pub crate_class: CrateClass,
+    pub crate_type: u8,
+    pub position: Position,
+}
+
+pub struct StaticCrates {
+    pub normal: Vec<StaticCrateType>,
+    pub deathmatch: Vec<StaticCrateType>,
+}
+
+pub struct Crates {
+    pub random: RandomCrates,
+    pub staticc: StaticCrates,
 }
 
 pub struct Level {
@@ -85,15 +119,21 @@ impl Level {
                 enemy_table: [1, 0, 0, 0, 0, 1, 0, 0],
             },
             crates: Crates {
-                normal: CrateSet {
-                    weapons: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                    bullets: [1, 0, 0, 0, 0, 0, 0, 0, 0],
-                    energy: 1,
+                random: RandomCrates {
+                    normal: CrateSet {
+                        weapons: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                        bullets: [1, 0, 0, 0, 0, 0, 0, 0, 0],
+                        energy: 1,
+                    },
+                    deathmatch: CrateSet {
+                        weapons: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                        bullets: [1, 0, 0, 0, 0, 0, 0, 0, 0],
+                        energy: 1,
+                    },
                 },
-                deathmatch: CrateSet {
-                    weapons: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                    bullets: [1, 0, 0, 0, 0, 0, 0, 0, 0],
-                    energy: 1,
+                staticc: StaticCrates {
+                    normal: Vec::new(),
+                    deathmatch: Vec::new(),
                 },
             },
         };
@@ -394,34 +434,50 @@ impl Level {
             file.write_all(&enemy_amount.to_le_bytes())
                 .expect("Failed to write normal game enemies");
         }
-        for weapon_amount in self.crates.normal.weapons {
+        for weapon_amount in self.crates.random.normal.weapons {
             file.write_all(&weapon_amount.to_le_bytes())
                 .expect("Failed to write normal game weapons");
         }
-        for bullet_amount in self.crates.normal.bullets {
+        for bullet_amount in self.crates.random.normal.bullets {
             file.write_all(&bullet_amount.to_le_bytes())
                 .expect("Failed to write normal game bullets");
         }
-        file.write_all(&self.crates.normal.energy.to_le_bytes())
+        file.write_all(&self.crates.random.normal.energy.to_le_bytes())
             .expect("Failed to write normal game energy crates");
-        for weapon_amount in self.crates.deathmatch.weapons {
+        for weapon_amount in self.crates.random.deathmatch.weapons {
             file.write_all(&weapon_amount.to_le_bytes())
                 .expect("Failed to write deathmatch game weapons");
         }
-        for bullet_amount in self.crates.deathmatch.bullets {
+        for bullet_amount in self.crates.random.deathmatch.bullets {
             file.write_all(&bullet_amount.to_le_bytes())
                 .expect("Failed to write deathmatch game bullets");
         }
-        file.write_all(&self.crates.deathmatch.energy.to_le_bytes())
+        file.write_all(&self.crates.random.deathmatch.energy.to_le_bytes())
             .expect("Failed to write deathmatch game energy crates");
-        file.write_all(&(0u32).to_le_bytes())
+        file.write_all(&self.crates.staticc.normal.len().to_le_bytes())
             .expect("Failed to write normal game crate amount");
-        // TODO: Write normal game crates
-        // fread( normal_crate_info, sizeof(Crate_info) * normal_crate_amount, 1, dat );
-        file.write_all(&(0u32).to_le_bytes())
+        for crate_item in &self.crates.staticc.normal {
+            file.write_all(&(crate_item.crate_class as u32).to_le_bytes())
+                .expect("Failed to write normal game static crate class");
+            file.write_all(&(crate_item.crate_type as u32).to_le_bytes())
+                .expect("Failed to write normal game static crate type");
+            file.write_all(&crate_item.position.0.to_le_bytes())
+                .expect("Failed to write normal game static crate x position");
+            file.write_all(&crate_item.position.1.to_le_bytes())
+                .expect("Failed to write normal game static crate y position");
+        }
+        file.write_all(&self.crates.staticc.deathmatch.len().to_le_bytes())
             .expect("Failed to write deathmatch game crate amount");
-        // TODO: Write deathmatch game crates
-        // fread( deathmatch_crate_info, sizeof(Crate_info) * deathmatch_crate_amount, 1, dat );
+        for crate_item in &self.crates.staticc.deathmatch {
+            file.write_all(&(crate_item.crate_class as u32).to_le_bytes())
+                .expect("Failed to write deathmatch game static crate class");
+            file.write_all(&(crate_item.crate_type as u32).to_le_bytes())
+                .expect("Failed to write deathmatch game static crate type");
+            file.write_all(&crate_item.position.0.to_le_bytes())
+                .expect("Failed to write deathmatch game static crate x position");
+            file.write_all(&crate_item.position.1.to_le_bytes())
+                .expect("Failed to write deathmatch game static crate y position");
+        }
 
         Ok(())
     }
@@ -431,6 +487,10 @@ impl Level {
         self.spotlights.clear();
         self.steams.clear();
         self.general_info.comment = String::new();
+        self.crates.staticc = StaticCrates {
+            normal: Vec::new(),
+            deathmatch: Vec::new(),
+        };
 
         let mut file = File::open(filename)?;
         let version: u32 = file.read_u32::<LittleEndian>()?;
@@ -512,30 +572,47 @@ impl Level {
             self.general_info.enemy_table[enemy_number] = file.read_u32::<LittleEndian>()?;
         }
 
-        for weapon_number in 0..self.crates.normal.weapons.len() {
-            self.crates.normal.weapons[weapon_number] = file.read_u32::<LittleEndian>()?;
+        for weapon_number in 0..self.crates.random.normal.weapons.len() {
+            self.crates.random.normal.weapons[weapon_number] = file.read_u32::<LittleEndian>()?;
         }
-        for bullet_number in 0..self.crates.normal.bullets.len() {
-            self.crates.normal.bullets[bullet_number] = file.read_u32::<LittleEndian>()?;
+        for bullet_number in 0..self.crates.random.normal.bullets.len() {
+            self.crates.random.normal.bullets[bullet_number] = file.read_u32::<LittleEndian>()?;
         }
-        self.crates.normal.energy = file.read_u32::<LittleEndian>()?;
+        self.crates.random.normal.energy = file.read_u32::<LittleEndian>()?;
 
-        for weapon_number in 0..self.crates.deathmatch.weapons.len() {
-            self.crates.deathmatch.weapons[weapon_number] = file.read_u32::<LittleEndian>()?;
+        for weapon_number in 0..self.crates.random.deathmatch.weapons.len() {
+            self.crates.random.deathmatch.weapons[weapon_number] =
+                file.read_u32::<LittleEndian>()?;
         }
-        for bullet_number in 0..self.crates.deathmatch.bullets.len() {
-            self.crates.deathmatch.bullets[bullet_number] = file.read_u32::<LittleEndian>()?;
+        for bullet_number in 0..self.crates.random.deathmatch.bullets.len() {
+            self.crates.random.deathmatch.bullets[bullet_number] =
+                file.read_u32::<LittleEndian>()?;
         }
-        self.crates.deathmatch.energy = file.read_u32::<LittleEndian>()?;
+        self.crates.random.deathmatch.energy = file.read_u32::<LittleEndian>()?;
 
-        // file.write_all(&(0u32).to_le_bytes())
-        //     .expect("Failed to write normal game crate amount");
-        // // TODO: Write normal game crates
-        // // fread( normal_crate_info, sizeof(Crate_info) * normal_crate_amount, 1, dat );
-        // file.write_all(&(0u32).to_le_bytes())
-        //     .expect("Failed to write deathmatch game crate amount");
-        // // TODO: Write deathmatch game crates
-        // // fread( deathmatch_crate_info, sizeof(Crate_info) * deathmatch_crate_amount, 1, dat );
+        let number_of_crates = file.read_u32::<LittleEndian>()?;
+        for _crate_index in 0..number_of_crates {
+            self.crates.staticc.normal.push(StaticCrateType {
+                crate_class: CrateClass::from_u32(file.read_u32::<LittleEndian>()?),
+                crate_type: file.read_u32::<LittleEndian>()? as u8,
+                position: (
+                    file.read_u32::<LittleEndian>()?,
+                    file.read_u32::<LittleEndian>()?,
+                ),
+            })
+        }
+
+        let number_of_crates = file.read_u32::<LittleEndian>()?;
+        for _crate_index in 0..number_of_crates {
+            self.crates.staticc.deathmatch.push(StaticCrateType {
+                crate_class: CrateClass::from_u32(file.read_u32::<LittleEndian>()?),
+                crate_type: file.read_u32::<LittleEndian>()? as u8,
+                position: (
+                    file.read_u32::<LittleEndian>()?,
+                    file.read_u32::<LittleEndian>()?,
+                ),
+            })
+        }
 
         Ok(())
     }
