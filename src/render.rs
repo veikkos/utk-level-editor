@@ -1,3 +1,6 @@
+use crate::level::DIFF_BULLETS;
+use crate::level::DIFF_WEAPONS;
+use crate::level::{CrateClass, StaticCrateType};
 use crate::types::*;
 use crate::util::*;
 use crate::Level;
@@ -20,6 +23,8 @@ pub enum RendererColor {
     White,
     Red,
     Blue,
+    LightBlue,
+    LightGreen,
 }
 
 fn get_sdl_color(color: &RendererColor) -> Color {
@@ -27,6 +32,8 @@ fn get_sdl_color(color: &RendererColor) -> Color {
         RendererColor::White => Color::from((255, 255, 255)),
         RendererColor::Red => Color::from((255, 0, 0)),
         RendererColor::Blue => Color::from((0, 0, 255)),
+        RendererColor::LightBlue => Color::from((100, 100, 255)),
+        RendererColor::LightGreen => Color::from((100, 255, 100)),
     }
 }
 
@@ -220,31 +227,57 @@ pub fn render_level(
             );
         }
     }
-    canvas.set_draw_color(Color::from((100, 100, 255)));
-    for normal_crate in &level.crates.staticc.normal {
+
+    render_crates(
+        canvas,
+        &level.scroll,
+        &textures,
+        &level.crates.staticc.normal,
+        &RendererColor::LightBlue,
+    );
+    render_crates(
+        canvas,
+        &level.scroll,
+        &textures,
+        &level.crates.staticc.deathmatch,
+        &RendererColor::LightGreen,
+    );
+}
+
+fn render_crates(
+    canvas: &mut Canvas<Window>,
+    scroll: &(u32, u32),
+    textures: &Textures,
+    crates: &Vec<StaticCrateType>,
+    color: &RendererColor,
+) {
+    for crate_item in crates {
         static RECT_SIZE: u32 = 16;
         let (x_screen, y_screen) =
-            get_screen_coordinates_from_level_coordinates(&normal_crate.position, &level.scroll);
+            get_screen_coordinates_from_level_coordinates(&crate_item.position, scroll);
         let rect = Rect::new(
             x_screen - RECT_SIZE as i32 / 2,
             y_screen - RECT_SIZE as i32 / 2,
             RECT_SIZE,
             RECT_SIZE,
         );
+        canvas.set_draw_color(get_sdl_color(color));
         canvas.draw_rect(rect).unwrap();
-    }
-    canvas.set_draw_color(Color::from((100, 255, 100)));
-    for normal_crate in &level.crates.staticc.deathmatch {
-        static RECT_SIZE: u32 = 16;
-        let (x_screen, y_screen) =
-            get_screen_coordinates_from_level_coordinates(&normal_crate.position, &level.scroll);
-        let rect = Rect::new(
-            x_screen - RECT_SIZE as i32 / 2,
-            y_screen - RECT_SIZE as i32 / 2,
-            RECT_SIZE,
-            RECT_SIZE,
+
+        let texture_index = match crate_item.crate_class {
+            CrateClass::Weapon => 0,
+            CrateClass::Bullet => DIFF_WEAPONS,
+            CrateClass::Energy => DIFF_BULLETS + DIFF_WEAPONS,
+        } + crate_item.crate_type as u32;
+        let texture = &textures.crates[texture_index as usize];
+        let TextureQuery { height, .. } = texture.query();
+        render_text_texture(
+            canvas,
+            texture,
+            std::cmp::max(x_screen - 20, 2) as u32,
+            std::cmp::max(y_screen - 5 - height as i32, 2) as u32,
+            Some(*scroll),
         );
-        canvas.draw_rect(rect).unwrap();
     }
 }
 

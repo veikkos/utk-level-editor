@@ -4,9 +4,9 @@ use byteorder::{LittleEndian, ReadBytesExt};
 use std::collections::HashMap;
 use std::{fs::File, io::Write};
 
-const DIFF_BULLETS: u32 = 9;
-const DIFF_WEAPONS: u32 = 11;
-const DIFF_ENEMIES: u32 = 8;
+pub const DIFF_BULLETS: u32 = 9;
+pub const DIFF_WEAPONS: u32 = 11;
+pub const DIFF_ENEMIES: u32 = 8;
 
 const VERSION: u32 = 5;
 
@@ -133,8 +133,18 @@ impl Level {
                     },
                 },
                 staticc: StaticCrates {
-                    normal: Vec::new(),
-                    deathmatch: Vec::new(),
+                    normal: [StaticCrateType {
+                        crate_class: CrateClass::Weapon,
+                        crate_type: 1,
+                        position: (120, 100),
+                    }]
+                    .to_vec(),
+                    deathmatch: [StaticCrateType {
+                        crate_class: CrateClass::Bullet,
+                        crate_type: 2,
+                        position: (190, 170),
+                    }]
+                    .to_vec(),
                 },
             },
         };
