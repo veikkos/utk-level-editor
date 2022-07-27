@@ -53,6 +53,7 @@ impl CrateClass {
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct StaticCrateType {
     pub crate_class: CrateClass,
     pub crate_type: u8,

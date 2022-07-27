@@ -220,6 +220,32 @@ pub fn render_level(
             );
         }
     }
+    canvas.set_draw_color(Color::from((100, 100, 255)));
+    for normal_crate in &level.crates.staticc.normal {
+        static RECT_SIZE: u32 = 16;
+        let (x_screen, y_screen) =
+            get_screen_coordinates_from_level_coordinates(&normal_crate.position, &level.scroll);
+        let rect = Rect::new(
+            x_screen - RECT_SIZE as i32 / 2,
+            y_screen - RECT_SIZE as i32 / 2,
+            RECT_SIZE,
+            RECT_SIZE,
+        );
+        canvas.draw_rect(rect).unwrap();
+    }
+    canvas.set_draw_color(Color::from((100, 255, 100)));
+    for normal_crate in &level.crates.staticc.deathmatch {
+        static RECT_SIZE: u32 = 16;
+        let (x_screen, y_screen) =
+            get_screen_coordinates_from_level_coordinates(&normal_crate.position, &level.scroll);
+        let rect = Rect::new(
+            x_screen - RECT_SIZE as i32 / 2,
+            y_screen - RECT_SIZE as i32 / 2,
+            RECT_SIZE,
+            RECT_SIZE,
+        );
+        canvas.draw_rect(rect).unwrap();
+    }
 }
 
 pub fn render_and_wait(canvas: &mut Canvas<Window>) {
