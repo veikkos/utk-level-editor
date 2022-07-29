@@ -1,5 +1,9 @@
 extern crate sdl2;
 
+use crate::editor_textures::EditorTextures;
+use crate::level::CrateClass;
+use crate::level::StaticCrate;
+use crate::level::StaticCrateType;
 use crate::level::Steam;
 use crate::render;
 use crate::types::GameType;
@@ -55,126 +59,12 @@ enum InsertType {
     None,
     Spotlight(InsertState),
     Steam(InsertState),
-}
-
-struct Textures<'a> {
-    p1_text_texture: Texture<'a>,
-    p2_text_texture: Texture<'a>,
-    p1_set_text_texture: Texture<'a>,
-    p2_set_text_texture: Texture<'a>,
-    help_text_texture: Texture<'a>,
-    create_new_level_text_texture: Texture<'a>,
-    wanna_quit_text_texture: Texture<'a>,
-    save_level_text_texture: Texture<'a>,
-    filename_text_texture: Texture<'a>,
-    press_y_text_texture: Texture<'a>,
-    new_level_x_size_text_texture: Texture<'a>,
-    new_level_y_size_text_texture: Texture<'a>,
-    spotlight_place_text_texture: Texture<'a>,
-    spotlight_delete_text_texture: Texture<'a>,
-    spotlight_instructions_text_texture: Texture<'a>,
-    steam_place_text_texture: Texture<'a>,
-    steam_delete_text_texture: Texture<'a>,
-    steam_instructions_text_texture: Texture<'a>,
-    create_shadows_enabled_instructions_text_texture: Texture<'a>,
-    create_shadows_disabled_instructions_text_texture: Texture<'a>,
+    NormalCrate(InsertState),
+    DMCrate(InsertState),
 }
 
 pub fn exec(context: &mut Context) -> NextMode {
-    let textures = Textures {
-        p1_text_texture: render::get_font_texture(&context.texture_creator, &context.font, "PL1"),
-        p2_text_texture: render::get_font_texture(&context.texture_creator, &context.font, "PL2"),
-        p1_set_text_texture: render::get_font_texture(
-            &context.texture_creator,
-            &context.font,
-            "PLACE PL1 START POINT",
-        ),
-        p2_set_text_texture: render::get_font_texture(
-            &context.texture_creator,
-            &context.font,
-            "PLACE PL2 START POINT",
-        ),
-        help_text_texture: render::get_font_texture(
-            &context.texture_creator,
-            &context.font,
-            "F1 FOR HELP",
-        ),
-        create_new_level_text_texture: render::get_font_texture(
-            &context.texture_creator,
-            &context.font,
-            "CREATE NEW LEVEL?",
-        ),
-        wanna_quit_text_texture: render::get_font_texture(
-            &context.texture_creator,
-            &context.font,
-            "REALLY WANNA QUIT?",
-        ),
-        save_level_text_texture: render::get_font_texture(
-            &context.texture_creator,
-            &context.font,
-            "SAVE LEVEL?",
-        ),
-        filename_text_texture: render::get_font_texture(
-            &context.texture_creator,
-            &context.font,
-            "FILENAME:",
-        ),
-        press_y_text_texture: render::get_font_texture(
-            &context.texture_creator,
-            &context.font,
-            "PRESS Y TO CONFIRM",
-        ),
-        new_level_x_size_text_texture: render::get_font_texture(
-            &context.texture_creator,
-            &context.font,
-            "X-SIZE (>= 16 BLOCKS):",
-        ),
-        new_level_y_size_text_texture: render::get_font_texture(
-            &context.texture_creator,
-            &context.font,
-            "Y-SIZE (>= 12 BLOCKS):",
-        ),
-        spotlight_place_text_texture: render::get_font_texture(
-            &context.texture_creator,
-            &context.font,
-            "PLACE SPOTLIGHT (ESC TO CANCEL)",
-        ),
-        spotlight_delete_text_texture: render::get_font_texture(
-            &context.texture_creator,
-            &context.font,
-            "DELETE SPOTLIGHT (ESC TO CANCEL)",
-        ),
-        spotlight_instructions_text_texture: render::get_font_texture(
-            &context.texture_creator,
-            &context.font,
-            "USE UP AND DOWN KEYS TO ADJUST SIZE, ENTER TO ACCEPT",
-        ),
-        steam_place_text_texture: render::get_font_texture(
-            &context.texture_creator,
-            &context.font,
-            "PLACE STEAM (ESC TO CANCEL)",
-        ),
-        steam_delete_text_texture: render::get_font_texture(
-            &context.texture_creator,
-            &context.font,
-            "DELETE STEAM (ESC TO CANCEL)",
-        ),
-        steam_instructions_text_texture: render::get_font_texture(
-            &context.texture_creator,
-            &context.font,
-            "UP/DOWN: RANGE, LEFT/RIGHT: DIR, ENTER TO ACCEPT",
-        ),
-        create_shadows_enabled_instructions_text_texture: render::get_font_texture(
-            &context.texture_creator,
-            &context.font,
-            "DISABLE AUTO SHADOW?",
-        ),
-        create_shadows_disabled_instructions_text_texture: render::get_font_texture(
-            &context.texture_creator,
-            &context.font,
-            "ENABLE AUTO SHADOW?",
-        ),
-    };
+    let textures = EditorTextures::new(context);
     let mut set_position: u8 = 0;
     let mut mouse_left_click: Option<(u32, u32)> = None;
     let mut mouse_right_click = false;
@@ -287,6 +177,19 @@ pub fn exec(context: &mut Context) -> NextMode {
                                         InsertType::Steam(InsertState::Place)
                                     } else {
                                         InsertType::Steam(InsertState::Delete)
+                                    };
+                                    context.sdl.video().unwrap().text_input().stop();
+                                    prompt = PromptType::None;
+                                }
+                            }
+                            Keycode::Z | Keycode::X | Keycode::C => {
+                                if !matches!(prompt, PromptType::Save(_)) {
+                                    insert_item = if key == Keycode::Z {
+                                        InsertType::NormalCrate(InsertState::Place)
+                                    } else if key == Keycode::X {
+                                        InsertType::DMCrate(InsertState::Place)
+                                    } else {
+                                        InsertType::NormalCrate(InsertState::Delete)
                                     };
                                     context.sdl.video().unwrap().text_input().stop();
                                     prompt = PromptType::None;
@@ -638,6 +541,14 @@ pub fn exec(context: &mut Context) -> NextMode {
             &textures.steam_place_text_texture
         } else if matches!(insert_item, InsertType::Steam(InsertState::Delete)) {
             &textures.steam_delete_text_texture
+        } else if matches!(insert_item, InsertType::NormalCrate(InsertState::Place)) {
+            &textures.place_normal_crate_text_texture
+        } else if matches!(insert_item, InsertType::DMCrate(InsertState::Place)) {
+            &textures.place_deathmatch_create_text_texture
+        } else if matches!(insert_item, InsertType::NormalCrate(InsertState::Delete))
+            || matches!(insert_item, InsertType::DMCrate(InsertState::Delete))
+        {
+            &textures.delete_crate_text_texture
         } else {
             &textures.help_text_texture
         };
@@ -721,7 +632,7 @@ fn render_input_prompt(
 
 fn render_prompt_if_needed(
     context: &mut Context,
-    textures: &Textures,
+    textures: &EditorTextures,
     prompt: &PromptType,
     new_level_size_x: &str,
     new_level_size_y: &str,
@@ -821,32 +732,46 @@ fn handle_mouse_left_down(
         *position =
             get_logical_coordinates(context.mouse.0, context.mouse.1, Some(context.level.scroll));
         *set_position = 0;
-    } else if matches!(insert_item, InsertType::Spotlight(InsertState::Place))
-        || matches!(insert_item, InsertType::Spotlight(InsertState::Delete))
-    {
+    } else {
         let level_coordinates =
             get_level_coordinates_from_screen_coordinates(&context.mouse, &context.level.scroll);
         if matches!(insert_item, InsertType::Spotlight(InsertState::Place)) {
             *insert_item = InsertType::Spotlight(InsertState::Instructions(level_coordinates));
             context.level.put_spotlight_to_level(&level_coordinates, 0);
-        } else {
+        } else if matches!(insert_item, InsertType::Spotlight(InsertState::Delete)) {
             context.level.delete_spotlight_if_near(&level_coordinates);
-        }
-    } else if matches!(insert_item, InsertType::Steam(InsertState::Place))
-        || matches!(insert_item, InsertType::Steam(InsertState::Delete))
-    {
-        let level_coordinates =
-            get_level_coordinates_from_screen_coordinates(&context.mouse, &context.level.scroll);
-        if matches!(insert_item, InsertType::Steam(InsertState::Place)) {
+        } else if matches!(insert_item, InsertType::Steam(InsertState::Place)) {
             *insert_item = InsertType::Steam(InsertState::Instructions(level_coordinates));
             context
                 .level
                 .put_steam_to_level(&level_coordinates, &Steam { angle: 0, range: 1 });
-        } else {
+        } else if matches!(insert_item, InsertType::Steam(InsertState::Delete)) {
             context.level.delete_steam_if_near(&level_coordinates);
+        } else if matches!(insert_item, InsertType::NormalCrate(InsertState::Place)) {
+            *insert_item = InsertType::NormalCrate(InsertState::Instructions(level_coordinates));
+            context.level.put_crate_to_level(
+                &level_coordinates,
+                &StaticCrateType {
+                    crate_variant: StaticCrate::Normal,
+                    crate_class: CrateClass::Weapon,
+                    crate_type: 1,
+                },
+            );
+        } else if matches!(insert_item, InsertType::DMCrate(InsertState::Place)) {
+            *insert_item = InsertType::DMCrate(InsertState::Instructions(level_coordinates));
+            context.level.put_crate_to_level(
+                &level_coordinates,
+                &StaticCrateType {
+                    crate_variant: StaticCrate::Deathmatch,
+                    crate_class: CrateClass::Weapon,
+                    crate_type: 1,
+                },
+            );
+        } else if matches!(insert_item, InsertType::NormalCrate(InsertState::Delete)) {
+            context.level.delete_crate_if_near(&level_coordinates);
+        } else if *insert_item == InsertType::None {
+            *drag_tiles = true;
         }
-    } else if *insert_item == InsertType::None {
-        *drag_tiles = true;
     }
 }
 
