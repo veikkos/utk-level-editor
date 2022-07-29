@@ -53,21 +53,22 @@ impl CrateClass {
     }
 }
 
-#[derive(Clone, Copy)]
-pub struct StaticCrateType {
-    pub crate_class: CrateClass,
-    pub crate_type: u8,
-    pub position: Position,
+#[derive(Clone, Copy, PartialEq)]
+pub enum StaticCrate {
+    Normal,
+    Deathmatch,
 }
 
-pub struct StaticCrates {
-    pub normal: Vec<StaticCrateType>,
-    pub deathmatch: Vec<StaticCrateType>,
+#[derive(Clone, Copy)]
+pub struct StaticCrateType {
+    pub crate_variant: StaticCrate,
+    pub crate_class: CrateClass,
+    pub crate_type: u8,
 }
 
 pub struct Crates {
     pub random: RandomCrates,
-    pub staticc: StaticCrates,
+    pub staticc: HashMap<Position, StaticCrateType>,
 }
 
 pub struct Level {
@@ -132,20 +133,7 @@ impl Level {
                         energy: 1,
                     },
                 },
-                staticc: StaticCrates {
-                    normal: [StaticCrateType {
-                        crate_class: CrateClass::Weapon,
-                        crate_type: 2,
-                        position: (120, 100),
-                    }]
-                    .to_vec(),
-                    deathmatch: [StaticCrateType {
-                        crate_class: CrateClass::Bullet,
-                        crate_type: 2,
-                        position: (190, 170),
-                    }]
-                    .to_vec(),
-                },
+                staticc: HashMap::new(),
             },
         };
         level.create_shadows();
@@ -285,7 +273,7 @@ impl Level {
     pub fn delete_spotlight_if_near(&mut self, level_coordinates: &Position) {
         let mut to_be_removed = Vec::new();
         {
-            let mut distances: Vec<_> = self
+            let distances: Vec<_> = self
                 .spotlights
                 .iter()
                 .map(|(spotlight_coordinates, &spotlight)| {
@@ -294,7 +282,6 @@ impl Level {
                     (spotlight_coordinates, spotlight, distance)
                 })
                 .collect();
-            distances.sort_by(|a, b| a.2.partial_cmp(&b.2).unwrap());
             for spotlight in distances {
                 if get_spotlight_render_radius(&spotlight.1) as f64
                     >= spotlight.2 * RENDER_MULTIPLIER as f64
@@ -321,7 +308,7 @@ impl Level {
     pub fn delete_steam_if_near(&mut self, level_coordinates: &Position) {
         let mut to_be_removed = Vec::new();
         {
-            let mut distances: Vec<_> = self
+            let distances: Vec<_> = self
                 .steams
                 .iter()
                 .map(|(steam_coordinates, &_steam)| {
@@ -330,7 +317,6 @@ impl Level {
                     (steam_coordinates, distance)
                 })
                 .collect();
-            distances.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
             for steam in distances {
                 if get_steam_render_radius() as f64 >= steam.1 * RENDER_MULTIPLIER as f64 {
                     to_be_removed.push(*steam.0);
@@ -339,6 +325,30 @@ impl Level {
         }
         for key in to_be_removed {
             self.steams.remove(&key);
+        }
+    }
+
+    pub fn put_crate_to_level(
+        &mut self,
+        level_coordinates: &Position,
+        crate_item: &StaticCrateType,
+    ) {
+        self.crates.staticc.insert(*level_coordinates, *crate_item);
+    }
+
+    pub fn delete_crate_if_near(&mut self, level_coordinates: &Position) {
+        let mut to_be_removed = Vec::new();
+        for (crate_coordinates, _crate_item) in &self.crates.staticc {
+            if check_box_click(
+                level_coordinates,
+                &crate_coordinates,
+                get_crate_render_size() / RENDER_MULTIPLIER,
+            ) {
+                to_be_removed.push(crate_coordinates.clone());
+            }
+        }
+        for key in to_be_removed {
+            self.crates.staticc.remove(&key);
         }
     }
 
@@ -465,28 +475,46 @@ impl Level {
         }
         file.write_all(&self.crates.random.deathmatch.energy.to_le_bytes())
             .expect("Failed to write deathmatch game energy crates");
-        file.write_all(&(self.crates.staticc.normal.len() as u32).to_le_bytes())
+
+        let normal_static_crates: HashMap<Position, StaticCrateType> = self
+            .crates
+            .staticc
+            .clone()
+            .into_iter()
+            .filter(|(_coordinates, crate_item)| crate_item.crate_variant == StaticCrate::Normal)
+            .collect();
+        file.write_all(&(normal_static_crates.len() as u32).to_le_bytes())
             .expect("Failed to write normal game crate amount");
-        for crate_item in &self.crates.staticc.normal {
+        for (coordinates, crate_item) in &normal_static_crates {
             file.write_all(&(crate_item.crate_class as u32).to_le_bytes())
                 .expect("Failed to write normal game static crate class");
             file.write_all(&(crate_item.crate_type as u32).to_le_bytes())
                 .expect("Failed to write normal game static crate type");
-            file.write_all(&crate_item.position.0.to_le_bytes())
+            file.write_all(&coordinates.0.to_le_bytes())
                 .expect("Failed to write normal game static crate x position");
-            file.write_all(&crate_item.position.1.to_le_bytes())
+            file.write_all(&coordinates.1.to_le_bytes())
                 .expect("Failed to write normal game static crate y position");
         }
-        file.write_all(&(self.crates.staticc.deathmatch.len() as u32).to_le_bytes())
+
+        let deathmatch_static_crates: HashMap<Position, StaticCrateType> = self
+            .crates
+            .staticc
+            .clone()
+            .into_iter()
+            .filter(|(_coordinates, crate_item)| {
+                crate_item.crate_variant == StaticCrate::Deathmatch
+            })
+            .collect();
+        file.write_all(&(deathmatch_static_crates.len() as u32).to_le_bytes())
             .expect("Failed to write deathmatch game crate amount");
-        for crate_item in &self.crates.staticc.deathmatch {
+        for (coordinates, crate_item) in &deathmatch_static_crates {
             file.write_all(&(crate_item.crate_class as u32).to_le_bytes())
                 .expect("Failed to write deathmatch game static crate class");
             file.write_all(&(crate_item.crate_type as u32).to_le_bytes())
                 .expect("Failed to write deathmatch game static crate type");
-            file.write_all(&crate_item.position.0.to_le_bytes())
+            file.write_all(&coordinates.0.to_le_bytes())
                 .expect("Failed to write deathmatch game static crate x position");
-            file.write_all(&crate_item.position.1.to_le_bytes())
+            file.write_all(&coordinates.1.to_le_bytes())
                 .expect("Failed to write deathmatch game static crate y position");
         }
 
@@ -499,10 +527,7 @@ impl Level {
         self.steams.clear();
         self.general_info.comment = String::new();
         self.general_info.enemy_table.fill(0);
-        self.crates.staticc = StaticCrates {
-            normal: Vec::new(),
-            deathmatch: Vec::new(),
-        };
+        self.crates.staticc = HashMap::new();
         self.crates.random.normal.weapons.fill(0);
         self.crates.random.normal.bullets.fill(0);
         self.crates.random.deathmatch.weapons.fill(0);
@@ -626,29 +651,36 @@ impl Level {
         self.crates.random.deathmatch.energy = file.read_u32::<LittleEndian>()?;
 
         if version >= 5 {
-            let number_of_crates = file.read_u32::<LittleEndian>()?;
-            for _crate_index in 0..number_of_crates {
-                self.crates.staticc.normal.push(StaticCrateType {
-                    crate_class: CrateClass::from_u32(file.read_u32::<LittleEndian>()?),
-                    crate_type: file.read_u32::<LittleEndian>()? as u8,
-                    position: (
-                        file.read_u32::<LittleEndian>()?,
-                        file.read_u32::<LittleEndian>()?,
-                    ),
-                })
-            }
+            Level::deserialize_crates(&mut file, &mut self.crates.staticc, StaticCrate::Normal)?;
+            Level::deserialize_crates(
+                &mut file,
+                &mut self.crates.staticc,
+                StaticCrate::Deathmatch,
+            )?;
+        }
 
-            let number_of_crates = file.read_u32::<LittleEndian>()?;
-            for _crate_index in 0..number_of_crates {
-                self.crates.staticc.deathmatch.push(StaticCrateType {
-                    crate_class: CrateClass::from_u32(file.read_u32::<LittleEndian>()?),
-                    crate_type: file.read_u32::<LittleEndian>()? as u8,
-                    position: (
-                        file.read_u32::<LittleEndian>()?,
-                        file.read_u32::<LittleEndian>()?,
-                    ),
-                })
-            }
+        Ok(())
+    }
+
+    fn deserialize_crates(
+        file: &mut File,
+        crates: &mut HashMap<Position, StaticCrateType>,
+        crate_variant: StaticCrate,
+    ) -> Result<(), DeserializationError> {
+        let number_of_crates = file.read_u32::<LittleEndian>()?;
+        for _crate_index in 0..number_of_crates {
+            let crate_item = StaticCrateType {
+                crate_variant: crate_variant,
+                crate_class: CrateClass::from_u32(file.read_u32::<LittleEndian>()?),
+                crate_type: file.read_u32::<LittleEndian>()? as u8,
+            };
+            crates.insert(
+                (
+                    file.read_u32::<LittleEndian>()?,
+                    file.read_u32::<LittleEndian>()?,
+                ),
+                crate_item,
+            );
         }
 
         Ok(())

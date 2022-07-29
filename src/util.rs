@@ -90,6 +90,21 @@ pub fn get_steam_render_radius() -> u32 {
     5
 }
 
+pub fn get_crate_render_size() -> u32 {
+    28
+}
+
+pub fn check_box_click(
+    point_position: &(u32, u32),
+    box_position: &(u32, u32),
+    box_size: u32,
+) -> bool {
+    point_position.0 >= box_position.0
+        && point_position.0 < box_position.0 + box_size
+        && point_position.1 >= box_position.1
+        && point_position.1 < box_position.1 + box_size
+}
+
 pub fn get_selected_level_tiles(
     p0: &(u32, u32),
     p1: &(u32, u32),

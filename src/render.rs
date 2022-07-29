@@ -1,6 +1,6 @@
 use crate::level::DIFF_BULLETS;
 use crate::level::DIFF_WEAPONS;
-use crate::level::{CrateClass, StaticCrateType};
+use crate::level::{CrateClass, StaticCrate, StaticCrateType};
 use crate::types::*;
 use crate::util::*;
 use crate::Level;
@@ -15,6 +15,7 @@ use sdl2::render::TextureQuery;
 use sdl2::ttf::Font;
 use sdl2::video::Window;
 use sdl2::video::WindowContext;
+use std::collections::HashMap;
 use std::time::Duration;
 
 const TEXT_SIZE_DIVIDER: u32 = 1;
@@ -228,43 +229,32 @@ pub fn render_level(
         }
     }
 
-    render_crates(
-        canvas,
-        &level.scroll,
-        &textures,
-        &level.crates.staticc.normal,
-        &RendererColor::LightBlue,
-    );
-    render_crates(
-        canvas,
-        &level.scroll,
-        &textures,
-        &level.crates.staticc.deathmatch,
-        &RendererColor::LightGreen,
-    );
+    render_crates(canvas, &level.scroll, &textures, &level.crates.staticc);
 }
 
 fn render_crates(
     canvas: &mut Canvas<Window>,
     scroll: &(u32, u32),
     textures: &Textures,
-    crates: &Vec<StaticCrateType>,
-    color: &RendererColor,
+    crates: &HashMap<(u32, u32), StaticCrateType>,
 ) {
-    for crate_item in crates {
-        static RECT_SIZE: u32 = 28;
+    for (coordinates, crate_item) in crates {
+        let box_size = get_crate_render_size();
         let (x_screen, y_screen) =
-            get_screen_coordinates_from_level_coordinates(&crate_item.position, scroll);
-        canvas.set_draw_color(get_sdl_color(color));
+            get_screen_coordinates_from_level_coordinates(&coordinates, scroll);
+        canvas.set_draw_color(get_sdl_color(match crate_item.crate_variant {
+            StaticCrate::Normal => &RendererColor::LightGreen,
+            StaticCrate::Deathmatch => &RendererColor::LightBlue,
+        }));
         canvas
-            .draw_rect(Rect::new(x_screen, y_screen, RECT_SIZE, RECT_SIZE))
+            .draw_rect(Rect::new(x_screen, y_screen, box_size, box_size))
             .unwrap();
         canvas
             .draw_rect(Rect::new(
                 x_screen + 1,
                 y_screen + 1,
-                RECT_SIZE - 2,
-                RECT_SIZE - 2,
+                box_size - 2,
+                box_size - 2,
             ))
             .unwrap();
 

@@ -19,6 +19,7 @@ mod util;
 use context::Context;
 use types::*;
 use util::*;
+mod editor_textures;
 
 pub fn main() {
     let sdl = sdl2::init().unwrap();
