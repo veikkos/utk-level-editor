@@ -4,6 +4,7 @@ use crate::context::Textures;
 use crate::level::Level;
 use crate::types::NextMode::*;
 use sdl2::image::{InitFlag, LoadTexture};
+use sdl2::render::Texture;
 mod context;
 mod crates;
 mod editor;
@@ -41,8 +42,11 @@ pub fn main() {
         .load_font("./assets/TheJewishBitmap.ttf", 24)
         .unwrap();
     let selected_icon = render::get_font_texture(&texture_creator, &font, "*");
-    let crate_textures =
-        crates::CRATES.map(|name| render::get_font_texture(&texture_creator, &font, name));
+    let crate_textures: Vec<Texture> = crates::get_crates()
+        .iter()
+        .flatten()
+        .map(|name| render::get_font_texture(&texture_creator, &font, name))
+        .collect();
     let mut context = Context {
         sdl,
         canvas,

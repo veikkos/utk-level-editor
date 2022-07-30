@@ -25,6 +25,7 @@ pub struct EditorTextures<'a> {
     pub create_shadows_disabled_instructions_text_texture: Texture<'a>,
     pub place_normal_crate_text_texture: Texture<'a>,
     pub place_deathmatch_create_text_texture: Texture<'a>,
+    pub insert_crate_text_texture: Texture<'a>,
     pub delete_crate_text_texture: Texture<'a>,
 }
 
@@ -140,6 +141,11 @@ impl EditorTextures<'_> {
                 &context.texture_creator,
                 &context.font,
                 "PLACE DEATHMATCH GAME CRATE",
+            ),
+            insert_crate_text_texture: render::get_font_texture(
+                &context.texture_creator,
+                &context.font,
+                "UP/DOWN/LEFT/RIGHT: SELECT CRATE, ENTER TO ACCEPT",
             ),
             delete_crate_text_texture: render::get_font_texture(
                 &context.texture_creator,

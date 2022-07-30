@@ -1,6 +1,7 @@
+use crate::crates::CrateClass;
 use crate::level::DIFF_BULLETS;
 use crate::level::DIFF_WEAPONS;
-use crate::level::{CrateClass, StaticCrate, StaticCrateType};
+use crate::level::{StaticCrate, StaticCrateType};
 use crate::types::*;
 use crate::util::*;
 use crate::Level;

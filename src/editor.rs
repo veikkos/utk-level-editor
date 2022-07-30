@@ -1,7 +1,7 @@
 extern crate sdl2;
 
+use crate::crates::{get_crates, CrateClass};
 use crate::editor_textures::EditorTextures;
-use crate::level::CrateClass;
 use crate::level::StaticCrate;
 use crate::level::StaticCrateType;
 use crate::level::Steam;
@@ -73,6 +73,7 @@ pub fn exec(context: &mut Context) -> NextMode {
     let mut new_level_size_x: String = String::new();
     let mut new_level_size_y: String = String::new();
     let mut drag_tiles = false;
+    let crates = get_crates();
 
     let mut event_pump = context.sdl.event_pump().unwrap();
     loop {
@@ -253,6 +254,28 @@ pub fn exec(context: &mut Context) -> NextMode {
                                     }
                                     _ => (),
                                 },
+                                InsertType::NormalCrate(state) | InsertType::DMCrate(state) => {
+                                    match state {
+                                        InsertState::Instructions(coordinates) => {
+                                            let mut crate_item = context
+                                                .level
+                                                .get_crate_from_level(&coordinates)
+                                                .clone();
+                                            if (crate_item.crate_class as u32)
+                                                < CrateClass::Energy as u32
+                                            {
+                                                crate_item.crate_type = 0;
+                                                crate_item.crate_class = CrateClass::from_u32(
+                                                    crate_item.crate_class as u32 + 1,
+                                                );
+                                                context
+                                                    .level
+                                                    .put_crate_to_level(&coordinates, &crate_item)
+                                            }
+                                        }
+                                        _ => (),
+                                    }
+                                }
                                 _ => {
                                     if context.level.scroll.1 > 0 {
                                         context.level.scroll.1 = context.level.scroll.1 - 1
@@ -289,6 +312,26 @@ pub fn exec(context: &mut Context) -> NextMode {
                                     }
                                     _ => (),
                                 },
+                                InsertType::NormalCrate(state) | InsertType::DMCrate(state) => {
+                                    match state {
+                                        InsertState::Instructions(coordinates) => {
+                                            let mut crate_item = context
+                                                .level
+                                                .get_crate_from_level(&coordinates)
+                                                .clone();
+                                            if crate_item.crate_class as u32 > 0 {
+                                                crate_item.crate_type = 0;
+                                                crate_item.crate_class = CrateClass::from_u32(
+                                                    crate_item.crate_class as u32 - 1,
+                                                );
+                                                context
+                                                    .level
+                                                    .put_crate_to_level(&coordinates, &crate_item)
+                                            }
+                                        }
+                                        _ => (),
+                                    }
+                                }
                                 _ => {
                                     if context.level.scroll.1 + TILES_Y_PER_SCREEN
                                         < (context.level.tiles.len()) as u32
@@ -312,6 +355,23 @@ pub fn exec(context: &mut Context) -> NextMode {
                                     }
                                     _ => (),
                                 },
+                                InsertType::NormalCrate(state) | InsertType::DMCrate(state) => {
+                                    match state {
+                                        InsertState::Instructions(coordinates) => {
+                                            let mut crate_item = context
+                                                .level
+                                                .get_crate_from_level(&coordinates)
+                                                .clone();
+                                            if crate_item.crate_type > 0 {
+                                                crate_item.crate_type = crate_item.crate_type - 1;
+                                                context
+                                                    .level
+                                                    .put_crate_to_level(coordinates, &crate_item);
+                                            }
+                                        }
+                                        _ => (),
+                                    }
+                                }
                                 _ => {
                                     if context.level.scroll.0 > 0 {
                                         context.level.scroll.0 = context.level.scroll.0 - 1;
@@ -333,6 +393,27 @@ pub fn exec(context: &mut Context) -> NextMode {
                                     }
                                     _ => (),
                                 },
+                                InsertType::NormalCrate(state) | InsertType::DMCrate(state) => {
+                                    match state {
+                                        InsertState::Instructions(coordinates) => {
+                                            let mut crate_item = context
+                                                .level
+                                                .get_crate_from_level(&coordinates)
+                                                .clone();
+                                            if crate_item.crate_type
+                                                < (crates[crate_item.crate_class as usize].len()
+                                                    - 1)
+                                                    as u8
+                                            {
+                                                crate_item.crate_type = crate_item.crate_type + 1;
+                                                context
+                                                    .level
+                                                    .put_crate_to_level(coordinates, &crate_item);
+                                            }
+                                        }
+                                        _ => (),
+                                    }
+                                }
                                 _ => {
                                     if context.level.scroll.0 + TILES_X_PER_SCREEN
                                         < (context.level.tiles[0].len()) as u32
@@ -353,6 +434,18 @@ pub fn exec(context: &mut Context) -> NextMode {
                                     InsertType::Steam(InsertState::Instructions(_))
                                 ) {
                                     insert_item = InsertType::Steam(InsertState::Place);
+                                }
+                                if matches!(
+                                    insert_item,
+                                    InsertType::NormalCrate(InsertState::Instructions(_))
+                                ) {
+                                    insert_item = InsertType::NormalCrate(InsertState::Place);
+                                }
+                                if matches!(
+                                    insert_item,
+                                    InsertType::DMCrate(InsertState::Instructions(_))
+                                ) {
+                                    insert_item = InsertType::DMCrate(InsertState::Place);
                                 } else if prompt == PromptType::NewLevel(NewLevelState::XSize)
                                     && new_level_size_x.len() > 1
                                     && new_level_size_x.parse::<u8>().unwrap() >= 16
@@ -545,6 +638,14 @@ pub fn exec(context: &mut Context) -> NextMode {
             &textures.place_normal_crate_text_texture
         } else if matches!(insert_item, InsertType::DMCrate(InsertState::Place)) {
             &textures.place_deathmatch_create_text_texture
+        } else if matches!(
+            insert_item,
+            InsertType::NormalCrate(InsertState::Instructions(_))
+        ) || matches!(
+            insert_item,
+            InsertType::DMCrate(InsertState::Instructions(_))
+        ) {
+            &textures.insert_crate_text_texture
         } else if matches!(insert_item, InsertType::NormalCrate(InsertState::Delete))
             || matches!(insert_item, InsertType::DMCrate(InsertState::Delete))
         {
@@ -754,7 +855,7 @@ fn handle_mouse_left_down(
                 &StaticCrateType {
                     crate_variant: StaticCrate::Normal,
                     crate_class: CrateClass::Weapon,
-                    crate_type: 1,
+                    crate_type: 0,
                 },
             );
         } else if matches!(insert_item, InsertType::DMCrate(InsertState::Place)) {
@@ -764,7 +865,7 @@ fn handle_mouse_left_down(
                 &StaticCrateType {
                     crate_variant: StaticCrate::Deathmatch,
                     crate_class: CrateClass::Weapon,
-                    crate_type: 1,
+                    crate_type: 0,
                 },
             );
         } else if matches!(insert_item, InsertType::NormalCrate(InsertState::Delete)) {

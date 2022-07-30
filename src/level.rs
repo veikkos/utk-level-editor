@@ -1,3 +1,4 @@
+use crate::crates::CrateClass;
 use crate::types::*;
 use crate::util::*;
 use byteorder::{LittleEndian, ReadBytesExt};
@@ -33,24 +34,6 @@ pub struct CrateSet {
 pub struct RandomCrates {
     pub normal: CrateSet,
     pub deathmatch: CrateSet,
-}
-
-#[derive(Clone, Copy)]
-pub enum CrateClass {
-    Weapon = 0,
-    Bullet = 1,
-    Energy = 2,
-}
-
-impl CrateClass {
-    pub fn from_u32(value: u32) -> CrateClass {
-        match value {
-            0 => CrateClass::Weapon,
-            1 => CrateClass::Bullet,
-            2 => CrateClass::Energy,
-            _ => panic!("Unknown value: {}", value),
-        }
-    }
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -334,6 +317,10 @@ impl Level {
         crate_item: &StaticCrateType,
     ) {
         self.crates.staticc.insert(*level_coordinates, *crate_item);
+    }
+
+    pub fn get_crate_from_level(&self, level_coordinates: &Position) -> &StaticCrateType {
+        self.crates.staticc.get(level_coordinates).unwrap()
     }
 
     pub fn delete_crate_if_near(&mut self, level_coordinates: &Position) {
