@@ -24,7 +24,7 @@ Implementation is done using [SDL2](https://www.libsdl.org/).
 - :heavy_check_mark: Automated shadow creation
 - :heavy_check_mark: Random crates
 - :heavy_check_mark: Support all level file versions (<= 5)
-- :x::grey_exclamation: Static crate support is read-only
+- :x::grey_exclamation: Static crate type cannot be changed
 - :x: Level minimap (very niche)
 
 ## Improvement considerations
