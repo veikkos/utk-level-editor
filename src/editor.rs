@@ -1,6 +1,7 @@
 extern crate sdl2;
 
 use crate::crates::{get_crates, CrateClass};
+use crate::create_text_texture;
 use crate::editor_textures::EditorTextures;
 use crate::level::StaticCrate;
 use crate::level::StaticCrateType;
@@ -472,12 +473,12 @@ pub fn exec(context: &mut Context) -> NextMode {
                                         format!("{}.LEV", &level_save_name_uppercase);
                                     context.level.serialize(&level_saved_name).unwrap();
                                     context.sdl.video().unwrap().text_input().stop();
-                                    context.textures.saved_level_name =
-                                        Some(render::get_font_texture(
-                                            &context.texture_creator,
-                                            &context.font,
-                                            &level_saved_name,
-                                        ));
+                                    context.textures.saved_level_name = Some(create_text_texture(
+                                        &mut context.canvas,
+                                        &context.texture_creator,
+                                        &context.font,
+                                        &level_saved_name,
+                                    ));
                                     prompt = PromptType::None;
                                 }
                             }
@@ -718,8 +719,12 @@ fn render_input_prompt(
     );
 
     if !input_field.is_empty() {
-        let input_text_texture =
-            render::get_font_texture(&context.texture_creator, &context.font, &input_field);
+        let input_text_texture = create_text_texture(
+            &mut context.canvas,
+            &context.texture_creator,
+            &context.font,
+            &input_field,
+        );
         let TextureQuery { width, .. } = instruction_texture.query();
         render::render_text_texture(
             &mut context.canvas,

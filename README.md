@@ -29,7 +29,6 @@ Implementation is done using [SDL2](https://www.libsdl.org/).
 
 ## Improvement considerations
 
-- Proper bitmap font
 - Layout tweaks
 - Rendering optimizations by reducing texture creation of dynamic values
 - More accurate frame rate

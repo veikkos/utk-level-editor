@@ -11,4 +11,4 @@ byteorder = "1.4.3"
 [dependencies.sdl2]
 version = "0.35.2"
 default-features = true
-features = ["image", "ttf"]
+features = ["image"]

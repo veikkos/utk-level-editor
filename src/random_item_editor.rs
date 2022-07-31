@@ -1,5 +1,6 @@
 extern crate sdl2;
 
+use crate::create_text_texture;
 use crate::level::Level;
 use crate::render;
 use crate::types::*;
@@ -10,8 +11,13 @@ use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::render::Texture;
 
-fn load_text<'a>(context: &Context<'a>, text: &str) -> Texture<'a> {
-    render::get_font_texture(&context.texture_creator, &context.font, text)
+fn load_text<'a>(context: &mut Context<'a>, text: &str) -> Texture<'a> {
+    create_text_texture(
+        &mut context.canvas,
+        &context.texture_creator,
+        &context.font,
+        text,
+    )
 }
 
 fn get_value(level: &Level, game_type: &GameType, index: usize) -> u32 {
@@ -128,7 +134,8 @@ pub fn exec(context: &mut Context, game_type: GameType) -> NextMode {
                 option_position.1,
                 None,
             );
-            let value_texture = render::get_font_texture(
+            let value_texture = create_text_texture(
+                &mut context.canvas,
                 &context.texture_creator,
                 &context.font,
                 &get_value(&context.level, &game_type, x).to_string(),

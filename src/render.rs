@@ -11,15 +11,12 @@ use sdl2::rect::Point;
 use sdl2::rect::Rect;
 use sdl2::render::Canvas;
 use sdl2::render::Texture;
-use sdl2::render::TextureCreator;
 use sdl2::render::TextureQuery;
-use sdl2::ttf::Font;
 use sdl2::video::Window;
-use sdl2::video::WindowContext;
 use std::collections::HashMap;
 use std::time::Duration;
 
-const TEXT_SIZE_DIVIDER: u32 = 1;
+const TEXT_SIZE_MULTIPLIER: u32 = 2;
 
 pub enum RendererColor {
     White,
@@ -79,22 +76,6 @@ pub fn draw_line(canvas: &mut Canvas<Window>, x0: u32, y0: u32, x1: u32, y1: u32
         .unwrap();
 }
 
-pub fn get_font_texture<'a>(
-    texture_creator: &'a TextureCreator<WindowContext>,
-    font: &Font,
-    text: &str,
-) -> Texture<'a> {
-    let surface = font
-        .render(text)
-        .blended(Color::RGBA(255, 0, 0, 255))
-        .map_err(|e| e.to_string())
-        .unwrap();
-    texture_creator
-        .create_texture_from_surface(&surface)
-        .map_err(|e| e.to_string())
-        .unwrap()
-}
-
 pub fn render_text_texture(
     canvas: &mut Canvas<Window>,
     texture: &Texture,
@@ -107,8 +88,8 @@ pub fn render_text_texture(
     let dst = Rect::new(
         x as i32 - (scroll.0 * RENDER_SIZE) as i32,
         y as i32 - (scroll.1 * RENDER_SIZE) as i32,
-        width / TEXT_SIZE_DIVIDER,
-        height / TEXT_SIZE_DIVIDER,
+        width * TEXT_SIZE_MULTIPLIER,
+        height * TEXT_SIZE_MULTIPLIER,
     );
     canvas.copy(&texture, None, dst).unwrap();
 }

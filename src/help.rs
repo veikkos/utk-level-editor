@@ -1,5 +1,6 @@
 extern crate sdl2;
 
+use crate::fn2::create_text_texture;
 use crate::render;
 use crate::Context;
 use crate::NextMode;
@@ -29,7 +30,14 @@ pub fn exec(context: &mut Context) -> NextMode {
     ];
     let line_textures: Vec<Texture> = lines
         .iter()
-        .map(|text| render::get_font_texture(&context.texture_creator, &context.font, text))
+        .map(|text| {
+            create_text_texture(
+                &mut context.canvas,
+                &context.texture_creator,
+                &context.font,
+                text,
+            )
+        })
         .collect();
 
     let mut event_pump = context.sdl.event_pump().unwrap();

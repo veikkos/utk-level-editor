@@ -1,5 +1,6 @@
 extern crate sdl2;
 
+use crate::fn2::create_text_texture;
 use crate::render;
 use crate::types::*;
 use crate::Context;
@@ -20,8 +21,13 @@ struct ConfigOption<'a> {
     value: Value,
 }
 
-fn load_text<'a>(context: &Context<'a>, text: &str) -> Texture<'a> {
-    render::get_font_texture(&context.texture_creator, &context.font, text)
+fn load_text<'a>(context: &mut Context<'a>, text: &str) -> Texture<'a> {
+    create_text_texture(
+        &mut context.canvas,
+        &context.texture_creator,
+        &context.font,
+        text,
+    )
 }
 
 fn load_value_text<'a>(context: &mut Context<'a>, value: &Value) -> Option<Texture<'a>> {
@@ -31,7 +37,8 @@ fn load_value_text<'a>(context: &mut Context<'a>, value: &Value) -> Option<Textu
         Value::Comment() => context.level.general_info.comment.to_string(),
     };
     if !string.is_empty() {
-        Some(render::get_font_texture(
+        Some(create_text_texture(
+            &mut context.canvas,
             &context.texture_creator,
             &context.font,
             &string,

@@ -1,3 +1,4 @@
+use crate::fn2::create_text_texture;
 use std::fs;
 extern crate sdl2;
 
@@ -16,9 +17,14 @@ struct LoadFile<'a> {
 }
 
 pub fn exec(context: &mut Context) -> NextMode {
-    let load_level_text_texture =
-        render::get_font_texture(&context.texture_creator, &context.font, "LOAD LEVEL:");
-    let bottom_instruction_text = render::get_font_texture(
+    let load_level_text_texture = create_text_texture(
+        &mut context.canvas,
+        &context.texture_creator,
+        &context.font,
+        "LOAD LEVEL:",
+    );
+    let bottom_instruction_text = create_text_texture(
+        &mut context.canvas,
         &context.texture_creator,
         &context.font,
         "ENTER TO SELECT OR ESC TO EXIT",
@@ -35,7 +41,12 @@ pub fn exec(context: &mut Context) -> NextMode {
         })
         .map(|ref filename| LoadFile {
             filename: filename.to_string(),
-            texture: render::get_font_texture(context.texture_creator, &context.font, &filename),
+            texture: create_text_texture(
+                &mut context.canvas,
+                context.texture_creator,
+                &context.font,
+                &filename,
+            ),
         })
         .collect();
     let mut selected = 0usize;
@@ -71,7 +82,8 @@ pub fn exec(context: &mut Context) -> NextMode {
                                 .strip_prefix("./")
                                 .unwrap()
                                 .to_string();
-                            context.textures.saved_level_name = Some(render::get_font_texture(
+                            context.textures.saved_level_name = Some(create_text_texture(
+                                &mut context.canvas,
                                 &context.texture_creator,
                                 &context.font,
                                 &level_name,

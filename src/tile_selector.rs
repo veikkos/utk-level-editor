@@ -1,5 +1,6 @@
 extern crate sdl2;
 
+use crate::create_text_texture;
 use crate::render;
 use crate::types::*;
 use crate::util::*;
@@ -11,17 +12,20 @@ use sdl2::mouse::MouseButton;
 use sdl2::pixels::Color;
 
 pub fn exec(context: &mut Context) -> NextMode {
-    let floor_blocks_text_texture = render::get_font_texture(
+    let floor_blocks_text_texture = create_text_texture(
+        &mut context.canvas,
         &context.texture_creator,
         &context.font,
         "FLOOR BLOCKS [PAGEGUP/DOWN]",
     );
-    let wall_blocks_text_texture = render::get_font_texture(
+    let wall_blocks_text_texture = create_text_texture(
+        &mut context.canvas,
         &context.texture_creator,
         &context.font,
         "WALL BLOCKS [PAGEGUP/DOWN]",
     );
-    let shadow_blocks_text_texture = render::get_font_texture(
+    let shadow_blocks_text_texture = create_text_texture(
+        &mut context.canvas,
         &context.texture_creator,
         &context.font,
         "SHADOW [PAGEGUP/DOWN] - CLEAR WITH RIGHT CLICK",

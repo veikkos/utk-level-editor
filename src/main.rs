@@ -1,6 +1,8 @@
 extern crate sdl2;
 
 use crate::context::Textures;
+use crate::fn2::create_text_texture;
+use crate::fn2::load_font;
 use crate::level::Level;
 use crate::types::NextMode::*;
 use sdl2::image::{InitFlag, LoadTexture};
@@ -21,11 +23,11 @@ use context::Context;
 use types::*;
 use util::*;
 mod editor_textures;
+mod fn2;
 
 pub fn main() {
     let sdl = sdl2::init().unwrap();
     let _image_context = sdl2::image::init(InitFlag::PNG);
-    let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string()).unwrap();
     let video_subsystem = sdl.video().unwrap();
     let window = video_subsystem
         .window(
@@ -36,16 +38,14 @@ pub fn main() {
         .position_centered()
         .build()
         .unwrap();
-    let canvas = window.into_canvas().build().unwrap();
+    let mut canvas = window.into_canvas().build().unwrap();
     let texture_creator = canvas.texture_creator();
-    let font = ttf_context
-        .load_font("./assets/TheJewishBitmap.ttf", 24)
-        .unwrap();
-    let selected_icon = render::get_font_texture(&texture_creator, &font, "*");
+    let font = load_font("./assets/TETRIS.FN2");
+    let selected_icon = create_text_texture(&mut canvas, &texture_creator, &font, "*");
     let crate_textures: Vec<Texture> = crates::get_crates()
         .iter()
         .flatten()
-        .map(|name| render::get_font_texture(&texture_creator, &font, name))
+        .map(|name| create_text_texture(&mut canvas, &texture_creator, &font, name))
         .collect();
     let mut context = Context {
         sdl,
