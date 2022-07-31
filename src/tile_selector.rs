@@ -16,19 +16,19 @@ pub fn exec(context: &mut Context) -> NextMode {
         &mut context.canvas,
         &context.texture_creator,
         &context.font,
-        "FLOOR BLOCKS [PAGEGUP/DOWN]",
+        "floor blocks [PAGEGUP/DOWN]",
     );
     let wall_blocks_text_texture = create_text_texture(
         &mut context.canvas,
         &context.texture_creator,
         &context.font,
-        "WALL BLOCKS [PAGEGUP/DOWN]",
+        "wall blocks [PAGEGUP/DOWN]",
     );
     let shadow_blocks_text_texture = create_text_texture(
         &mut context.canvas,
         &context.texture_creator,
         &context.font,
-        "SHADOW [PAGEGUP/DOWN] - CLEAR WITH RIGHT CLICK",
+        "shadows [PAGEGUP/DOWN] - clear with RIGHT CLICK",
     );
     let mut event_pump = context.sdl.event_pump().unwrap();
     loop {

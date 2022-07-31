@@ -33,7 +33,7 @@ fn load_text<'a>(context: &mut Context<'a>, text: &str) -> Texture<'a> {
 fn load_value_text<'a>(context: &mut Context<'a>, value: &Value) -> Option<Texture<'a>> {
     let string = match value {
         Value::Number(number) => context.level.general_info.enemy_table[*number].to_string(),
-        Value::TimeLimit() => format!("{} SECONDS", context.level.general_info.time_limit),
+        Value::TimeLimit() => format!("{} seconds", context.level.general_info.time_limit),
         Value::Comment() => context.level.general_info.comment.to_string(),
     };
     if !string.is_empty() {
@@ -66,47 +66,47 @@ fn sanitize_level_comment_input(new_text: &str, target_text: &mut String) {
 pub fn exec(context: &mut Context) -> NextMode {
     let options = [
         ConfigOption {
-            texture: &load_text(context, "LEVEL COMMENT:"),
+            texture: &load_text(context, "level comment:"),
             value: Value::Comment(),
         },
         ConfigOption {
-            texture: &load_text(context, "TIME LIMIT:"),
+            texture: &load_text(context, "time limit:"),
             value: Value::TimeLimit(),
         },
         ConfigOption {
-            texture: &load_text(context, "PISTOL BOYS:"),
+            texture: &load_text(context, "pistol boys:"),
             value: Value::Number(0),
         },
         ConfigOption {
-            texture: &load_text(context, "SHOTGUN MANIACS:"),
+            texture: &load_text(context, "shotgun maniacs:"),
             value: Value::Number(1),
         },
         ConfigOption {
-            texture: &load_text(context, "UZI REBELS:"),
+            texture: &load_text(context, "uzi rebels:"),
             value: Value::Number(2),
         },
         ConfigOption {
-            texture: &load_text(context, "COMMANDOS:"),
+            texture: &load_text(context, "commandos:"),
             value: Value::Number(3),
         },
         ConfigOption {
-            texture: &load_text(context, "GRANADE MOFOS:"),
+            texture: &load_text(context, "granade mofos:"),
             value: Value::Number(4),
         },
         ConfigOption {
-            texture: &load_text(context, "CIVILIANS:"),
+            texture: &load_text(context, "civilians:"),
             value: Value::Number(5),
         },
         ConfigOption {
-            texture: &load_text(context, "PUNISHERS:"),
+            texture: &load_text(context, "punishers:"),
             value: Value::Number(6),
         },
         ConfigOption {
-            texture: &load_text(context, "FLAMERS:"),
+            texture: &load_text(context, "flamers:"),
             value: Value::Number(7),
         },
     ];
-    let esc_instruction_text = &load_text(context, "PRESS ESC TO EXIT");
+    let esc_instruction_text = &load_text(context, "press ESC to exit");
     let mut selected = 0usize;
     enable_text_editing_if_needed(context, &options[selected]);
 
@@ -206,7 +206,7 @@ pub fn exec(context: &mut Context) -> NextMode {
                 ),
                 None => (),
             };
-            option_position.1 += 30;
+            option_position.1 += 20;
             value_position.1 = option_position.1;
         }
         render::render_text_texture(

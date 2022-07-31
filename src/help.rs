@@ -11,22 +11,22 @@ use sdl2::render::Texture;
 
 pub fn exec(context: &mut Context) -> NextMode {
     let lines = [
-        "ESC - QUIT",
-        "F1   - THIS HELP",
-        "F2   - SAVE LEVEL",
-        "F3   - LOAD LEVEL",
-        "F4   - CREATE NEW LEVEL",
-        "F6   - ENABLE/DISABLE AUTOMATIC SHADOWS",
-        "F7   - EDIT GENERAL LEVEL VARIABLES",
-        "F8/F9 - EDIT RANDOM CRATES FOR NORMAL/DM GAMES",
+        "ESC - quit",
+        "F1   - this help",
+        "F2   - save level",
+        "F3   - load level",
+        "F4   - create new level",
+        "F6   - enable/disable automatic shadows",
+        "F7   - edit general level variables",
+        "F8/F9 - edit random crates for normal/dm games",
         " ",
         "- EDITOR -",
-        "Q/W  - PLACE/DELETE SPOTLIGHTS",
-        "A/S  - PLACE/DELETE STEAMS",
-        "Z/X/C - PLACE/DELETE CRATES",
-        "1/2  - PLACE PL1/PL2 START",
-        "SPACE - TILE SELECTION/EDITING MODE",
-        "ARROW KEYS - MOVE VIEWPORT",
+        "Q/W  - place/delete spotlights",
+        "A/S  - place/delete steams",
+        "Z/X/C - place/delete crates",
+        "1/2  - place pl1/pl2 start",
+        "SPACE - tile selection/editing mode",
+        "ARROW KEYS - move viewport",
     ];
     let line_textures: Vec<Texture> = lines
         .iter()
@@ -56,7 +56,7 @@ pub fn exec(context: &mut Context) -> NextMode {
         let mut position = 6;
         for line_texture in &line_textures {
             render::render_text_texture(&mut context.canvas, &line_texture, 10, position, None);
-            position += 30;
+            position += 22;
         }
         render::render_and_wait(&mut context.canvas);
     }

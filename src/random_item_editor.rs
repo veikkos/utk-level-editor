@@ -57,7 +57,7 @@ fn set_value(level: &mut Level, game_type: &GameType, index: usize, value: u32) 
 pub fn exec(context: &mut Context, game_type: GameType) -> NextMode {
     let normal_game_instruction_text = &load_text(context, "NORMAL GAME CRATES");
     let deatchmatch_instruction_text = &load_text(context, "DEATHMATCH CRATES");
-    let esc_instruction_text = &load_text(context, "PRESS ESC TO EXIT");
+    let esc_instruction_text = &load_text(context, "press ESC to exit");
     let mut selected = 0;
 
     let mut event_pump = context.sdl.event_pump().unwrap();
@@ -153,7 +153,7 @@ pub fn exec(context: &mut Context, game_type: GameType) -> NextMode {
                 option_position.0 = 330;
                 value_position.0 = option_position.0 + 250;
             } else {
-                option_position.1 += 30;
+                option_position.1 += 20;
                 value_position.1 = option_position.1;
             }
         }

@@ -251,7 +251,7 @@ fn render_crates(
             canvas,
             texture,
             (x_screen - 10) as u32,
-            (y_screen - 5 - height as i32) as u32,
+            (y_screen - 9 - height as i32) as u32,
             None,
         );
     }

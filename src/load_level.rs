@@ -27,7 +27,7 @@ pub fn exec(context: &mut Context) -> NextMode {
         &mut context.canvas,
         &context.texture_creator,
         &context.font,
-        "ENTER TO SELECT OR ESC TO EXIT",
+        "ENTER to select or ESC to exit",
     );
     let files: Vec<LoadFile> = fs::read_dir("./")
         .unwrap()
@@ -45,7 +45,7 @@ pub fn exec(context: &mut Context) -> NextMode {
                 &mut context.canvas,
                 context.texture_creator,
                 &context.font,
-                &filename,
+                &filename.clone().to_lowercase(),
             ),
         })
         .collect();
@@ -86,7 +86,7 @@ pub fn exec(context: &mut Context) -> NextMode {
                                 &mut context.canvas,
                                 &context.texture_creator,
                                 &context.font,
-                                &level_name,
+                                &level_name.clone().to_lowercase(),
                             ));
                             context.level_save_name =
                                 level_name.strip_suffix(".LEV").unwrap().to_string();
@@ -108,7 +108,7 @@ pub fn exec(context: &mut Context) -> NextMode {
             (text_position.0, 20),
             None,
         );
-        let line_spacing = 30;
+        let line_spacing = 20;
         for x in 0..files.len() {
             if selected == x {
                 render::render_text_texture(
