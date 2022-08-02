@@ -73,16 +73,18 @@ pub fn exec(context: &mut Context) -> NextMode {
                     mouse_btn: MouseButton::Left,
                     ..
                 } => {
-                    let clicked_tile_id = get_tile_id_from_coordinates(
-                        &limit_screen_coordinates_to_window(&context.mouse),
-                        TILES_X_PER_SCREEN,
-                        None,
-                    );
                     let texture_selected = match &context.texture_type_scrolled {
                         TextureType::FLOOR => &context.textures.floor,
                         TextureType::WALLS => &context.textures.walls,
                         TextureType::SHADOW => &context.textures.shadows,
                     };
+                    let (texture_width, texture_height) =
+                        render::get_texture_render_size(texture_selected);
+                    let clicked_tile_id = get_tile_id_from_coordinates(
+                        &limit_coordinates(&context.mouse, &(texture_width, texture_height)),
+                        texture_width / RENDER_SIZE,
+                        None,
+                    );
                     if clicked_tile_id < get_number_of_tiles_in_texture(texture_selected) {
                         context.selected_tile_id = clicked_tile_id;
                         context.texture_type_selected = context.texture_type_scrolled;
@@ -104,18 +106,17 @@ pub fn exec(context: &mut Context) -> NextMode {
         context.canvas.set_draw_color(Color::from((200, 200, 200)));
         context.canvas.fill_rect(dst).unwrap();
         context.canvas.copy(texture_selected, None, dst).unwrap();
+        let (texture_width, texture_height) = render::get_texture_render_size(texture_selected);
         let highlighted_id = get_tile_id_from_coordinates(
-            &limit_screen_coordinates_to_window(&context.mouse),
+            &limit_coordinates(&context.mouse, &(texture_width, texture_height)),
             TILES_X_PER_SCREEN,
             None,
         );
-        if highlighted_id < get_number_of_tiles_in_texture(texture_selected) {
-            render::highlight_selected_tile(
-                &mut context.canvas,
-                highlighted_id,
-                &render::RendererColor::White,
-            );
-        }
+        render::highlight_selected_tile(
+            &mut context.canvas,
+            highlighted_id,
+            &render::RendererColor::White,
+        );
         if context.texture_type_selected == context.texture_type_scrolled {
             render::highlight_selected_tile(
                 &mut context.canvas,

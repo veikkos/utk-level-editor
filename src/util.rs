@@ -11,14 +11,14 @@ pub const RESOLUTION_Y: u32 = 480;
 pub const TILES_X_PER_SCREEN: u32 = RESOLUTION_X / RENDER_SIZE;
 pub const TILES_Y_PER_SCREEN: u32 = RESOLUTION_Y / RENDER_SIZE;
 
-pub fn get_tile_coordinates(id: u32) -> (u32, u32) {
-    let x = id * TILE_SIZE % 320;
-    let y = id * TILE_SIZE / 320 * TILE_SIZE;
+pub fn get_tile_coordinates(id: u32, width: u32) -> (u32, u32) {
+    let x = id * TILE_SIZE % width;
+    let y = id * TILE_SIZE / width * TILE_SIZE;
     (x, y)
 }
 
-pub fn get_block(id: u32) -> Rect {
-    let (x, y) = get_tile_coordinates(id);
+pub fn get_block(id: u32, width: u32) -> Rect {
+    let (x, y) = get_tile_coordinates(id, width);
     Rect::new(x as i32, y as i32, TILE_SIZE, TILE_SIZE)
 }
 
@@ -135,9 +135,13 @@ pub fn get_selected_level_tiles(
 }
 
 pub fn limit_screen_coordinates_to_window(coordinates: &(u32, u32)) -> (u32, u32) {
+    limit_coordinates(coordinates, &(RESOLUTION_X, RESOLUTION_Y))
+}
+
+pub fn limit_coordinates(coordinates: &(u32, u32), limit: &(u32, u32)) -> (u32, u32) {
     (
-        std::cmp::min(coordinates.0, RESOLUTION_X - 1),
-        std::cmp::min(coordinates.1, RESOLUTION_Y - 1),
+        std::cmp::min(coordinates.0, limit.0 - 1),
+        std::cmp::min(coordinates.1, limit.1 - 1),
     )
 }
 

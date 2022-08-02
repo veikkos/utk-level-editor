@@ -40,7 +40,7 @@ pub fn highlight_selected_tile(canvas: &mut Canvas<Window>, id: u32, color: &Ren
     let sdl_color = get_sdl_color(color);
     canvas.set_draw_color(sdl_color);
 
-    let (x_logical, y_logical) = get_tile_coordinates(id);
+    let (x_logical, y_logical) = get_tile_coordinates(id, RESOLUTION_X / RENDER_MULTIPLIER);
     let x = x_logical * RENDER_MULTIPLIER;
     let y = y_logical * RENDER_MULTIPLIER;
 
@@ -170,17 +170,23 @@ pub fn render_level(
     for y in 0..TILES_Y_PER_SCREEN {
         for x in 0..TILES_X_PER_SCREEN {
             let (x_index, y_index) = get_scroll_corrected_indexes(level.scroll, x, y);
-            let src = get_block(level.tiles[y_index][x_index].id);
-            let (x_absolute, y_absolute) = get_absolute_coordinates_from_logical(x, y);
-            let dst = Rect::new(x_absolute, y_absolute, RENDER_SIZE, RENDER_SIZE);
             let texture = match level.tiles[y_index][x_index].texture_type {
                 TextureType::FLOOR => &textures.floor,
                 TextureType::WALLS => &textures.walls,
                 TextureType::SHADOW => unreachable!(),
             };
+            let (texture_width, _texture_height) = get_texture_size(texture);
+            let src = get_block(level.tiles[y_index][x_index].id, texture_width);
+            let (x_absolute, y_absolute) = get_absolute_coordinates_from_logical(x, y);
+            let dst = Rect::new(x_absolute, y_absolute, RENDER_SIZE, RENDER_SIZE);
             canvas.copy(texture, src, dst).unwrap();
+            let (shadow_texture_width, _shadow_texture_height) =
+                get_texture_size(&textures.shadows);
             if level.tiles[y_index][x_index].shadow > 0 {
-                let src = get_block(level.tiles[y_index][x_index].shadow - 1);
+                let src = get_block(
+                    level.tiles[y_index][x_index].shadow - 1,
+                    shadow_texture_width,
+                );
                 canvas.copy(&textures.shadows, src, dst).unwrap();
             }
         }
@@ -263,6 +269,16 @@ pub fn render_and_wait(canvas: &mut Canvas<Window>) {
 }
 
 pub fn get_texture_rect(texture: &Texture) -> Rect {
+    let (width, height) = get_texture_render_size(&texture);
+    Rect::new(0, 0, width, height)
+}
+
+pub fn get_texture_size(texture: &Texture) -> (u32, u32) {
     let TextureQuery { width, height, .. } = texture.query();
-    Rect::new(0, 0, width * RENDER_MULTIPLIER, height * RENDER_MULTIPLIER)
+    (width, height)
+}
+
+pub fn get_texture_render_size(texture: &Texture) -> (u32, u32) {
+    let (width, height) = get_texture_size(&texture);
+    (width * RENDER_MULTIPLIER, height * RENDER_MULTIPLIER)
 }
