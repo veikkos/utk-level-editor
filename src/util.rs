@@ -10,6 +10,8 @@ pub const RESOLUTION_X: u32 = 640;
 pub const RESOLUTION_Y: u32 = 480;
 pub const TILES_X_PER_SCREEN: u32 = RESOLUTION_X / RENDER_SIZE;
 pub const TILES_Y_PER_SCREEN: u32 = RESOLUTION_Y / RENDER_SIZE;
+pub const TITLE_POSITION: (u32, u32) = (20, 10);
+pub const BOTTOM_TEXT_POSITION: (u32, u32) = (TITLE_POSITION.0, RESOLUTION_Y - 26);
 
 pub fn get_tile_coordinates(id: u32, width: u32) -> (u32, u32) {
     let x = id * TILE_SIZE % width;

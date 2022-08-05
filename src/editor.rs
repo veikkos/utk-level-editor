@@ -729,7 +729,7 @@ fn render_input_prompt(
         render::render_text_texture(
             &mut context.canvas,
             &input_text_texture,
-            prompt_position.0 + width + 10,
+            prompt_position.0 + width * render::TEXT_SIZE_MULTIPLIER + 10,
             prompt_position.1 + 2 * prompt_line_spacing,
             None,
         );
@@ -744,7 +744,7 @@ fn render_prompt_if_needed(
     new_level_size_y: &str,
 ) {
     if *prompt != PromptType::None {
-        let prompt_position = (200, 200);
+        let prompt_position = (RESOLUTION_X / 2 - 100, 200);
         let prompt_line_spacing = 30;
         let prompt_texture = match &prompt {
             PromptType::NewLevel(state) => {

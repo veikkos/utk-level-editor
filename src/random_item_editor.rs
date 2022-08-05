@@ -4,6 +4,7 @@ use crate::create_text_texture;
 use crate::level::Level;
 use crate::render;
 use crate::types::*;
+use crate::util::{BOTTOM_TEXT_POSITION, TITLE_POSITION};
 use crate::Context;
 use crate::NextMode::*;
 use sdl2::event::Event;
@@ -102,14 +103,13 @@ pub fn exec(context: &mut Context, game_type: GameType) -> NextMode {
         context.canvas.set_draw_color(Color::from((0, 0, 0)));
         context.canvas.clear();
 
-        render::render_text_texture(
+        render::render_text_texture_coordinates(
             &mut context.canvas,
             match game_type {
                 GameType::Normal => &normal_game_instruction_text,
                 GameType::Deathmatch => &deatchmatch_instruction_text,
             },
-            20,
-            10,
+            TITLE_POSITION,
             None,
         );
 
@@ -157,7 +157,12 @@ pub fn exec(context: &mut Context, game_type: GameType) -> NextMode {
                 value_position.1 = option_position.1;
             }
         }
-        render::render_text_texture(&mut context.canvas, esc_instruction_text, 40, 425, None);
+        render::render_text_texture_coordinates(
+            &mut context.canvas,
+            esc_instruction_text,
+            BOTTOM_TEXT_POSITION,
+            None,
+        );
         render::render_and_wait(&mut context.canvas);
     }
 }

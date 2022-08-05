@@ -1,4 +1,5 @@
 use crate::fn2::create_text_texture;
+use crate::util::{BOTTOM_TEXT_POSITION, TITLE_POSITION};
 use std::fs;
 extern crate sdl2;
 
@@ -105,7 +106,7 @@ pub fn exec(context: &mut Context) -> NextMode {
         render::render_text_texture_coordinates(
             &mut context.canvas,
             &load_level_text_texture,
-            (text_position.0, 20),
+            TITLE_POSITION,
             None,
         );
         let line_spacing = 20;
@@ -130,7 +131,7 @@ pub fn exec(context: &mut Context) -> NextMode {
         render::render_text_texture_coordinates(
             &mut context.canvas,
             &bottom_instruction_text,
-            (text_position.0, 425),
+            BOTTOM_TEXT_POSITION,
             None,
         );
         render::render_and_wait(&mut context.canvas);

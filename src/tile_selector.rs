@@ -16,19 +16,19 @@ pub fn exec(context: &mut Context) -> NextMode {
         &mut context.canvas,
         &context.texture_creator,
         &context.font,
-        "floor blocks [PAGEGUP/DOWN]",
+        "floor blocks (PAGEGUP/DOWN)",
     );
     let wall_blocks_text_texture = create_text_texture(
         &mut context.canvas,
         &context.texture_creator,
         &context.font,
-        "wall blocks [PAGEGUP/DOWN]",
+        "wall blocks (PAGEGUP/DOWN)",
     );
     let shadow_blocks_text_texture = create_text_texture(
         &mut context.canvas,
         &context.texture_creator,
         &context.font,
-        "shadows [PAGEGUP/DOWN] - clear with RIGHT CLICK",
+        "shadows (PAGEGUP/DOWN) - clear with RIGHT CLICK",
     );
     let mut event_pump = context.sdl.event_pump().unwrap();
     loop {
@@ -124,7 +124,6 @@ pub fn exec(context: &mut Context) -> NextMode {
                 &render::RendererColor::Red,
             );
         }
-        let text_position = (8, 454);
         let active_text = match context.texture_type_scrolled {
             TextureType::FLOOR => &floor_blocks_text_texture,
             TextureType::WALLS => &wall_blocks_text_texture,
@@ -133,7 +132,7 @@ pub fn exec(context: &mut Context) -> NextMode {
         render::render_text_texture_coordinates(
             &mut context.canvas,
             active_text,
-            text_position,
+            BOTTOM_TEXT_POSITION,
             None,
         );
         render::render_and_wait(&mut context.canvas);

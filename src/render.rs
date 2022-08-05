@@ -16,7 +16,7 @@ use sdl2::video::Window;
 use std::collections::HashMap;
 use std::time::Duration;
 
-const TEXT_SIZE_MULTIPLIER: u32 = 2;
+pub const TEXT_SIZE_MULTIPLIER: u32 = 2;
 
 pub enum RendererColor {
     White,
@@ -167,8 +167,11 @@ pub fn render_level(
     textures: &Textures,
     trigonometry: &Trigonometry,
 ) {
-    for y in 0..TILES_Y_PER_SCREEN {
-        for x in 0..TILES_X_PER_SCREEN {
+    canvas.set_draw_color(Color::from((0, 0, 0)));
+    canvas.clear();
+
+    for y in 0..std::cmp::min(level.tiles.len() as u32, TILES_Y_PER_SCREEN) {
+        for x in 0..std::cmp::min(level.tiles[y as usize].len() as u32, TILES_X_PER_SCREEN) {
             let (x_index, y_index) = get_scroll_corrected_indexes(level.scroll, x, y);
             let texture = match level.tiles[y_index][x_index].texture_type {
                 TextureType::FLOOR => &textures.floor,

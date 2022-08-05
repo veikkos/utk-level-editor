@@ -96,13 +96,13 @@ impl EditorTextures<'_> {
                 &mut context.canvas,
                 &context.texture_creator,
                 &context.font,
-                "x-size (>= 16 blocks):",
+                "x-size (min. 16 blocks):",
             ),
             new_level_y_size_text_texture: create_text_texture(
                 &mut context.canvas,
                 &context.texture_creator,
                 &context.font,
-                "y-size (>= 12 blocks):",
+                "y-size (min. 12 blocks):",
             ),
             spotlight_place_text_texture: create_text_texture(
                 &mut context.canvas,

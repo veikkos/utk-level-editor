@@ -3,6 +3,7 @@ extern crate sdl2;
 use crate::fn2::create_text_texture;
 use crate::render;
 use crate::types::*;
+use crate::util::BOTTOM_TEXT_POSITION;
 use crate::Context;
 use crate::NextMode::*;
 use sdl2::event::Event;
@@ -209,11 +210,10 @@ pub fn exec(context: &mut Context) -> NextMode {
             option_position.1 += 20;
             value_position.1 = option_position.1;
         }
-        render::render_text_texture(
+        render::render_text_texture_coordinates(
             &mut context.canvas,
             esc_instruction_text,
-            option_position.0,
-            425,
+            BOTTOM_TEXT_POSITION,
             None,
         );
         render::render_and_wait(&mut context.canvas);
