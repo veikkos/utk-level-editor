@@ -18,6 +18,20 @@ pub struct Textures<'a> {
     pub crates: Vec<Texture<'a>>,
 }
 
+pub struct SelectedTile {
+    pub texture_id: u32,
+    pub screen_id: u32,
+}
+
+impl SelectedTile {
+    pub fn new() -> Self {
+        SelectedTile {
+            texture_id: 0,
+            screen_id: 0,
+        }
+    }
+}
+
 pub struct Context<'a> {
     pub sdl: Sdl,
     pub canvas: Canvas<Window>,
@@ -25,7 +39,7 @@ pub struct Context<'a> {
     pub font: FN2,
     pub textures: Textures<'a>,
     pub level: Level,
-    pub selected_tile_id: u32,
+    pub selected_tile_id: SelectedTile,
     pub texture_type_selected: TextureType,
     pub texture_type_scrolled: TextureType,
     pub mouse: (u32, u32),

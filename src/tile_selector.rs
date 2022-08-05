@@ -6,6 +6,7 @@ use crate::types::*;
 use crate::util::*;
 use crate::Context;
 use crate::NextMode::*;
+use crate::SelectedTile;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::mouse::MouseButton;
@@ -86,7 +87,17 @@ pub fn exec(context: &mut Context) -> NextMode {
                         None,
                     );
                     if clicked_tile_id < get_number_of_tiles_in_texture(texture_selected) {
-                        context.selected_tile_id = clicked_tile_id;
+                        context.selected_tile_id = SelectedTile {
+                            texture_id: clicked_tile_id,
+                            screen_id: get_tile_id_from_coordinates(
+                                &limit_coordinates(
+                                    &context.mouse,
+                                    &(texture_width, texture_height),
+                                ),
+                                TILES_X_PER_SCREEN,
+                                None,
+                            ),
+                        };
                         context.texture_type_selected = context.texture_type_scrolled;
                         return Editor;
                     }
@@ -120,7 +131,7 @@ pub fn exec(context: &mut Context) -> NextMode {
         if context.texture_type_selected == context.texture_type_scrolled {
             render::highlight_selected_tile(
                 &mut context.canvas,
-                context.selected_tile_id,
+                context.selected_tile_id.screen_id,
                 &render::RendererColor::Red,
             );
         }

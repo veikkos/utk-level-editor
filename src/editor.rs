@@ -556,7 +556,7 @@ pub fn exec(context: &mut Context) -> NextMode {
                             for level_tile_id in selected_level_tiles {
                                 context.level.put_tile_to_level(
                                     level_tile_id,
-                                    Some(context.selected_tile_id),
+                                    Some(context.selected_tile_id.texture_id),
                                     &context.texture_type_selected,
                                 );
                             }
