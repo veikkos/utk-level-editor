@@ -8,6 +8,7 @@ use std::io::Read;
 
 static INDEX_OFFSET: usize = 0x21;
 static SPACE_WIDTH: u8 = 5;
+static TEXT_SHADOW_PIXELS: u32 = 1;
 
 #[derive(Debug)]
 pub struct Line {
@@ -111,8 +112,16 @@ pub fn create_text_texture<'a>(
     let mut texture = texture_creator
         .create_texture_target(
             PixelFormatEnum::RGBA8888,
-            if width > 0 { width } else { 1 },
-            if height > 0 { height } else { 1 },
+            if width > 0 {
+                width + TEXT_SHADOW_PIXELS
+            } else {
+                1
+            },
+            if height > 0 {
+                height + TEXT_SHADOW_PIXELS
+            } else {
+                1
+            },
         )
         .map_err(|e| e.to_string())
         .unwrap();
@@ -120,28 +129,39 @@ pub fn create_text_texture<'a>(
 
     canvas
         .with_texture_canvas(&mut texture, |texture_canvas| {
-            let mut offset = 0;
+            texture_canvas.set_draw_color(Color::RGB(0, 0, 0));
+            render_text_to_canvas(
+                texture_canvas,
+                font,
+                TEXT_SHADOW_PIXELS,
+                TEXT_SHADOW_PIXELS,
+                text,
+            );
             texture_canvas.set_draw_color(Color::RGB(255, 0, 0));
-
-            for c in text.chars() {
-                let character_index = char_to_index(c);
-                if character_index < INDEX_OFFSET {
-                    offset += SPACE_WIDTH as u32;
-                } else {
-                    offset += render_character(
-                        texture_canvas,
-                        &font,
-                        (character_index - INDEX_OFFSET) as usize,
-                        offset,
-                        0,
-                    );
-                }
-            }
+            render_text_to_canvas(texture_canvas, font, 0, 0, text);
         })
         .map_err(|e| e.to_string())
         .unwrap();
 
     texture
+}
+
+fn render_text_to_canvas(canvas: &mut Canvas<Window>, font: &FN2, x: u32, y: u32, text: &str) {
+    let mut offset = 0;
+    for c in text.chars() {
+        let character_index = char_to_index(c);
+        if character_index < INDEX_OFFSET {
+            offset += SPACE_WIDTH as u32;
+        } else {
+            offset += render_character(
+                canvas,
+                &font,
+                (character_index - INDEX_OFFSET) as usize,
+                x + offset,
+                y,
+            );
+        }
+    }
 }
 
 pub fn render_character(
