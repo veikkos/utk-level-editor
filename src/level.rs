@@ -530,14 +530,14 @@ impl Level {
         }
 
         let x_size: u32 = file.read_u32::<LittleEndian>()?;
-        if x_size < TILES_X_PER_SCREEN {
+        if x_size < 1 {
             return Err(DeserializationError::ContentError(
                 FileTypeError::InvalidLevelSize,
             ));
         }
 
         let y_size: u32 = file.read_u32::<LittleEndian>()?;
-        if y_size < TILES_Y_PER_SCREEN {
+        if y_size < 1 {
             return Err(DeserializationError::ContentError(
                 FileTypeError::InvalidLevelSize,
             ));

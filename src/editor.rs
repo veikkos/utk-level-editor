@@ -477,7 +477,7 @@ pub fn exec(context: &mut Context) -> NextMode {
                                         &mut context.canvas,
                                         &context.texture_creator,
                                         &context.font,
-                                        &level_saved_name,
+                                        &level_saved_name.clone().to_lowercase(),
                                     ));
                                     prompt = PromptType::None;
                                 }
@@ -549,7 +549,7 @@ pub fn exec(context: &mut Context) -> NextMode {
                         if let Some(coordinates) = mouse_left_click {
                             let selected_level_tiles = get_selected_level_tiles(
                                 &coordinates,
-                                &context.mouse,
+                                &get_limited_screen_level_size(&context.mouse, &context.level),
                                 context.level.tiles[0].len() as u32,
                                 Some(context.level.scroll),
                             );
@@ -592,7 +592,7 @@ pub fn exec(context: &mut Context) -> NextMode {
             &context.trigonometry,
         );
         let highlighted_id = get_tile_id_from_coordinates(
-            &limit_screen_coordinates_to_window(&context.mouse),
+            &get_limited_screen_level_size(&context.mouse, &context.level),
             TILES_X_PER_SCREEN,
             None,
         );
@@ -671,7 +671,7 @@ pub fn exec(context: &mut Context) -> NextMode {
             if let Some(coordinates) = mouse_left_click {
                 let selected_screen_tiles = get_selected_level_tiles(
                     &coordinates,
-                    &limit_screen_coordinates_to_window(&context.mouse),
+                    &get_limited_screen_level_size(&context.mouse, &context.level),
                     TILES_X_PER_SCREEN,
                     None,
                 );
@@ -685,7 +685,12 @@ pub fn exec(context: &mut Context) -> NextMode {
             }
         }
         if let Some(texture) = &context.textures.saved_level_name {
-            render::render_text_texture_coordinates(&mut context.canvas, &texture, (10, 455), None);
+            render::render_text_texture_coordinates(
+                &mut context.canvas,
+                &texture,
+                BOTTOM_TEXT_POSITION,
+                None,
+            );
         }
         render::render_and_wait(&mut context.canvas);
     }
@@ -891,4 +896,11 @@ fn handle_mouse_right_down(context: &mut Context) {
         .level
         .put_tile_to_level(pointed_tile, None, &TextureType::SHADOW);
     context.automatic_shadows = false;
+}
+
+fn get_limited_screen_level_size(mouse: &(u32, u32), level: &Level) -> (u32, u32) {
+    limit_screen_coordinates_to_window(&(
+        std::cmp::min(mouse.0, level.tiles[0].len() as u32 * RENDER_SIZE - 1),
+        std::cmp::min(mouse.1, level.tiles.len() as u32 * RENDER_SIZE - 1),
+    ))
 }
