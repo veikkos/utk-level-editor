@@ -1,6 +1,6 @@
 extern crate sdl2;
 
-use crate::context::{SelectedTile, Textures};
+use crate::context::Textures;
 use crate::fn2::create_text_texture;
 use crate::fn2::load_font;
 use crate::graphics::Graphics;
@@ -67,7 +67,7 @@ pub fn main() {
             crates: crate_textures,
         },
         level: Level::get_default_level((32, 22)),
-        selected_tile_id: SelectedTile::new(),
+        selected_tile_id: 0,
         texture_type_selected: TextureType::FLOOR,
         texture_type_scrolled: TextureType::FLOOR,
         mouse: (0, 0),

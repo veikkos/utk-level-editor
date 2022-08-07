@@ -27,6 +27,9 @@ pub fn exec(context: &mut Context) -> NextMode {
         "1/2  - place pl1/pl2 start",
         "SPACE - tile selection/editing mode",
         "ARROW KEYS - move viewport",
+        " ",
+        "- WINDOW -",
+        "+/- adjust rendering size",
     ];
     let line_textures: Vec<Texture> = lines
         .iter()

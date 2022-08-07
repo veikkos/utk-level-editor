@@ -6,7 +6,6 @@ use crate::types::*;
 use crate::util::*;
 use crate::Context;
 use crate::NextMode::*;
-use crate::SelectedTile;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::mouse::MouseButton;
@@ -95,18 +94,7 @@ pub fn exec(context: &mut Context) -> NextMode {
                             context.graphics.tile_size,
                         )
                     {
-                        context.selected_tile_id = SelectedTile {
-                            texture_id: clicked_tile_id,
-                            screen_id: get_tile_id_from_coordinates(
-                                &context.graphics,
-                                &limit_coordinates(
-                                    &context.mouse,
-                                    &(texture_width, texture_height),
-                                ),
-                                context.graphics.get_x_tiles_per_screen(),
-                                None,
-                            ),
-                        };
+                        context.selected_tile_id = clicked_tile_id;
                         context.texture_type_selected = context.texture_type_scrolled;
                         return Editor;
                     }
@@ -142,10 +130,25 @@ pub fn exec(context: &mut Context) -> NextMode {
             &render::RendererColor::White,
         );
         if context.texture_type_selected == context.texture_type_scrolled {
+            let coordinates = get_tile_coordinates(
+                context.selected_tile_id,
+                texture_width / context.graphics.render_multiplier,
+                context.graphics.tile_size,
+            );
+            let render_multiplier = context.graphics.render_multiplier;
+            let screen_tile_id = get_tile_id_from_coordinates(
+                &context.graphics,
+                &(
+                    coordinates.0 * render_multiplier,
+                    coordinates.1 * render_multiplier,
+                ),
+                context.graphics.get_x_tiles_per_screen(),
+                None,
+            );
             render::highlight_selected_tile(
                 &mut context.canvas,
                 &context.graphics,
-                context.selected_tile_id.screen_id,
+                screen_tile_id,
                 &render::RendererColor::Red,
             );
         }

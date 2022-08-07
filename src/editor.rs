@@ -503,6 +503,17 @@ pub fn exec(context: &mut Context) -> NextMode {
                                 },
                                 _ => (),
                             },
+                            Keycode::Plus | Keycode::KpPlus => {
+                                if context.graphics.render_multiplier == 1 {
+                                    context.graphics.render_multiplier = 2;
+                                }
+                            }
+                            Keycode::Minus | Keycode::KpMinus => {
+                                if context.graphics.render_multiplier == 2 {
+                                    context.graphics.render_multiplier = 1;
+                                    context.level.scroll = (0, 0);
+                                }
+                            }
                             _ => {
                                 if prompt != PromptType::NewLevel(NewLevelState::XSize)
                                     && prompt != PromptType::NewLevel(NewLevelState::YSize)
@@ -565,7 +576,7 @@ pub fn exec(context: &mut Context) -> NextMode {
                             for level_tile_id in selected_level_tiles {
                                 context.level.put_tile_to_level(
                                     level_tile_id,
-                                    Some(context.selected_tile_id.texture_id),
+                                    Some(context.selected_tile_id),
                                     &context.texture_type_selected,
                                 );
                             }
