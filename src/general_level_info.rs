@@ -1,9 +1,9 @@
 extern crate sdl2;
 
 use crate::fn2::create_text_texture;
+use crate::get_bottom_text_position;
 use crate::render;
 use crate::types::*;
-use crate::util::BOTTOM_TEXT_POSITION;
 use crate::Context;
 use crate::NextMode::*;
 use sdl2::event::Event;
@@ -178,6 +178,7 @@ pub fn exec(context: &mut Context) -> NextMode {
         context.canvas.clear();
         let mut option_position = (40, 20);
         let mut value_position = (300, option_position.1);
+        let render_size = context.graphics.get_render_size();
         for x in 0..options.len() {
             let option = &options[x];
             if selected == x {
@@ -186,6 +187,7 @@ pub fn exec(context: &mut Context) -> NextMode {
                     &context.textures.selected_icon,
                     option_position.0 - 20,
                     option_position.1 + 3,
+                    render_size,
                     None,
                 );
             }
@@ -194,6 +196,7 @@ pub fn exec(context: &mut Context) -> NextMode {
                 option.texture,
                 option_position.0,
                 option_position.1,
+                render_size,
                 None,
             );
             let value_texture = &load_value_text(context, &option.value);
@@ -203,6 +206,7 @@ pub fn exec(context: &mut Context) -> NextMode {
                     texture,
                     value_position.0,
                     value_position.1,
+                    render_size,
                     None,
                 ),
                 None => (),
@@ -213,7 +217,8 @@ pub fn exec(context: &mut Context) -> NextMode {
         render::render_text_texture_coordinates(
             &mut context.canvas,
             esc_instruction_text,
-            BOTTOM_TEXT_POSITION,
+            get_bottom_text_position(context.graphics.resolution_y),
+            render_size,
             None,
         );
         render::render_and_wait(&mut context.canvas);

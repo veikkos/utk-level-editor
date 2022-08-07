@@ -1,5 +1,6 @@
 use crate::fn2::create_text_texture;
-use crate::util::{BOTTOM_TEXT_POSITION, TITLE_POSITION};
+use crate::get_bottom_text_position;
+use crate::util::TITLE_POSITION;
 use std::fs;
 extern crate sdl2;
 
@@ -103,10 +104,12 @@ pub fn exec(context: &mut Context) -> NextMode {
         context.canvas.set_draw_color(Color::from((0, 0, 0)));
         context.canvas.clear();
         let text_position = (40, 60);
+        let render_size = context.graphics.get_render_size();
         render::render_text_texture_coordinates(
             &mut context.canvas,
             &load_level_text_texture,
             TITLE_POSITION,
+            render_size,
             None,
         );
         let line_spacing = 20;
@@ -117,6 +120,7 @@ pub fn exec(context: &mut Context) -> NextMode {
                     &context.textures.selected_icon,
                     text_position.0 - 20,
                     text_position.1 + 3 + x as u32 * line_spacing,
+                    render_size,
                     None,
                 );
             }
@@ -125,13 +129,15 @@ pub fn exec(context: &mut Context) -> NextMode {
                 &files[x].texture,
                 text_position.0,
                 text_position.1 + line_spacing * x as u32,
+                render_size,
                 None,
             );
         }
         render::render_text_texture_coordinates(
             &mut context.canvas,
             &bottom_instruction_text,
-            BOTTOM_TEXT_POSITION,
+            get_bottom_text_position(context.graphics.resolution_y),
+            render_size,
             None,
         );
         render::render_and_wait(&mut context.canvas);

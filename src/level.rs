@@ -253,7 +253,11 @@ impl Level {
         *self.spotlights.get(level_coordinates).unwrap()
     }
 
-    pub fn delete_spotlight_if_near(&mut self, level_coordinates: &Position) {
+    pub fn delete_spotlight_if_near(
+        &mut self,
+        level_coordinates: &Position,
+        render_multiplier: u32,
+    ) {
         let mut to_be_removed = Vec::new();
         {
             let distances: Vec<_> = self
@@ -267,7 +271,7 @@ impl Level {
                 .collect();
             for spotlight in distances {
                 if get_spotlight_render_radius(&spotlight.1) as f64
-                    >= spotlight.2 * RENDER_MULTIPLIER as f64
+                    >= spotlight.2 * render_multiplier as f64
                 {
                     to_be_removed.push(*spotlight.0);
                 }
@@ -288,7 +292,7 @@ impl Level {
         *self.steams.get(level_coordinates).unwrap()
     }
 
-    pub fn delete_steam_if_near(&mut self, level_coordinates: &Position) {
+    pub fn delete_steam_if_near(&mut self, level_coordinates: &Position, render_multiplier: u32) {
         let mut to_be_removed = Vec::new();
         {
             let distances: Vec<_> = self
@@ -301,7 +305,7 @@ impl Level {
                 })
                 .collect();
             for steam in distances {
-                if get_steam_render_radius() as f64 >= steam.1 * RENDER_MULTIPLIER as f64 {
+                if get_steam_render_radius() as f64 >= steam.1 * render_multiplier as f64 {
                     to_be_removed.push(*steam.0);
                 }
             }
@@ -323,13 +327,13 @@ impl Level {
         self.crates.staticc.get(level_coordinates).unwrap()
     }
 
-    pub fn delete_crate_if_near(&mut self, level_coordinates: &Position) {
+    pub fn delete_crate_if_near(&mut self, level_coordinates: &Position, render_multiplier: u32) {
         let mut to_be_removed = Vec::new();
         for (crate_coordinates, _crate_item) in &self.crates.staticc {
             if check_box_click(
                 level_coordinates,
                 &crate_coordinates,
-                get_crate_render_size() / RENDER_MULTIPLIER,
+                get_crate_render_size() / render_multiplier,
             ) {
                 to_be_removed.push(crate_coordinates.clone());
             }

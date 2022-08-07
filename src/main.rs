@@ -3,6 +3,7 @@ extern crate sdl2;
 use crate::context::{SelectedTile, Textures};
 use crate::fn2::create_text_texture;
 use crate::fn2::load_font;
+use crate::graphics::Graphics;
 use crate::level::Level;
 use crate::types::NextMode::*;
 use sdl2::image::{InitFlag, LoadTexture};
@@ -24,16 +25,18 @@ use types::*;
 use util::*;
 mod editor_textures;
 mod fn2;
+mod graphics;
 
 pub fn main() {
     let sdl = sdl2::init().unwrap();
     let _image_context = sdl2::image::init(InitFlag::PNG);
     let video_subsystem = sdl.video().unwrap();
+    let graphics = Graphics::new();
     let window = video_subsystem
         .window(
             "Ultimate Tapan Kaikki - Level Editor",
-            RESOLUTION_X,
-            RESOLUTION_Y,
+            graphics.resolution_x,
+            graphics.resolution_y,
         )
         .position_centered()
         .build()
@@ -49,6 +52,7 @@ pub fn main() {
         .collect();
     let mut context = Context {
         sdl,
+        graphics,
         canvas,
         texture_creator: &texture_creator,
         font,

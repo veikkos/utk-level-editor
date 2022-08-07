@@ -1,4 +1,5 @@
 use crate::fn2::FN2;
+use crate::graphics::Graphics;
 use crate::Level;
 use crate::TextureType;
 use crate::Trigonometry;
@@ -34,6 +35,7 @@ impl SelectedTile {
 
 pub struct Context<'a> {
     pub sdl: Sdl,
+    pub graphics: Graphics,
     pub canvas: Canvas<Window>,
     pub texture_creator: &'a TextureCreator<WindowContext>,
     pub font: FN2,

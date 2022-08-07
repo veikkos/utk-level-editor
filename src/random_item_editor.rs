@@ -4,7 +4,7 @@ use crate::create_text_texture;
 use crate::level::Level;
 use crate::render;
 use crate::types::*;
-use crate::util::{BOTTOM_TEXT_POSITION, TITLE_POSITION};
+use crate::util::{get_bottom_text_position, TITLE_POSITION};
 use crate::Context;
 use crate::NextMode::*;
 use sdl2::event::Event;
@@ -102,6 +102,7 @@ pub fn exec(context: &mut Context, game_type: GameType) -> NextMode {
 
         context.canvas.set_draw_color(Color::from((0, 0, 0)));
         context.canvas.clear();
+        let render_size = context.graphics.get_render_size();
 
         render::render_text_texture_coordinates(
             &mut context.canvas,
@@ -110,6 +111,7 @@ pub fn exec(context: &mut Context, game_type: GameType) -> NextMode {
                 GameType::Deathmatch => &deatchmatch_instruction_text,
             },
             TITLE_POSITION,
+            render_size,
             None,
         );
 
@@ -124,6 +126,7 @@ pub fn exec(context: &mut Context, game_type: GameType) -> NextMode {
                     &context.textures.selected_icon,
                     option_position.0 - 20,
                     option_position.1 + 3,
+                    render_size,
                     None,
                 );
             }
@@ -132,6 +135,7 @@ pub fn exec(context: &mut Context, game_type: GameType) -> NextMode {
                 &option,
                 option_position.0,
                 option_position.1,
+                render_size,
                 None,
             );
             let value_texture = create_text_texture(
@@ -145,6 +149,7 @@ pub fn exec(context: &mut Context, game_type: GameType) -> NextMode {
                 &value_texture,
                 value_position.0,
                 value_position.1,
+                render_size,
                 None,
             );
             if x == 10 {
@@ -160,7 +165,8 @@ pub fn exec(context: &mut Context, game_type: GameType) -> NextMode {
         render::render_text_texture_coordinates(
             &mut context.canvas,
             esc_instruction_text,
-            BOTTOM_TEXT_POSITION,
+            get_bottom_text_position(context.graphics.resolution_y),
+            render_size,
             None,
         );
         render::render_and_wait(&mut context.canvas);

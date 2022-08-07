@@ -79,22 +79,31 @@ pub fn exec(context: &mut Context) -> NextMode {
                         TextureType::WALLS => &context.textures.walls,
                         TextureType::SHADOW => &context.textures.shadows,
                     };
-                    let (texture_width, texture_height) =
-                        render::get_texture_render_size(texture_selected);
+                    let (texture_width, texture_height) = render::get_texture_render_size(
+                        texture_selected,
+                        context.graphics.render_multiplier,
+                    );
                     let clicked_tile_id = get_tile_id_from_coordinates(
+                        &context.graphics,
                         &limit_coordinates(&context.mouse, &(texture_width, texture_height)),
-                        texture_width / RENDER_SIZE,
+                        texture_width / context.graphics.get_render_size(),
                         None,
                     );
-                    if clicked_tile_id < get_number_of_tiles_in_texture(texture_selected) {
+                    if clicked_tile_id
+                        < get_number_of_tiles_in_texture(
+                            texture_selected,
+                            context.graphics.tile_size,
+                        )
+                    {
                         context.selected_tile_id = SelectedTile {
                             texture_id: clicked_tile_id,
                             screen_id: get_tile_id_from_coordinates(
+                                &context.graphics,
                                 &limit_coordinates(
                                     &context.mouse,
                                     &(texture_width, texture_height),
                                 ),
-                                TILES_X_PER_SCREEN,
+                                context.graphics.get_x_tiles_per_screen(),
                                 None,
                             ),
                         };
@@ -113,24 +122,29 @@ pub fn exec(context: &mut Context) -> NextMode {
             TextureType::WALLS => &context.textures.walls,
             TextureType::SHADOW => &context.textures.shadows,
         };
-        let dst = render::get_texture_rect(texture_selected);
+        let render_multiplier = context.graphics.render_multiplier;
+        let dst = render::get_texture_rect(texture_selected, render_multiplier);
         context.canvas.set_draw_color(Color::from((200, 200, 200)));
         context.canvas.fill_rect(dst).unwrap();
         context.canvas.copy(texture_selected, None, dst).unwrap();
-        let (texture_width, texture_height) = render::get_texture_render_size(texture_selected);
+        let (texture_width, texture_height) =
+            render::get_texture_render_size(texture_selected, render_multiplier);
         let highlighted_id = get_tile_id_from_coordinates(
+            &context.graphics,
             &limit_coordinates(&context.mouse, &(texture_width, texture_height)),
-            TILES_X_PER_SCREEN,
+            context.graphics.get_x_tiles_per_screen(),
             None,
         );
         render::highlight_selected_tile(
             &mut context.canvas,
+            &context.graphics,
             highlighted_id,
             &render::RendererColor::White,
         );
         if context.texture_type_selected == context.texture_type_scrolled {
             render::highlight_selected_tile(
                 &mut context.canvas,
+                &context.graphics,
                 context.selected_tile_id.screen_id,
                 &render::RendererColor::Red,
             );
@@ -143,7 +157,8 @@ pub fn exec(context: &mut Context) -> NextMode {
         render::render_text_texture_coordinates(
             &mut context.canvas,
             active_text,
-            BOTTOM_TEXT_POSITION,
+            get_bottom_text_position(context.graphics.resolution_y),
+            context.graphics.get_render_size(),
             None,
         );
         render::render_and_wait(&mut context.canvas);

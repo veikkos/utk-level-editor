@@ -1,43 +1,49 @@
 use crate::types::Trigonometry;
+use crate::Graphics;
 use sdl2::rect::Rect;
 use sdl2::render::{Texture, TextureQuery};
 use std::cmp;
 
-pub const TILE_SIZE: u32 = 20;
-pub const RENDER_MULTIPLIER: u32 = 2;
-pub const RENDER_SIZE: u32 = TILE_SIZE * RENDER_MULTIPLIER;
-pub const RESOLUTION_X: u32 = 1280;
-pub const RESOLUTION_Y: u32 = 720;
-pub const TILES_X_PER_SCREEN: u32 = RESOLUTION_X / RENDER_SIZE;
-pub const TILES_Y_PER_SCREEN: u32 = RESOLUTION_Y / RENDER_SIZE;
 pub const TITLE_POSITION: (u32, u32) = (20, 10);
-pub const BOTTOM_TEXT_POSITION: (u32, u32) = (TITLE_POSITION.0, RESOLUTION_Y - 26);
 
-pub fn get_tile_coordinates(id: u32, width: u32) -> (u32, u32) {
-    let x = id * TILE_SIZE % width;
-    let y = id * TILE_SIZE / width * TILE_SIZE;
+pub fn get_bottom_text_position(resolution_y: u32) -> (u32, u32) {
+    (TITLE_POSITION.0, resolution_y - 26)
+}
+
+pub fn get_tile_coordinates(id: u32, width: u32, tile_size: u32) -> (u32, u32) {
+    let x = id * tile_size % width;
+    let y = id * tile_size / width * tile_size;
     (x, y)
 }
 
-pub fn get_block(id: u32, width: u32) -> Rect {
-    let (x, y) = get_tile_coordinates(id, width);
-    Rect::new(x as i32, y as i32, TILE_SIZE, TILE_SIZE)
+pub fn get_block(id: u32, width: u32, tile_size: u32) -> Rect {
+    let (x, y) = get_tile_coordinates(id, width, tile_size);
+    Rect::new(x as i32, y as i32, tile_size, tile_size)
 }
 
-pub fn get_logical_coordinates(x: u32, y: u32, scroll: Option<(u32, u32)>) -> (u32, u32) {
+pub fn get_logical_coordinates(
+    graphics: &Graphics,
+    x: u32,
+    y: u32,
+    scroll: Option<(u32, u32)>,
+) -> (u32, u32) {
+    let render_multiplier = graphics.render_multiplier;
+    let tile_size = graphics.tile_size;
     let scroll = scroll.unwrap_or((0, 0));
     (
-        x / RENDER_MULTIPLIER / TILE_SIZE + scroll.0,
-        y / RENDER_MULTIPLIER / TILE_SIZE + scroll.1,
+        x / render_multiplier / tile_size + scroll.0,
+        y / render_multiplier / tile_size + scroll.1,
     )
 }
 
 pub fn get_tile_id_from_coordinates(
+    graphics: &Graphics,
     coordinates: &(u32, u32),
     x_blocks: u32,
     scroll: Option<(u32, u32)>,
 ) -> u32 {
-    let (x_logical, y_logical) = get_logical_coordinates(coordinates.0, coordinates.1, scroll);
+    let (x_logical, y_logical) =
+        get_logical_coordinates(graphics, coordinates.0, coordinates.1, scroll);
     x_logical + y_logical * x_blocks
 }
 
@@ -49,30 +55,36 @@ pub fn get_scroll_corrected_indexes(
     ((x_index + scroll.0) as usize, (y_index + scroll.1) as usize)
 }
 
-pub fn get_absolute_coordinates_from_logical(x: u32, y: u32) -> (i32, i32) {
+pub fn get_absolute_coordinates_from_logical(x: u32, y: u32, render_size: u32) -> (i32, i32) {
     (
-        (x * RENDER_SIZE).try_into().unwrap(),
-        (y * RENDER_SIZE).try_into().unwrap(),
+        (x * render_size).try_into().unwrap(),
+        (y * render_size).try_into().unwrap(),
     )
 }
 
 pub fn get_level_coordinates_from_screen_coordinates(
+    graphics: &Graphics,
     coordinates: &(u32, u32),
     scroll: &(u32, u32),
 ) -> (u32, u32) {
+    let render_multiplier = graphics.render_multiplier;
+    let tile_size = graphics.tile_size;
     (
-        coordinates.0 / RENDER_MULTIPLIER + scroll.0 * TILE_SIZE,
-        coordinates.1 / RENDER_MULTIPLIER + scroll.1 * TILE_SIZE,
+        coordinates.0 / render_multiplier + scroll.0 * tile_size,
+        coordinates.1 / render_multiplier + scroll.1 * tile_size,
     )
 }
 
 pub fn get_screen_coordinates_from_level_coordinates(
+    graphics: &Graphics,
     coordinates: &(u32, u32),
     scroll: &(u32, u32),
 ) -> (i32, i32) {
+    let render_multiplier = graphics.render_multiplier;
+    let render_size = graphics.get_render_size();
     (
-        (coordinates.0 * RENDER_MULTIPLIER) as i32 - (scroll.0 * RENDER_SIZE) as i32,
-        (coordinates.1 * RENDER_MULTIPLIER) as i32 - (scroll.1 * RENDER_SIZE) as i32,
+        (coordinates.0 * render_multiplier) as i32 - (scroll.0 * render_size) as i32,
+        (coordinates.1 * render_multiplier) as i32 - (scroll.1 * render_size) as i32,
     )
 }
 
@@ -108,6 +120,7 @@ pub fn check_box_click(
 }
 
 pub fn get_selected_level_tiles(
+    graphics: &Graphics,
     p0: &(u32, u32),
     p1: &(u32, u32),
     x_blocks: u32,
@@ -115,11 +128,13 @@ pub fn get_selected_level_tiles(
 ) -> Vec<u32> {
     let tile_ids = (
         get_tile_id_from_coordinates(
+            graphics,
             &(cmp::min(p0.0, p1.0), cmp::min(p0.1, p1.1)),
             x_blocks,
             scroll,
         ),
         get_tile_id_from_coordinates(
+            graphics,
             &(cmp::max(p0.0, p1.0), cmp::max(p0.1, p1.1)),
             x_blocks,
             scroll,
@@ -136,10 +151,6 @@ pub fn get_selected_level_tiles(
     lines
 }
 
-pub fn limit_screen_coordinates_to_window(coordinates: &(u32, u32)) -> (u32, u32) {
-    limit_coordinates(coordinates, &(RESOLUTION_X, RESOLUTION_Y))
-}
-
 pub fn limit_coordinates(coordinates: &(u32, u32), limit: &(u32, u32)) -> (u32, u32) {
     (
         std::cmp::min(coordinates.0, limit.0 - 1),
@@ -147,9 +158,9 @@ pub fn limit_coordinates(coordinates: &(u32, u32), limit: &(u32, u32)) -> (u32, 
     )
 }
 
-pub fn get_number_of_tiles_in_texture(texture: &Texture) -> u32 {
+pub fn get_number_of_tiles_in_texture(texture: &Texture, tile_size: u32) -> u32 {
     let TextureQuery { width, height, .. } = texture.query();
-    width / TILE_SIZE * height / TILE_SIZE
+    width / tile_size * height / tile_size
 }
 
 impl Trigonometry {

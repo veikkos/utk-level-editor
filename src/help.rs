@@ -55,7 +55,14 @@ pub fn exec(context: &mut Context) -> NextMode {
         context.canvas.clear();
         let mut position = 6;
         for line_texture in &line_textures {
-            render::render_text_texture(&mut context.canvas, &line_texture, 10, position, None);
+            render::render_text_texture(
+                &mut context.canvas,
+                &line_texture,
+                10,
+                position,
+                context.graphics.get_render_size(),
+                None,
+            );
             position += 22;
         }
         render::render_and_wait(&mut context.canvas);

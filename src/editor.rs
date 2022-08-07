@@ -10,6 +10,7 @@ use crate::render;
 use crate::types::GameType;
 use crate::util::*;
 use crate::Context;
+use crate::Graphics;
 use crate::Level;
 use crate::NextMode;
 use crate::NextMode::*;
@@ -334,7 +335,8 @@ pub fn exec(context: &mut Context) -> NextMode {
                                     }
                                 }
                                 _ => {
-                                    if context.level.scroll.1 + TILES_Y_PER_SCREEN
+                                    if context.level.scroll.1
+                                        + context.graphics.get_y_tiles_per_screen()
                                         < (context.level.tiles.len()) as u32
                                     {
                                         context.level.scroll.1 = context.level.scroll.1 + 1;
@@ -416,7 +418,8 @@ pub fn exec(context: &mut Context) -> NextMode {
                                     }
                                 }
                                 _ => {
-                                    if context.level.scroll.0 + TILES_X_PER_SCREEN
+                                    if context.level.scroll.0
+                                        + context.graphics.get_x_tiles_per_screen()
                                         < (context.level.tiles[0].len()) as u32
                                     {
                                         context.level.scroll.0 = context.level.scroll.0 + 1;
@@ -548,8 +551,14 @@ pub fn exec(context: &mut Context) -> NextMode {
                         drag_tiles = false;
                         if let Some(coordinates) = mouse_left_click {
                             let selected_level_tiles = get_selected_level_tiles(
+                                &context.graphics,
                                 &coordinates,
-                                &get_limited_screen_level_size(&context.mouse, &context.level),
+                                &get_limited_screen_level_size(
+                                    &context.graphics,
+                                    &context.mouse,
+                                    &context.level,
+                                    context.graphics.get_render_size(),
+                                ),
                                 context.level.tiles[0].len() as u32,
                                 Some(context.level.scroll),
                             );
@@ -587,32 +596,43 @@ pub fn exec(context: &mut Context) -> NextMode {
         }
         render::render_level(
             &mut context.canvas,
+            &context.graphics,
             &context.level,
             &context.textures,
             &context.trigonometry,
         );
         let highlighted_id = get_tile_id_from_coordinates(
-            &get_limited_screen_level_size(&context.mouse, &context.level),
-            TILES_X_PER_SCREEN,
+            &context.graphics,
+            &get_limited_screen_level_size(
+                &context.graphics,
+                &context.mouse,
+                &context.level,
+                context.graphics.get_render_size(),
+            ),
+            context.graphics.get_x_tiles_per_screen(),
             None,
         );
         render::highlight_selected_tile(
             &mut context.canvas,
+            &context.graphics,
             highlighted_id,
             &render::RendererColor::White,
         );
+        let render_size = context.graphics.get_render_size();
         render::render_text_texture(
             &mut context.canvas,
             &textures.p1_text_texture,
-            context.level.p1_position.0 * RENDER_SIZE,
-            context.level.p1_position.1 * RENDER_SIZE,
+            context.level.p1_position.0 * render_size,
+            context.level.p1_position.1 * render_size,
+            render_size,
             Some(context.level.scroll),
         );
         render::render_text_texture(
             &mut context.canvas,
             &textures.p2_text_texture,
-            context.level.p2_position.0 * RENDER_SIZE,
-            context.level.p2_position.1 * RENDER_SIZE,
+            context.level.p2_position.0 * render_size,
+            context.level.p2_position.1 * render_size,
+            render_size,
             Some(context.level.scroll),
         );
         let text_position = (8, 8);
@@ -658,6 +678,7 @@ pub fn exec(context: &mut Context) -> NextMode {
             &mut context.canvas,
             text_texture,
             text_position,
+            render_size,
             None,
         );
         render_prompt_if_needed(
@@ -670,14 +691,21 @@ pub fn exec(context: &mut Context) -> NextMode {
         if insert_item == InsertType::None {
             if let Some(coordinates) = mouse_left_click {
                 let selected_screen_tiles = get_selected_level_tiles(
+                    &context.graphics,
                     &coordinates,
-                    &get_limited_screen_level_size(&context.mouse, &context.level),
-                    TILES_X_PER_SCREEN,
+                    &get_limited_screen_level_size(
+                        &context.graphics,
+                        &context.mouse,
+                        &context.level,
+                        context.graphics.get_render_size(),
+                    ),
+                    context.graphics.get_x_tiles_per_screen(),
                     None,
                 );
                 for screen_tile_id in selected_screen_tiles {
                     render::highlight_selected_tile(
                         &mut context.canvas,
+                        &context.graphics,
                         screen_tile_id,
                         &render::RendererColor::White,
                     );
@@ -688,7 +716,8 @@ pub fn exec(context: &mut Context) -> NextMode {
             render::render_text_texture_coordinates(
                 &mut context.canvas,
                 &texture,
-                BOTTOM_TEXT_POSITION,
+                get_bottom_text_position(context.graphics.resolution_y),
+                render_size,
                 None,
             );
         }
@@ -715,11 +744,13 @@ fn render_input_prompt(
     instruction_texture: &Texture,
     input_field: &str,
 ) {
+    let render_size = context.graphics.get_render_size();
     render::render_text_texture(
         &mut context.canvas,
         instruction_texture,
         prompt_position.0,
         prompt_position.1 + 2 * prompt_line_spacing,
+        render_size,
         None,
     );
 
@@ -736,6 +767,7 @@ fn render_input_prompt(
             &input_text_texture,
             prompt_position.0 + width * render::TEXT_SIZE_MULTIPLIER + 10,
             prompt_position.1 + 2 * prompt_line_spacing,
+            render_size,
             None,
         );
     }
@@ -749,7 +781,7 @@ fn render_prompt_if_needed(
     new_level_size_y: &str,
 ) {
     if *prompt != PromptType::None {
-        let prompt_position = (RESOLUTION_X / 2 - 100, 200);
+        let prompt_position = (context.graphics.resolution_x / 2 - 100, 200);
         let prompt_line_spacing = 30;
         let prompt_texture = match &prompt {
             PromptType::NewLevel(state) => {
@@ -807,11 +839,13 @@ fn render_prompt_if_needed(
             },
             PromptType::None => unreachable!(),
         };
+        let render_size = context.graphics.get_render_size();
         render::render_text_texture(
             &mut context.canvas,
             prompt_texture,
             prompt_position.0,
             prompt_position.1,
+            render_size,
             None,
         );
         render::render_text_texture(
@@ -819,6 +853,7 @@ fn render_prompt_if_needed(
             &textures.press_y_text_texture,
             prompt_position.0,
             prompt_position.1 + prompt_line_spacing,
+            render_size,
             None,
         );
     }
@@ -840,24 +875,35 @@ fn handle_mouse_left_down(
         } else {
             &mut context.level.p2_position
         };
-        *position =
-            get_logical_coordinates(context.mouse.0, context.mouse.1, Some(context.level.scroll));
+        *position = get_logical_coordinates(
+            &context.graphics,
+            context.mouse.0,
+            context.mouse.1,
+            Some(context.level.scroll),
+        );
         *set_position = 0;
     } else {
-        let level_coordinates =
-            get_level_coordinates_from_screen_coordinates(&context.mouse, &context.level.scroll);
+        let level_coordinates = get_level_coordinates_from_screen_coordinates(
+            &context.graphics,
+            &context.mouse,
+            &context.level.scroll,
+        );
         if matches!(insert_item, InsertType::Spotlight(InsertState::Place)) {
             *insert_item = InsertType::Spotlight(InsertState::Instructions(level_coordinates));
             context.level.put_spotlight_to_level(&level_coordinates, 0);
         } else if matches!(insert_item, InsertType::Spotlight(InsertState::Delete)) {
-            context.level.delete_spotlight_if_near(&level_coordinates);
+            context
+                .level
+                .delete_spotlight_if_near(&level_coordinates, context.graphics.render_multiplier);
         } else if matches!(insert_item, InsertType::Steam(InsertState::Place)) {
             *insert_item = InsertType::Steam(InsertState::Instructions(level_coordinates));
             context
                 .level
                 .put_steam_to_level(&level_coordinates, &Steam { angle: 0, range: 1 });
         } else if matches!(insert_item, InsertType::Steam(InsertState::Delete)) {
-            context.level.delete_steam_if_near(&level_coordinates);
+            context
+                .level
+                .delete_steam_if_near(&level_coordinates, context.graphics.render_multiplier);
         } else if matches!(insert_item, InsertType::NormalCrate(InsertState::Place)) {
             *insert_item = InsertType::NormalCrate(InsertState::Instructions(level_coordinates));
             context.level.put_crate_to_level(
@@ -879,7 +925,9 @@ fn handle_mouse_left_down(
                 },
             );
         } else if matches!(insert_item, InsertType::NormalCrate(InsertState::Delete)) {
-            context.level.delete_crate_if_near(&level_coordinates);
+            context
+                .level
+                .delete_crate_if_near(&level_coordinates, context.graphics.render_multiplier);
         } else if *insert_item == InsertType::None {
             *drag_tiles = true;
         }
@@ -888,7 +936,11 @@ fn handle_mouse_left_down(
 
 fn handle_mouse_right_down(context: &mut Context) {
     let pointed_tile = get_tile_id_from_coordinates(
-        &limit_screen_coordinates_to_window(&context.mouse),
+        &context.graphics,
+        &limit_coordinates(
+            &context.mouse,
+            &(context.graphics.resolution_x, context.graphics.resolution_y),
+        ),
         context.level.tiles[0].len() as u32,
         Some(context.level.scroll),
     );
@@ -898,9 +950,17 @@ fn handle_mouse_right_down(context: &mut Context) {
     context.automatic_shadows = false;
 }
 
-fn get_limited_screen_level_size(mouse: &(u32, u32), level: &Level) -> (u32, u32) {
-    limit_screen_coordinates_to_window(&(
-        std::cmp::min(mouse.0, level.tiles[0].len() as u32 * RENDER_SIZE - 1),
-        std::cmp::min(mouse.1, level.tiles.len() as u32 * RENDER_SIZE - 1),
-    ))
+fn get_limited_screen_level_size(
+    graphics: &Graphics,
+    mouse: &(u32, u32),
+    level: &Level,
+    render_size: u32,
+) -> (u32, u32) {
+    limit_coordinates(
+        &(
+            std::cmp::min(mouse.0, level.tiles[0].len() as u32 * render_size - 1),
+            std::cmp::min(mouse.1, level.tiles.len() as u32 * render_size - 1),
+        ),
+        &(graphics.resolution_x, graphics.resolution_y),
+    )
 }

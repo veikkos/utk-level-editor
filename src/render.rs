@@ -4,6 +4,7 @@ use crate::level::DIFF_WEAPONS;
 use crate::level::{StaticCrate, StaticCrateType};
 use crate::types::*;
 use crate::util::*;
+use crate::Graphics;
 use crate::Level;
 use crate::Textures;
 use sdl2::pixels::Color;
@@ -36,29 +37,40 @@ fn get_sdl_color(color: &RendererColor) -> Color {
     }
 }
 
-pub fn highlight_selected_tile(canvas: &mut Canvas<Window>, id: u32, color: &RendererColor) {
+pub fn highlight_selected_tile(
+    canvas: &mut Canvas<Window>,
+    graphics: &Graphics,
+    id: u32,
+    color: &RendererColor,
+) {
     let sdl_color = get_sdl_color(color);
     canvas.set_draw_color(sdl_color);
 
-    let (x_logical, y_logical) = get_tile_coordinates(id, RESOLUTION_X / RENDER_MULTIPLIER);
-    let x = x_logical * RENDER_MULTIPLIER;
-    let y = y_logical * RENDER_MULTIPLIER;
+    let render_size = graphics.get_render_size();
+    let render_multiplier = graphics.render_multiplier;
+    let (x_logical, y_logical) = get_tile_coordinates(
+        id,
+        graphics.resolution_x / render_multiplier,
+        graphics.tile_size,
+    );
+    let x = x_logical * render_multiplier;
+    let y = y_logical * render_multiplier;
 
-    draw_line(canvas, x, y, x, y + RENDER_SIZE - 1);
-    draw_line(canvas, x, y, x + RENDER_SIZE - 1, y);
+    draw_line(canvas, x, y, x, y + render_size - 1);
+    draw_line(canvas, x, y, x + render_size - 1, y);
     draw_line(
         canvas,
-        x + RENDER_SIZE - 1,
+        x + render_size - 1,
         y,
-        x + RENDER_SIZE - 1,
-        y + RENDER_SIZE - 1,
+        x + render_size - 1,
+        y + render_size - 1,
     );
     draw_line(
         canvas,
         x,
-        y + RENDER_SIZE - 1,
-        x + RENDER_SIZE - 1,
-        y + RENDER_SIZE - 1,
+        y + render_size - 1,
+        x + render_size - 1,
+        y + render_size - 1,
     );
 }
 
@@ -81,13 +93,14 @@ pub fn render_text_texture(
     texture: &Texture,
     x: u32,
     y: u32,
+    render_size: u32,
     scroll: Option<(u32, u32)>,
 ) {
     let TextureQuery { width, height, .. } = texture.query();
     let scroll = scroll.unwrap_or((0, 0));
     let dst = Rect::new(
-        x as i32 - (scroll.0 * RENDER_SIZE) as i32,
-        y as i32 - (scroll.1 * RENDER_SIZE) as i32,
+        x as i32 - (scroll.0 * render_size) as i32,
+        y as i32 - (scroll.1 * render_size) as i32,
         width * TEXT_SIZE_MULTIPLIER,
         height * TEXT_SIZE_MULTIPLIER,
     );
@@ -98,9 +111,17 @@ pub fn render_text_texture_coordinates(
     canvas: &mut Canvas<Window>,
     texture: &Texture,
     coordinates: (u32, u32),
+    render_size: u32,
     scroll: Option<(u32, u32)>,
 ) {
-    render_text_texture(canvas, texture, coordinates.0, coordinates.1, scroll);
+    render_text_texture(
+        canvas,
+        texture,
+        coordinates.0,
+        coordinates.1,
+        render_size,
+        scroll,
+    );
 }
 
 fn draw_circle(
@@ -163,15 +184,20 @@ fn draw_circle(
 
 pub fn render_level(
     canvas: &mut Canvas<Window>,
+    graphics: &Graphics,
     level: &Level,
     textures: &Textures,
     trigonometry: &Trigonometry,
 ) {
     canvas.set_draw_color(Color::from((0, 0, 0)));
     canvas.clear();
+    let render_size = graphics.get_render_size();
 
-    for y in 0..std::cmp::min(level.tiles.len() as u32, TILES_Y_PER_SCREEN) {
-        for x in 0..std::cmp::min(level.tiles[y as usize].len() as u32, TILES_X_PER_SCREEN) {
+    for y in 0..std::cmp::min(level.tiles.len() as u32, graphics.get_y_tiles_per_screen()) {
+        for x in 0..std::cmp::min(
+            level.tiles[y as usize].len() as u32,
+            graphics.get_x_tiles_per_screen(),
+        ) {
             let (x_index, y_index) = get_scroll_corrected_indexes(level.scroll, x, y);
             let texture = match level.tiles[y_index][x_index].texture_type {
                 TextureType::FLOOR => &textures.floor,
@@ -179,9 +205,14 @@ pub fn render_level(
                 TextureType::SHADOW => unreachable!(),
             };
             let (texture_width, _texture_height) = get_texture_size(texture);
-            let src = get_block(level.tiles[y_index][x_index].id, texture_width);
-            let (x_absolute, y_absolute) = get_absolute_coordinates_from_logical(x, y);
-            let dst = Rect::new(x_absolute, y_absolute, RENDER_SIZE, RENDER_SIZE);
+            let src = get_block(
+                level.tiles[y_index][x_index].id,
+                texture_width,
+                graphics.tile_size,
+            );
+            let (x_absolute, y_absolute) =
+                get_absolute_coordinates_from_logical(x, y, graphics.get_render_size());
+            let dst = Rect::new(x_absolute, y_absolute, render_size, render_size);
             canvas.copy(texture, src, dst).unwrap();
             let (shadow_texture_width, _shadow_texture_height) =
                 get_texture_size(&textures.shadows);
@@ -189,6 +220,7 @@ pub fn render_level(
                 let src = get_block(
                     level.tiles[y_index][x_index].shadow - 1,
                     shadow_texture_width,
+                    graphics.tile_size,
                 );
                 canvas.copy(&textures.shadows, src, dst).unwrap();
             }
@@ -196,7 +228,7 @@ pub fn render_level(
     }
     for (coordinates, spotlight) in &level.spotlights {
         let (x_screen, y_screen) =
-            get_screen_coordinates_from_level_coordinates(coordinates, &level.scroll);
+            get_screen_coordinates_from_level_coordinates(graphics, coordinates, &level.scroll);
         draw_circle(
             canvas,
             x_screen,
@@ -207,7 +239,7 @@ pub fn render_level(
     }
     for (coordinates, steam) in &level.steams {
         let (x_screen, y_screen) =
-            get_screen_coordinates_from_level_coordinates(coordinates, &level.scroll);
+            get_screen_coordinates_from_level_coordinates(graphics, coordinates, &level.scroll);
         for x in 0..6 {
             let multiplier = x as f32 * 6.0 * steam.range as f32;
             draw_circle(
@@ -220,11 +252,18 @@ pub fn render_level(
         }
     }
 
-    render_crates(canvas, &level.scroll, &textures, &level.crates.staticc);
+    render_crates(
+        canvas,
+        graphics,
+        &level.scroll,
+        &textures,
+        &level.crates.staticc,
+    );
 }
 
 fn render_crates(
     canvas: &mut Canvas<Window>,
+    graphics: &Graphics,
     scroll: &(u32, u32),
     textures: &Textures,
     crates: &HashMap<(u32, u32), StaticCrateType>,
@@ -232,7 +271,7 @@ fn render_crates(
     for (coordinates, crate_item) in crates {
         let box_size = get_crate_render_size();
         let (x_screen, y_screen) =
-            get_screen_coordinates_from_level_coordinates(&coordinates, scroll);
+            get_screen_coordinates_from_level_coordinates(graphics, &coordinates, scroll);
         canvas.set_draw_color(get_sdl_color(match crate_item.crate_variant {
             StaticCrate::Normal => &RendererColor::LightGreen,
             StaticCrate::Deathmatch => &RendererColor::LightBlue,
@@ -261,6 +300,7 @@ fn render_crates(
             texture,
             (x_screen - 10) as u32,
             (y_screen - 9 - height as i32) as u32,
+            graphics.get_render_size(),
             None,
         );
     }
@@ -271,8 +311,8 @@ pub fn render_and_wait(canvas: &mut Canvas<Window>) {
     ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
 }
 
-pub fn get_texture_rect(texture: &Texture) -> Rect {
-    let (width, height) = get_texture_render_size(&texture);
+pub fn get_texture_rect(texture: &Texture, render_multiplier: u32) -> Rect {
+    let (width, height) = get_texture_render_size(&texture, render_multiplier);
     Rect::new(0, 0, width, height)
 }
 
@@ -281,7 +321,7 @@ pub fn get_texture_size(texture: &Texture) -> (u32, u32) {
     (width, height)
 }
 
-pub fn get_texture_render_size(texture: &Texture) -> (u32, u32) {
+pub fn get_texture_render_size(texture: &Texture, render_multiplier: u32) -> (u32, u32) {
     let (width, height) = get_texture_size(&texture);
-    (width * RENDER_MULTIPLIER, height * RENDER_MULTIPLIER)
+    (width * render_multiplier, height * render_multiplier)
 }
