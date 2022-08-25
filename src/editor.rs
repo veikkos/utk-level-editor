@@ -3,6 +3,7 @@ extern crate sdl2;
 use crate::crates::{get_crates, CrateClass};
 use crate::create_text_texture;
 use crate::editor_textures::EditorTextures;
+use crate::get_textures;
 use crate::level::StaticCrate;
 use crate::level::StaticCrateType;
 use crate::level::Steam;
@@ -15,7 +16,7 @@ use crate::Level;
 use crate::NextMode;
 use crate::NextMode::*;
 use crate::TextureType;
-use sdl2::event::Event;
+use sdl2::event::{Event, WindowEvent};
 use sdl2::keyboard::Keycode;
 use sdl2::mouse::MouseButton;
 use sdl2::render::Texture;
@@ -66,7 +67,7 @@ enum InsertType {
 }
 
 pub fn exec(context: &mut Context) -> NextMode {
-    let textures = EditorTextures::new(context);
+    let mut textures = EditorTextures::new(context);
     let mut set_position: u8 = 0;
     let mut mouse_left_click: Option<(u32, u32)> = None;
     let mut mouse_right_click = false;
@@ -116,6 +117,18 @@ pub fn exec(context: &mut Context) -> NextMode {
                     },
                     _ => (),
                 },
+                Event::Window { win_event, .. } => {
+                    if let WindowEvent::Resized(w, h) = win_event {
+                        context.graphics.resolution_x = w as u32;
+                        context.graphics.resolution_y = h as u32;
+                        textures = EditorTextures::new(context);
+                        context.textures = get_textures(
+                            &mut context.canvas,
+                            context.texture_creator,
+                            &context.font,
+                        );
+                    }
+                }
                 Event::KeyDown { keycode, .. } => {
                     if let Some(key) = keycode {
                         match key {

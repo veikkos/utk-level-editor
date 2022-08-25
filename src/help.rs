@@ -1,11 +1,12 @@
 extern crate sdl2;
 
 use crate::fn2::create_text_texture;
+use crate::get_textures;
 use crate::render;
 use crate::Context;
 use crate::NextMode;
 use crate::NextMode::*;
-use sdl2::event::Event;
+use sdl2::event::{Event, WindowEvent};
 use sdl2::pixels::Color;
 use sdl2::render::Texture;
 
@@ -50,6 +51,18 @@ pub fn exec(context: &mut Context) -> NextMode {
                 Event::Quit { .. } => return Editor,
                 Event::KeyDown { .. } => {
                     return Editor;
+                }
+                Event::Window { win_event, .. } => {
+                    if let WindowEvent::Resized(w, h) = win_event {
+                        context.graphics.resolution_x = w as u32;
+                        context.graphics.resolution_y = h as u32;
+                        context.textures = get_textures(
+                            &mut context.canvas,
+                            context.texture_creator,
+                            &context.font,
+                        );
+                        return Editor;
+                    }
                 }
                 _ => {}
             }

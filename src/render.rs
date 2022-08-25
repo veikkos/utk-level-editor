@@ -50,7 +50,7 @@ pub fn highlight_selected_tile(
     let render_multiplier = graphics.render_multiplier;
     let (x_logical, y_logical) = get_tile_coordinates(
         id,
-        graphics.resolution_x / render_multiplier,
+        graphics.get_x_tiles_per_screen() * graphics.tile_size,
         graphics.tile_size,
     );
     let x = x_logical * render_multiplier;
