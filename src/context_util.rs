@@ -11,16 +11,26 @@ use sdl2::render::TextureCreator;
 use sdl2::video::Window;
 use sdl2::video::WindowContext;
 
-pub fn resize(context: &mut Context, event: sdl2::event::WindowEvent) -> bool {
-    if let WindowEvent::Resized(w, h) = event {
-        context.graphics.resolution_x = w as u32;
-        context.graphics.resolution_y = h as u32;
-        context.textures =
-            get_textures(&mut context.canvas, context.texture_creator, &context.font);
-        return true;
-    }
+fn refresh(context: &mut Context, window_size: (u32, u32)) {
+    context.graphics.resolution_x = window_size.0;
+    context.graphics.resolution_y = window_size.1;
+    context.textures = get_textures(&mut context.canvas, context.texture_creator, &context.font);
+}
 
-    return false;
+pub fn resize(context: &mut Context, event: sdl2::event::WindowEvent) -> bool {
+    match event {
+        WindowEvent::Resized(w, h) => {
+            refresh(context, (w as u32, h as u32));
+            return true;
+        }
+        WindowEvent::Maximized => {
+            refresh(context, context.canvas.window().size());
+            return true;
+        }
+        _ => {
+            return false;
+        }
+    }
 }
 
 pub fn get_textures<'a>(
