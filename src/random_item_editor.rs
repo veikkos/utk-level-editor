@@ -1,14 +1,14 @@
 extern crate sdl2;
 
+use crate::context_util::resize;
 use crate::create_text_texture;
-use crate::get_textures;
 use crate::level::Level;
 use crate::render;
 use crate::types::*;
 use crate::util::{get_bottom_text_position, TITLE_POSITION};
 use crate::Context;
 use crate::NextMode::*;
-use sdl2::event::{Event, WindowEvent};
+use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::render::Texture;
@@ -75,14 +75,7 @@ pub fn exec(context: &mut Context, game_type: GameType) -> NextMode {
                     return Editor;
                 }
                 Event::Window { win_event, .. } => {
-                    if let WindowEvent::Resized(w, h) = win_event {
-                        context.graphics.resolution_x = w as u32;
-                        context.graphics.resolution_y = h as u32;
-                        context.textures = get_textures(
-                            &mut context.canvas,
-                            context.texture_creator,
-                            &context.font,
-                        );
+                    if resize(context, win_event) {
                         return Editor;
                     }
                 }

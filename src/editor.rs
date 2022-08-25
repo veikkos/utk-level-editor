@@ -1,9 +1,9 @@
 extern crate sdl2;
 
+use crate::context_util::resize;
 use crate::crates::{get_crates, CrateClass};
 use crate::create_text_texture;
 use crate::editor_textures::EditorTextures;
-use crate::get_textures;
 use crate::level::StaticCrate;
 use crate::level::StaticCrateType;
 use crate::level::Steam;
@@ -16,7 +16,7 @@ use crate::Level;
 use crate::NextMode;
 use crate::NextMode::*;
 use crate::TextureType;
-use sdl2::event::{Event, WindowEvent};
+use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::mouse::MouseButton;
 use sdl2::render::Texture;
@@ -118,15 +118,8 @@ pub fn exec(context: &mut Context) -> NextMode {
                     _ => (),
                 },
                 Event::Window { win_event, .. } => {
-                    if let WindowEvent::Resized(w, h) = win_event {
-                        context.graphics.resolution_x = w as u32;
-                        context.graphics.resolution_y = h as u32;
+                    if resize(context, win_event) {
                         textures = EditorTextures::new(context);
-                        context.textures = get_textures(
-                            &mut context.canvas,
-                            context.texture_creator,
-                            &context.font,
-                        );
                     }
                 }
                 Event::KeyDown { keycode, .. } => {
