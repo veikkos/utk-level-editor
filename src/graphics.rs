@@ -28,7 +28,15 @@ impl Graphics {
         (self.resolution_x + self.get_render_size() - 1) / self.get_render_size()
     }
 
+    pub fn get_full_x_tiles_per_screen(&self) -> u32 {
+        self.resolution_x / self.get_render_size()
+    }
+
     pub fn get_y_tiles_per_screen(&self) -> u32 {
         (self.resolution_y + self.get_render_size() - 1) / self.get_render_size()
+    }
+
+    pub fn get_full_y_tiles_per_screen(&self) -> u32 {
+        self.resolution_y / self.get_render_size()
     }
 }

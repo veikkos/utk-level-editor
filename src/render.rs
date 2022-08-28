@@ -199,6 +199,9 @@ pub fn render_level(
             graphics.get_x_tiles_per_screen(),
         ) {
             let (x_index, y_index) = get_scroll_corrected_indexes(level.scroll, x, y);
+            if y_index >= level.tiles.len() || x_index >= level.tiles[y_index].len() {
+                continue;
+            }
             let texture = match level.tiles[y_index][x_index].texture_type {
                 TextureType::FLOOR => &textures.floor,
                 TextureType::WALLS => &textures.walls,

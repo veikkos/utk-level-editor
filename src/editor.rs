@@ -342,7 +342,7 @@ pub fn exec(context: &mut Context) -> NextMode {
                                 }
                                 _ => {
                                     if context.level.scroll.1
-                                        + context.graphics.get_y_tiles_per_screen()
+                                        + context.graphics.get_full_y_tiles_per_screen()
                                         < (context.level.tiles.len()) as u32
                                     {
                                         context.level.scroll.1 = context.level.scroll.1 + 1;
@@ -425,7 +425,7 @@ pub fn exec(context: &mut Context) -> NextMode {
                                 }
                                 _ => {
                                     if context.level.scroll.0
-                                        + context.graphics.get_x_tiles_per_screen()
+                                        + context.graphics.get_full_x_tiles_per_screen()
                                         < (context.level.tiles[0].len()) as u32
                                     {
                                         context.level.scroll.0 = context.level.scroll.0 + 1;
@@ -975,8 +975,14 @@ fn get_limited_screen_level_size(
 ) -> (u32, u32) {
     limit_coordinates(
         &(
-            std::cmp::min(mouse.0, level.tiles[0].len() as u32 * render_size - 1),
-            std::cmp::min(mouse.1, level.tiles.len() as u32 * render_size - 1),
+            std::cmp::min(
+                mouse.0,
+                (level.tiles[0].len() as u32 - level.scroll.0) * render_size - 1,
+            ),
+            std::cmp::min(
+                mouse.1,
+                (level.tiles.len() as u32 - level.scroll.1) * render_size - 1,
+            ),
         ),
         &(graphics.resolution_x, graphics.resolution_y),
     )
