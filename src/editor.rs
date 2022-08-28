@@ -570,7 +570,12 @@ pub fn exec(context: &mut Context) -> NextMode {
                         if let Some(coordinates) = mouse_left_click {
                             let selected_level_tiles = get_selected_level_tiles(
                                 &context.graphics,
-                                &coordinates,
+                                &get_limited_screen_level_size(
+                                    &context.graphics,
+                                    &coordinates,
+                                    &context.level,
+                                    context.graphics.get_render_size(),
+                                ),
                                 &get_limited_screen_level_size(
                                     &context.graphics,
                                     &context.mouse,
@@ -710,7 +715,12 @@ pub fn exec(context: &mut Context) -> NextMode {
             if let Some(coordinates) = mouse_left_click {
                 let selected_screen_tiles = get_selected_level_tiles(
                     &context.graphics,
-                    &coordinates,
+                    &get_limited_screen_level_size(
+                        &context.graphics,
+                        &coordinates,
+                        &context.level,
+                        context.graphics.get_render_size(),
+                    ),
                     &get_limited_screen_level_size(
                         &context.graphics,
                         &context.mouse,
@@ -955,9 +965,11 @@ fn handle_mouse_left_down(
 fn handle_mouse_right_down(context: &mut Context) {
     let pointed_tile = get_tile_id_from_coordinates(
         &context.graphics,
-        &limit_coordinates(
+        &get_limited_screen_level_size(
+            &context.graphics,
             &context.mouse,
-            &(context.graphics.resolution_x, context.graphics.resolution_y),
+            &context.level,
+            context.graphics.get_render_size(),
         ),
         context.level.tiles[0].len() as u32,
         Some(context.level.scroll),
