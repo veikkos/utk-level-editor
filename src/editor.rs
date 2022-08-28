@@ -73,8 +73,9 @@ pub fn exec(context: &mut Context) -> NextMode {
     let mut mouse_right_click = false;
     let mut prompt = PromptType::None;
     let mut insert_item = InsertType::None;
-    let mut new_level_size_x: String = String::new();
-    let mut new_level_size_y: String = String::new();
+    static DEFAULT_LEVEL_SIZE: (u32, u32) = (16, 12);
+    let mut new_level_size_x: String = DEFAULT_LEVEL_SIZE.0.to_string();
+    let mut new_level_size_y: String = DEFAULT_LEVEL_SIZE.1.to_string();
     let mut drag_tiles = false;
     let crates = get_crates();
 
@@ -141,8 +142,8 @@ pub fn exec(context: &mut Context) -> NextMode {
                             }
                             Keycode::F4 => {
                                 prompt = PromptType::NewLevel(NewLevelState::Prompt);
-                                new_level_size_x.clear();
-                                new_level_size_y.clear();
+                                new_level_size_x = DEFAULT_LEVEL_SIZE.0.to_string();
+                                new_level_size_y = DEFAULT_LEVEL_SIZE.1.to_string();
                             }
                             Keycode::F6 => {
                                 context.sdl.video().unwrap().text_input().stop();
