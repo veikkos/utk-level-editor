@@ -1,11 +1,9 @@
 use crate::context_util::resize;
-use crate::fn2::create_text_texture;
-use crate::get_bottom_text_position;
 use crate::util::TITLE_POSITION;
+use crate::{get_bottom_text_position, Renderer};
 use std::fs;
 extern crate sdl2;
 
-use crate::render;
 use crate::types::*;
 use crate::Context;
 use crate::NextMode::*;
@@ -19,19 +17,10 @@ struct LoadFile<'a> {
     texture: Texture<'a>,
 }
 
-pub fn exec(context: &mut Context) -> NextMode {
-    let load_level_text_texture = create_text_texture(
-        &mut context.canvas,
-        &context.texture_creator,
-        &context.font,
-        "LOAD LEVEL:",
-    );
-    let bottom_instruction_text = create_text_texture(
-        &mut context.canvas,
-        &context.texture_creator,
-        &context.font,
-        "ENTER to select or ESC to exit",
-    );
+pub fn exec<'a>(renderer: &'a Renderer, context: &mut Context<'a>) -> NextMode {
+    let load_level_text_texture = renderer.create_text_texture(&context.font, "LOAD LEVEL:");
+    let bottom_instruction_text =
+        renderer.create_text_texture(&context.font, "ENTER to select or ESC to exit");
     let files: Vec<LoadFile> = fs::read_dir("./")
         .unwrap()
         .filter_map(|read_dir_result| {
@@ -44,12 +33,7 @@ pub fn exec(context: &mut Context) -> NextMode {
         })
         .map(|ref filename| LoadFile {
             filename: filename.to_string(),
-            texture: create_text_texture(
-                &mut context.canvas,
-                context.texture_creator,
-                &context.font,
-                &filename.clone().to_lowercase(),
-            ),
+            texture: renderer.create_text_texture(&context.font, &filename.clone().to_lowercase()),
         })
         .collect();
     let mut selected = 0usize;
@@ -64,7 +48,7 @@ pub fn exec(context: &mut Context) -> NextMode {
                     ..
                 } => return Editor,
                 Event::Window { win_event, .. } => {
-                    if resize(context, win_event) {
+                    if resize(renderer, context, win_event) {
                         return Editor;
                     }
                 }
@@ -90,9 +74,7 @@ pub fn exec(context: &mut Context) -> NextMode {
                                 .strip_prefix("./")
                                 .unwrap()
                                 .to_string();
-                            context.textures.saved_level_name = Some(create_text_texture(
-                                &mut context.canvas,
-                                &context.texture_creator,
+                            context.textures.saved_level_name = Some(renderer.create_text_texture(
                                 &context.font,
                                 &level_name.clone().to_lowercase(),
                             ));
@@ -107,12 +89,10 @@ pub fn exec(context: &mut Context) -> NextMode {
             }
         }
 
-        context.canvas.set_draw_color(Color::from((0, 0, 0)));
-        context.canvas.clear();
+        renderer.clear_screen(Color::from((0, 0, 0)));
         let text_position = (40, 60);
         let render_size = context.graphics.get_render_size();
-        render::render_text_texture_coordinates(
-            &mut context.canvas,
+        renderer.render_text_texture_coordinates(
             &load_level_text_texture,
             TITLE_POSITION,
             render_size,
@@ -121,8 +101,7 @@ pub fn exec(context: &mut Context) -> NextMode {
         let line_spacing = 20;
         for x in 0..files.len() {
             if selected == x {
-                render::render_text_texture(
-                    &mut context.canvas,
+                renderer.render_text_texture(
                     &context.textures.selected_icon,
                     text_position.0 - 20,
                     text_position.1 + 3 + x as u32 * line_spacing,
@@ -130,8 +109,7 @@ pub fn exec(context: &mut Context) -> NextMode {
                     None,
                 );
             }
-            render::render_text_texture(
-                &mut context.canvas,
+            renderer.render_text_texture(
                 &files[x].texture,
                 text_position.0,
                 text_position.1 + line_spacing * x as u32,
@@ -139,13 +117,12 @@ pub fn exec(context: &mut Context) -> NextMode {
                 None,
             );
         }
-        render::render_text_texture_coordinates(
-            &mut context.canvas,
+        renderer.render_text_texture_coordinates(
             &bottom_instruction_text,
             get_bottom_text_position(context.graphics.resolution_y),
             render_size,
             None,
         );
-        render::render_and_wait(&mut context.canvas);
+        renderer.render_and_wait();
     }
 }

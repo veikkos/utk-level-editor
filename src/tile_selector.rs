@@ -1,33 +1,22 @@
 extern crate sdl2;
 
 use crate::context_util::resize;
-use crate::create_text_texture;
-use crate::render;
 use crate::types::*;
 use crate::util::*;
 use crate::Context;
 use crate::NextMode::*;
+use crate::{render, Renderer};
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::mouse::MouseButton;
 use sdl2::pixels::Color;
 
-pub fn exec(context: &mut Context) -> NextMode {
-    let floor_blocks_text_texture = create_text_texture(
-        &mut context.canvas,
-        &context.texture_creator,
-        &context.font,
-        "floor blocks (PAGEGUP/DOWN)",
-    );
-    let wall_blocks_text_texture = create_text_texture(
-        &mut context.canvas,
-        &context.texture_creator,
-        &context.font,
-        "wall blocks (PAGEGUP/DOWN)",
-    );
-    let shadow_blocks_text_texture = create_text_texture(
-        &mut context.canvas,
-        &context.texture_creator,
+pub fn exec<'a>(renderer: &'a Renderer, context: &mut Context<'a>) -> NextMode {
+    let floor_blocks_text_texture =
+        renderer.create_text_texture(&context.font, "floor blocks (PAGEGUP/DOWN)");
+    let wall_blocks_text_texture =
+        renderer.create_text_texture(&context.font, "wall blocks (PAGEGUP/DOWN)");
+    let shadow_blocks_text_texture = renderer.create_text_texture(
         &context.font,
         "shadows (PAGEGUP/DOWN) - clear with RIGHT CLICK",
     );
@@ -41,7 +30,7 @@ pub fn exec(context: &mut Context) -> NextMode {
                     ..
                 } => return Editor,
                 Event::Window { win_event, .. } => {
-                    if resize(context, win_event) {
+                    if resize(renderer, context, win_event) {
                         return Editor;
                     }
                 }
@@ -109,8 +98,7 @@ pub fn exec(context: &mut Context) -> NextMode {
             }
         }
 
-        context.canvas.set_draw_color(Color::from((0, 0, 0)));
-        context.canvas.clear();
+        renderer.clear_screen(Color::from((0, 0, 0)));
         let texture_selected = match context.texture_type_scrolled {
             TextureType::FLOOR => &context.textures.floor,
             TextureType::WALLS => &context.textures.walls,
@@ -118,9 +106,7 @@ pub fn exec(context: &mut Context) -> NextMode {
         };
         let render_multiplier = context.graphics.render_multiplier;
         let dst = render::get_texture_rect(texture_selected, render_multiplier);
-        context.canvas.set_draw_color(Color::from((200, 200, 200)));
-        context.canvas.fill_rect(dst).unwrap();
-        context.canvas.copy(texture_selected, None, dst).unwrap();
+        renderer.fill_and_render_texture(Color::from((200, 200, 200)), texture_selected, dst);
         let (texture_width, texture_height) =
             render::get_texture_render_size(texture_selected, render_multiplier);
         let highlighted_id = get_tile_id_from_coordinates(
@@ -129,8 +115,7 @@ pub fn exec(context: &mut Context) -> NextMode {
             context.graphics.get_x_tiles_per_screen(),
             None,
         );
-        render::highlight_selected_tile(
-            &mut context.canvas,
+        renderer.highlight_selected_tile(
             &context.graphics,
             highlighted_id,
             &render::RendererColor::White,
@@ -151,8 +136,7 @@ pub fn exec(context: &mut Context) -> NextMode {
                 context.graphics.get_x_tiles_per_screen(),
                 None,
             );
-            render::highlight_selected_tile(
-                &mut context.canvas,
+            renderer.highlight_selected_tile(
                 &context.graphics,
                 screen_tile_id,
                 &render::RendererColor::Red,
@@ -163,13 +147,12 @@ pub fn exec(context: &mut Context) -> NextMode {
             TextureType::WALLS => &wall_blocks_text_texture,
             TextureType::SHADOW => &shadow_blocks_text_texture,
         };
-        render::render_text_texture_coordinates(
-            &mut context.canvas,
+        renderer.render_text_texture_coordinates(
             active_text,
             get_bottom_text_position(context.graphics.resolution_y),
             context.graphics.get_render_size(),
             None,
         );
-        render::render_and_wait(&mut context.canvas);
+        renderer.render_and_wait();
     }
 }

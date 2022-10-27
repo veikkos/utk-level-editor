@@ -1,12 +1,10 @@
 extern crate sdl2;
 
 use crate::context_util::resize;
-use crate::fn2::create_text_texture;
-use crate::get_bottom_text_position;
-use crate::render;
 use crate::types::*;
 use crate::Context;
 use crate::NextMode::*;
+use crate::{get_bottom_text_position, Renderer};
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
@@ -23,34 +21,28 @@ struct ConfigOption<'a> {
     value: Value,
 }
 
-fn load_text<'a>(context: &mut Context<'a>, text: &str) -> Texture<'a> {
-    create_text_texture(
-        &mut context.canvas,
-        &context.texture_creator,
-        &context.font,
-        text,
-    )
+fn load_text<'a>(renderer: &'a Renderer, context: &Context, text: &str) -> Texture<'a> {
+    renderer.create_text_texture(&context.font, text)
 }
 
-fn load_value_text<'a>(context: &mut Context<'a>, value: &Value) -> Option<Texture<'a>> {
+fn load_value_text<'a>(
+    renderer: &'a Renderer,
+    context: &Context,
+    value: &Value,
+) -> Option<Texture<'a>> {
     let string = match value {
         Value::Number(number) => context.level.general_info.enemy_table[*number].to_string(),
         Value::TimeLimit() => format!("{} seconds", context.level.general_info.time_limit),
         Value::Comment() => context.level.general_info.comment.to_string(),
     };
     if !string.is_empty() {
-        Some(create_text_texture(
-            &mut context.canvas,
-            &context.texture_creator,
-            &context.font,
-            &string,
-        ))
+        Some(renderer.create_text_texture(&context.font, &string))
     } else {
         None
     }
 }
 
-fn enable_text_editing_if_needed<'a>(context: &mut Context, selected_option: &ConfigOption<'a>) {
+fn enable_text_editing_if_needed<'a>(context: &Context, selected_option: &ConfigOption<'a>) {
     match selected_option.value {
         Value::Comment() => context.sdl.video().unwrap().text_input().start(),
         _ => context.sdl.video().unwrap().text_input().stop(),
@@ -65,50 +57,50 @@ fn sanitize_level_comment_input(new_text: &str, target_text: &mut String) {
     }
 }
 
-pub fn exec(context: &mut Context) -> NextMode {
+pub fn exec<'a>(renderer: &'a Renderer, context: &mut Context<'a>) -> NextMode {
     let options = [
         ConfigOption {
-            texture: &load_text(context, "level comment:"),
+            texture: &load_text(renderer, context, "level comment:"),
             value: Value::Comment(),
         },
         ConfigOption {
-            texture: &load_text(context, "time limit:"),
+            texture: &load_text(renderer, context, "time limit:"),
             value: Value::TimeLimit(),
         },
         ConfigOption {
-            texture: &load_text(context, "pistol boys:"),
+            texture: &load_text(renderer, context, "pistol boys:"),
             value: Value::Number(0),
         },
         ConfigOption {
-            texture: &load_text(context, "shotgun maniacs:"),
+            texture: &load_text(renderer, context, "shotgun maniacs:"),
             value: Value::Number(1),
         },
         ConfigOption {
-            texture: &load_text(context, "uzi rebels:"),
+            texture: &load_text(renderer, context, "uzi rebels:"),
             value: Value::Number(2),
         },
         ConfigOption {
-            texture: &load_text(context, "commandos:"),
+            texture: &load_text(renderer, context, "commandos:"),
             value: Value::Number(3),
         },
         ConfigOption {
-            texture: &load_text(context, "granade mofos:"),
+            texture: &load_text(renderer, context, "granade mofos:"),
             value: Value::Number(4),
         },
         ConfigOption {
-            texture: &load_text(context, "civilians:"),
+            texture: &load_text(renderer, context, "civilians:"),
             value: Value::Number(5),
         },
         ConfigOption {
-            texture: &load_text(context, "punishers:"),
+            texture: &load_text(renderer, context, "punishers:"),
             value: Value::Number(6),
         },
         ConfigOption {
-            texture: &load_text(context, "flamers:"),
+            texture: &load_text(renderer, context, "flamers:"),
             value: Value::Number(7),
         },
     ];
-    let esc_instruction_text = &load_text(context, "press ESC to exit");
+    let esc_instruction_text = &load_text(renderer, context, "press ESC to exit");
     let mut selected = 0usize;
     enable_text_editing_if_needed(context, &options[selected]);
 
@@ -125,7 +117,7 @@ pub fn exec(context: &mut Context) -> NextMode {
                     return Editor;
                 }
                 Event::Window { win_event, .. } => {
-                    if resize(context, win_event) {
+                    if resize(renderer, context, win_event) {
                         return Editor;
                     }
                 }
@@ -180,16 +172,14 @@ pub fn exec(context: &mut Context) -> NextMode {
             }
         }
 
-        context.canvas.set_draw_color(Color::from((0, 0, 0)));
-        context.canvas.clear();
+        renderer.clear_screen(Color::from((0, 0, 0)));
         let mut option_position = (40, 20);
         let mut value_position = (300, option_position.1);
         let render_size = context.graphics.get_render_size();
         for x in 0..options.len() {
             let option = &options[x];
             if selected == x {
-                render::render_text_texture(
-                    &mut context.canvas,
+                renderer.render_text_texture(
                     &context.textures.selected_icon,
                     option_position.0 - 20,
                     option_position.1 + 3,
@@ -197,18 +187,16 @@ pub fn exec(context: &mut Context) -> NextMode {
                     None,
                 );
             }
-            render::render_text_texture(
-                &mut context.canvas,
+            renderer.render_text_texture(
                 option.texture,
                 option_position.0,
                 option_position.1,
                 render_size,
                 None,
             );
-            let value_texture = &load_value_text(context, &option.value);
+            let value_texture = &load_value_text(renderer, context, &option.value);
             match value_texture {
-                Some(texture) => render::render_text_texture(
-                    &mut context.canvas,
+                Some(texture) => renderer.render_text_texture(
                     texture,
                     value_position.0,
                     value_position.1,
@@ -220,13 +208,12 @@ pub fn exec(context: &mut Context) -> NextMode {
             option_position.1 += 20;
             value_position.1 = option_position.1;
         }
-        render::render_text_texture_coordinates(
-            &mut context.canvas,
+        renderer.render_text_texture_coordinates(
             esc_instruction_text,
             get_bottom_text_position(context.graphics.resolution_y),
             render_size,
             None,
         );
-        render::render_and_wait(&mut context.canvas);
+        renderer.render_and_wait();
     }
 }

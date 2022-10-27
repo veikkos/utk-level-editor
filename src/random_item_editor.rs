@@ -1,25 +1,18 @@
 extern crate sdl2;
 
 use crate::context_util::resize;
-use crate::create_text_texture;
 use crate::level::Level;
-use crate::render;
 use crate::types::*;
 use crate::util::{get_bottom_text_position, TITLE_POSITION};
-use crate::Context;
 use crate::NextMode::*;
+use crate::{Context, Renderer};
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::render::Texture;
 
-fn load_text<'a>(context: &mut Context<'a>, text: &str) -> Texture<'a> {
-    create_text_texture(
-        &mut context.canvas,
-        &context.texture_creator,
-        &context.font,
-        text,
-    )
+fn load_text<'a>(renderer: &'a Renderer, context: &Context, text: &str) -> Texture<'a> {
+    renderer.create_text_texture(&context.font, text)
 }
 
 fn get_value(level: &Level, game_type: &GameType, index: usize) -> u32 {
@@ -56,10 +49,14 @@ fn set_value(level: &mut Level, game_type: &GameType, index: usize, value: u32) 
     }
 }
 
-pub fn exec(context: &mut Context, game_type: GameType) -> NextMode {
-    let normal_game_instruction_text = &load_text(context, "NORMAL GAME CRATES");
-    let deatchmatch_instruction_text = &load_text(context, "DEATHMATCH CRATES");
-    let esc_instruction_text = &load_text(context, "press ESC to exit");
+pub fn exec<'a>(
+    renderer: &'a Renderer,
+    context: &mut Context<'a>,
+    game_type: GameType,
+) -> NextMode {
+    let normal_game_instruction_text = &load_text(renderer, context, "NORMAL GAME CRATES");
+    let deatchmatch_instruction_text = &load_text(renderer, context, "DEATHMATCH CRATES");
+    let esc_instruction_text = &load_text(renderer, context, "press ESC to exit");
     let mut selected = 0;
 
     let mut event_pump = context.sdl.event_pump().unwrap();
@@ -75,7 +72,7 @@ pub fn exec(context: &mut Context, game_type: GameType) -> NextMode {
                     return Editor;
                 }
                 Event::Window { win_event, .. } => {
-                    if resize(context, win_event) {
+                    if resize(renderer, context, win_event) {
                         return Editor;
                     }
                 }
@@ -106,12 +103,10 @@ pub fn exec(context: &mut Context, game_type: GameType) -> NextMode {
             }
         }
 
-        context.canvas.set_draw_color(Color::from((0, 0, 0)));
-        context.canvas.clear();
+        renderer.clear_screen(Color::from((0, 0, 0)));
         let render_size = context.graphics.get_render_size();
 
-        render::render_text_texture_coordinates(
-            &mut context.canvas,
+        renderer.render_text_texture_coordinates(
             match game_type {
                 GameType::Normal => &normal_game_instruction_text,
                 GameType::Deathmatch => &deatchmatch_instruction_text,
@@ -127,8 +122,7 @@ pub fn exec(context: &mut Context, game_type: GameType) -> NextMode {
         for x in 0..context.textures.crates.len() {
             let option = &context.textures.crates[x];
             if selected == x {
-                render::render_text_texture(
-                    &mut context.canvas,
+                renderer.render_text_texture(
                     &context.textures.selected_icon,
                     option_position.0 - 20,
                     option_position.1 + 3,
@@ -136,22 +130,18 @@ pub fn exec(context: &mut Context, game_type: GameType) -> NextMode {
                     None,
                 );
             }
-            render::render_text_texture(
-                &mut context.canvas,
+            renderer.render_text_texture(
                 &option,
                 option_position.0,
                 option_position.1,
                 render_size,
                 None,
             );
-            let value_texture = create_text_texture(
-                &mut context.canvas,
-                &context.texture_creator,
+            let value_texture = renderer.create_text_texture(
                 &context.font,
                 &get_value(&context.level, &game_type, x).to_string(),
             );
-            render::render_text_texture(
-                &mut context.canvas,
+            renderer.render_text_texture(
                 &value_texture,
                 value_position.0,
                 value_position.1,
@@ -168,13 +158,12 @@ pub fn exec(context: &mut Context, game_type: GameType) -> NextMode {
                 value_position.1 = option_position.1;
             }
         }
-        render::render_text_texture_coordinates(
-            &mut context.canvas,
+        renderer.render_text_texture_coordinates(
             esc_instruction_text,
             get_bottom_text_position(context.graphics.resolution_y),
             render_size,
             None,
         );
-        render::render_and_wait(&mut context.canvas);
+        renderer.render_and_wait();
     }
 }

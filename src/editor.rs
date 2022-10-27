@@ -2,12 +2,10 @@ extern crate sdl2;
 
 use crate::context_util::resize;
 use crate::crates::{get_crates, CrateClass};
-use crate::create_text_texture;
 use crate::editor_textures::EditorTextures;
 use crate::level::StaticCrate;
 use crate::level::StaticCrateType;
 use crate::level::Steam;
-use crate::render;
 use crate::types::GameType;
 use crate::util::*;
 use crate::Context;
@@ -16,6 +14,7 @@ use crate::Level;
 use crate::NextMode;
 use crate::NextMode::*;
 use crate::TextureType;
+use crate::{render, Renderer};
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::mouse::MouseButton;
@@ -66,8 +65,8 @@ enum InsertType {
     DMCrate(InsertState),
 }
 
-pub fn exec(context: &mut Context) -> NextMode {
-    let mut textures = EditorTextures::new(context);
+pub fn exec<'a>(renderer: &'a Renderer, context: &mut Context<'a>) -> NextMode {
+    let mut textures = EditorTextures::new(renderer, context);
     let mut set_position: u8 = 0;
     let mut mouse_left_click: Option<(u32, u32)> = None;
     let mut mouse_right_click = false;
@@ -119,8 +118,8 @@ pub fn exec(context: &mut Context) -> NextMode {
                     _ => (),
                 },
                 Event::Window { win_event, .. } => {
-                    if resize(context, win_event) {
-                        textures = EditorTextures::new(context);
+                    if resize(renderer, context, win_event) {
+                        textures = EditorTextures::new(renderer, context);
                     }
                 }
                 Event::KeyDown { keycode, .. } => {
@@ -483,12 +482,11 @@ pub fn exec(context: &mut Context) -> NextMode {
                                         format!("{}.LEV", &level_save_name_uppercase);
                                     context.level.serialize(&level_saved_name).unwrap();
                                     context.sdl.video().unwrap().text_input().stop();
-                                    context.textures.saved_level_name = Some(create_text_texture(
-                                        &mut context.canvas,
-                                        &context.texture_creator,
-                                        &context.font,
-                                        &level_saved_name.clone().to_lowercase(),
-                                    ));
+                                    context.textures.saved_level_name =
+                                        Some(renderer.create_text_texture(
+                                            &context.font,
+                                            &level_saved_name.clone().to_lowercase(),
+                                        ));
                                     prompt = PromptType::None;
                                 }
                             }
@@ -612,8 +610,7 @@ pub fn exec(context: &mut Context) -> NextMode {
                 _ => {}
             }
         }
-        render::render_level(
-            &mut context.canvas,
+        renderer.render_level(
             &context.graphics,
             &context.level,
             &context.textures,
@@ -630,23 +627,20 @@ pub fn exec(context: &mut Context) -> NextMode {
             context.graphics.get_x_tiles_per_screen(),
             None,
         );
-        render::highlight_selected_tile(
-            &mut context.canvas,
+        renderer.highlight_selected_tile(
             &context.graphics,
             highlighted_id,
             &render::RendererColor::White,
         );
         let render_size = context.graphics.get_render_size();
-        render::render_text_texture(
-            &mut context.canvas,
+        renderer.render_text_texture(
             &textures.p1_text_texture,
             context.level.p1_position.0 * render_size,
             context.level.p1_position.1 * render_size,
             render_size,
             Some(context.level.scroll),
         );
-        render::render_text_texture(
-            &mut context.canvas,
+        renderer.render_text_texture(
             &textures.p2_text_texture,
             context.level.p2_position.0 * render_size,
             context.level.p2_position.1 * render_size,
@@ -692,14 +686,9 @@ pub fn exec(context: &mut Context) -> NextMode {
         } else {
             &textures.help_text_texture
         };
-        render::render_text_texture_coordinates(
-            &mut context.canvas,
-            text_texture,
-            text_position,
-            render_size,
-            None,
-        );
+        renderer.render_text_texture_coordinates(text_texture, text_position, render_size, None);
         render_prompt_if_needed(
+            renderer,
             context,
             &textures,
             &prompt,
@@ -721,8 +710,7 @@ pub fn exec(context: &mut Context) -> NextMode {
                     None,
                 );
                 for screen_tile_id in selected_screen_tiles {
-                    render::highlight_selected_tile(
-                        &mut context.canvas,
+                    renderer.highlight_selected_tile(
                         &context.graphics,
                         screen_tile_id,
                         &render::RendererColor::White,
@@ -731,15 +719,14 @@ pub fn exec(context: &mut Context) -> NextMode {
             }
         }
         if let Some(texture) = &context.textures.saved_level_name {
-            render::render_text_texture_coordinates(
-                &mut context.canvas,
+            renderer.render_text_texture_coordinates(
                 &texture,
                 get_bottom_text_position(context.graphics.resolution_y),
                 render_size,
                 None,
             );
         }
-        render::render_and_wait(&mut context.canvas);
+        renderer.render_and_wait();
     }
 }
 
@@ -756,15 +743,15 @@ fn sanitize_level_name_input(new_text: &str, target_text: &mut String) {
 }
 
 fn render_input_prompt(
-    context: &mut Context,
+    renderer: &Renderer,
+    context: &Context,
     prompt_position: (u32, u32),
     prompt_line_spacing: u32,
     instruction_texture: &Texture,
     input_field: &str,
 ) {
     let render_size = context.graphics.get_render_size();
-    render::render_text_texture(
-        &mut context.canvas,
+    renderer.render_text_texture(
         instruction_texture,
         prompt_position.0,
         prompt_position.1 + 2 * prompt_line_spacing,
@@ -773,15 +760,9 @@ fn render_input_prompt(
     );
 
     if !input_field.is_empty() {
-        let input_text_texture = create_text_texture(
-            &mut context.canvas,
-            &context.texture_creator,
-            &context.font,
-            &input_field,
-        );
+        let input_text_texture = renderer.create_text_texture(&context.font, &input_field);
         let TextureQuery { width, .. } = instruction_texture.query();
-        render::render_text_texture(
-            &mut context.canvas,
+        renderer.render_text_texture(
             &input_text_texture,
             prompt_position.0 + width * render::TEXT_SIZE_MULTIPLIER + 10,
             prompt_position.1 + 2 * prompt_line_spacing,
@@ -792,6 +773,7 @@ fn render_input_prompt(
 }
 
 fn render_prompt_if_needed(
+    renderer: &Renderer,
     context: &mut Context,
     textures: &EditorTextures,
     prompt: &PromptType,
@@ -810,6 +792,7 @@ fn render_prompt_if_needed(
                             || *input_state == NewLevelState::YSize
                         {
                             render_input_prompt(
+                                renderer,
                                 context,
                                 prompt_position,
                                 prompt_line_spacing,
@@ -819,6 +802,7 @@ fn render_prompt_if_needed(
                         }
                         if *input_state == NewLevelState::YSize {
                             render_input_prompt(
+                                renderer,
                                 context,
                                 (prompt_position.0, prompt_position.1 + prompt_line_spacing),
                                 prompt_line_spacing,
@@ -836,6 +820,7 @@ fn render_prompt_if_needed(
                     SaveLevelType::NameInput => {
                         let level_save_name = context.level_save_name.clone();
                         render_input_prompt(
+                            renderer,
                             context,
                             prompt_position,
                             prompt_line_spacing,
@@ -858,16 +843,14 @@ fn render_prompt_if_needed(
             PromptType::None => unreachable!(),
         };
         let render_size = context.graphics.get_render_size();
-        render::render_text_texture(
-            &mut context.canvas,
+        renderer.render_text_texture(
             prompt_texture,
             prompt_position.0,
             prompt_position.1,
             render_size,
             None,
         );
-        render::render_text_texture(
-            &mut context.canvas,
+        renderer.render_text_texture(
             &textures.press_y_text_texture,
             prompt_position.0,
             prompt_position.1 + prompt_line_spacing,

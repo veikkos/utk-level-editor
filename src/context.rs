@@ -3,11 +3,7 @@ use crate::graphics::Graphics;
 use crate::Level;
 use crate::TextureType;
 use crate::Trigonometry;
-use sdl2::render::Canvas;
 use sdl2::render::Texture;
-use sdl2::render::TextureCreator;
-use sdl2::video::Window;
-use sdl2::video::WindowContext;
 use sdl2::Sdl;
 
 pub struct Textures<'a> {
@@ -22,8 +18,6 @@ pub struct Textures<'a> {
 pub struct Context<'a> {
     pub sdl: Sdl,
     pub graphics: Graphics,
-    pub canvas: Canvas<Window>,
-    pub texture_creator: &'a TextureCreator<WindowContext>,
     pub font: FN2,
     pub textures: Textures<'a>,
     pub level: Level,

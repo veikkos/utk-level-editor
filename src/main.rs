@@ -2,7 +2,6 @@ extern crate sdl2;
 
 use crate::context::Textures;
 use crate::context_util::get_textures;
-use crate::fn2::create_text_texture;
 use crate::fn2::load_font;
 use crate::graphics::Graphics;
 use crate::level::Level;
@@ -22,9 +21,11 @@ mod render;
 mod tile_selector;
 mod types;
 mod util;
+use crate::render::Renderer;
 use context::Context;
 use types::*;
 use util::*;
+
 mod editor_textures;
 mod fn2;
 mod graphics;
@@ -44,15 +45,12 @@ pub fn main() {
         .resizable()
         .build()
         .unwrap();
-    let mut canvas = window.into_canvas().build().unwrap();
-    let texture_creator = canvas.texture_creator();
+    let renderer = Renderer::new(window);
     let font = load_font("./assets/TETRIS.FN2");
-    let textures = get_textures(&mut canvas, &texture_creator, &font);
+    let textures = get_textures(&renderer, &font);
     let mut context = Context {
         sdl,
         graphics,
-        canvas,
-        texture_creator: &texture_creator,
         font,
         textures,
         level: Level::get_default_level((32, 22)),
@@ -65,17 +63,18 @@ pub fn main() {
         automatic_shadows: true,
     };
 
-    let mut next_mode = NextMode::Editor;
-
+    let mut next_mode = Editor;
     'running: loop {
         next_mode = match next_mode {
-            Editor => editor::exec(&mut context),
-            TileSelect => tile_selector::exec(&mut context),
-            Help => help::exec(&mut context),
-            GeneralLevelInfo => general_level_info::exec(&mut context),
-            RandomItemEditor(game_type) => random_item_editor::exec(&mut context, game_type),
-            LoadLevel => load_level::exec(&mut context),
+            Editor => editor::exec(&renderer, &mut context),
+            TileSelect => tile_selector::exec(&renderer, &mut context),
+            Help => help::exec(&renderer, &mut context),
+            GeneralLevelInfo => general_level_info::exec(&renderer, &mut context),
+            RandomItemEditor(game_type) => {
+                random_item_editor::exec(&renderer, &mut context, game_type)
+            }
+            LoadLevel => load_level::exec(&renderer, &mut context),
             Quit => break 'running,
-        }
+        };
     }
 }

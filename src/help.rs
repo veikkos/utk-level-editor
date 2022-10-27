@@ -1,16 +1,14 @@
 extern crate sdl2;
 
 use crate::context_util::resize;
-use crate::fn2::create_text_texture;
-use crate::render;
-use crate::Context;
 use crate::NextMode;
 use crate::NextMode::*;
+use crate::{Context, Renderer};
 use sdl2::event::Event;
 use sdl2::pixels::Color;
 use sdl2::render::Texture;
 
-pub fn exec(context: &mut Context) -> NextMode {
+pub fn exec<'a>(renderer: &'a Renderer, context: &mut Context<'a>) -> NextMode {
     let lines = [
         "ESC - quit",
         "F1   - this help",
@@ -34,14 +32,7 @@ pub fn exec(context: &mut Context) -> NextMode {
     ];
     let line_textures: Vec<Texture> = lines
         .iter()
-        .map(|text| {
-            create_text_texture(
-                &mut context.canvas,
-                &context.texture_creator,
-                &context.font,
-                text,
-            )
-        })
+        .map(|text| renderer.create_text_texture(&context.font, text))
         .collect();
 
     let mut event_pump = context.sdl.event_pump().unwrap();
@@ -53,19 +44,17 @@ pub fn exec(context: &mut Context) -> NextMode {
                     return Editor;
                 }
                 Event::Window { win_event, .. } => {
-                    if resize(context, win_event) {
+                    if resize(renderer, context, win_event) {
                         return Editor;
                     }
                 }
                 _ => {}
             }
         }
-        context.canvas.set_draw_color(Color::from((0, 0, 0)));
-        context.canvas.clear();
+        renderer.clear_screen(Color::from((0, 0, 0)));
         let mut position = 6;
         for line_texture in &line_textures {
-            render::render_text_texture(
-                &mut context.canvas,
+            renderer.render_text_texture(
                 &line_texture,
                 10,
                 position,
@@ -74,6 +63,6 @@ pub fn exec(context: &mut Context) -> NextMode {
             );
             position += 22;
         }
-        render::render_and_wait(&mut context.canvas);
+        renderer.render_and_wait();
     }
 }
