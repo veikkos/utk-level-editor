@@ -4,24 +4,37 @@ use crate::context_util::resize;
 use crate::types::*;
 use crate::util::*;
 use crate::Context;
-use crate::NextMode::*;
+use crate::Mode::*;
 use crate::{render, Renderer};
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::mouse::MouseButton;
 use sdl2::pixels::Color;
+use sdl2::render::Texture;
 
-pub fn exec<'a>(renderer: &'a Renderer, context: &mut Context<'a>) -> NextMode {
-    let floor_blocks_text_texture =
-        renderer.create_text_texture(&context.font, "floor blocks (PAGEGUP/DOWN)");
-    let wall_blocks_text_texture =
-        renderer.create_text_texture(&context.font, "wall blocks (PAGEGUP/DOWN)");
-    let shadow_blocks_text_texture = renderer.create_text_texture(
-        &context.font,
-        "shadows (PAGEGUP/DOWN) - clear with RIGHT CLICK",
-    );
-    let mut event_pump = context.sdl.event_pump().unwrap();
-    loop {
+pub struct TileSelectState<'a> {
+    renderer: &'a Renderer,
+    floor_blocks_text_texture: Texture<'a>,
+    wall_blocks_text_texture: Texture<'a>,
+    shadow_blocks_text_texture: Texture<'a>,
+}
+
+impl<'a> TileSelectState<'a> {
+    pub fn new(renderer: &'a Renderer, context: &Context<'a>) -> Self {
+        TileSelectState {
+            renderer,
+            floor_blocks_text_texture: renderer
+                .create_text_texture(&context.font, "floor blocks (PAGEGUP/DOWN)"),
+            wall_blocks_text_texture: renderer
+                .create_text_texture(&context.font, "wall blocks (PAGEGUP/DOWN)"),
+            shadow_blocks_text_texture: renderer.create_text_texture(
+                &context.font,
+                "shadows (PAGEGUP/DOWN) - clear with RIGHT CLICK",
+            ),
+        }
+    }
+    pub fn frame(&self, context: &mut Context<'a>) -> Mode {
+        let mut event_pump = context.sdl.event_pump().unwrap();
         for event in event_pump.poll_iter() {
             match event {
                 Event::Quit { .. }
@@ -30,7 +43,7 @@ pub fn exec<'a>(renderer: &'a Renderer, context: &mut Context<'a>) -> NextMode {
                     ..
                 } => return Editor,
                 Event::Window { win_event, .. } => {
-                    if resize(renderer, context, win_event) {
+                    if resize(self.renderer, context, win_event) {
                         return Editor;
                     }
                 }
@@ -98,7 +111,7 @@ pub fn exec<'a>(renderer: &'a Renderer, context: &mut Context<'a>) -> NextMode {
             }
         }
 
-        renderer.clear_screen(Color::from((0, 0, 0)));
+        self.renderer.clear_screen(Color::from((0, 0, 0)));
         let texture_selected = match context.texture_type_scrolled {
             TextureType::FLOOR => &context.textures.floor,
             TextureType::WALLS => &context.textures.walls,
@@ -106,7 +119,7 @@ pub fn exec<'a>(renderer: &'a Renderer, context: &mut Context<'a>) -> NextMode {
         };
         let render_multiplier = context.graphics.render_multiplier;
         let dst = render::get_texture_rect(texture_selected, render_multiplier);
-        renderer.fill_and_render_texture(Color::from((200, 200, 200)), texture_selected, dst);
+        self.renderer.fill_and_render_texture(Color::from((200, 200, 200)), texture_selected, dst);
         let (texture_width, texture_height) =
             render::get_texture_render_size(texture_selected, render_multiplier);
         let highlighted_id = get_tile_id_from_coordinates(
@@ -115,7 +128,7 @@ pub fn exec<'a>(renderer: &'a Renderer, context: &mut Context<'a>) -> NextMode {
             context.graphics.get_x_tiles_per_screen(),
             None,
         );
-        renderer.highlight_selected_tile(
+        self.renderer.highlight_selected_tile(
             &context.graphics,
             highlighted_id,
             &render::RendererColor::White,
@@ -136,23 +149,24 @@ pub fn exec<'a>(renderer: &'a Renderer, context: &mut Context<'a>) -> NextMode {
                 context.graphics.get_x_tiles_per_screen(),
                 None,
             );
-            renderer.highlight_selected_tile(
+            self.renderer.highlight_selected_tile(
                 &context.graphics,
                 screen_tile_id,
                 &render::RendererColor::Red,
             );
         }
         let active_text = match context.texture_type_scrolled {
-            TextureType::FLOOR => &floor_blocks_text_texture,
-            TextureType::WALLS => &wall_blocks_text_texture,
-            TextureType::SHADOW => &shadow_blocks_text_texture,
+            TextureType::FLOOR => &self.floor_blocks_text_texture,
+            TextureType::WALLS => &self.wall_blocks_text_texture,
+            TextureType::SHADOW => &self.shadow_blocks_text_texture,
         };
-        renderer.render_text_texture_coordinates(
+        self.renderer.render_text_texture_coordinates(
             active_text,
             get_bottom_text_position(context.graphics.resolution_y),
             context.graphics.get_render_size(),
             None,
         );
-        renderer.render_and_wait();
+        self.renderer.render_and_wait();
+        TileSelect
     }
 }

@@ -5,7 +5,6 @@ use crate::context_util::get_textures;
 use crate::fn2::load_font;
 use crate::graphics::Graphics;
 use crate::level::Level;
-use crate::types::NextMode::*;
 use sdl2::image::InitFlag;
 use sdl2::render::Texture;
 mod context;
@@ -21,7 +20,13 @@ mod render;
 mod tile_selector;
 mod types;
 mod util;
+use crate::editor::EditorState;
+use crate::general_level_info::GeneralLevelInfoState;
+use crate::help::HelpState;
+use crate::load_level::LoadLevelState;
+use crate::random_item_editor::RandomItemEditorState;
 use crate::render::Renderer;
+use crate::tile_selector::TileSelectState;
 use context::Context;
 use types::*;
 use util::*;
@@ -63,18 +68,23 @@ pub fn main() {
         automatic_shadows: true,
     };
 
-    let mut next_mode = Editor;
-    'running: loop {
-        next_mode = match next_mode {
-            Editor => editor::exec(&renderer, &mut context),
-            TileSelect => tile_selector::exec(&renderer, &mut context),
-            Help => help::exec(&renderer, &mut context),
-            GeneralLevelInfo => general_level_info::exec(&renderer, &mut context),
-            RandomItemEditor(game_type) => {
-                random_item_editor::exec(&renderer, &mut context, game_type)
-            }
-            LoadLevel => load_level::exec(&renderer, &mut context),
-            Quit => break 'running,
+    let mut editor = EditorState::new(&renderer, &context);
+    let tile_select = TileSelectState::new(&renderer, &context);
+    let help = HelpState::new(&renderer, &context);
+    let mut general_level_info = GeneralLevelInfoState::new(&renderer, &context);
+    let mut random_item_editor = RandomItemEditorState::new(&renderer, &context);
+    let mut load_level = LoadLevelState::new(&renderer, &context);
+
+    let mut mode = Mode::Editor;
+    loop {
+        mode = match mode {
+            Mode::Editor => editor.frame(&mut context),
+            Mode::TileSelect => tile_select.frame(&mut context),
+            Mode::Help => help.frame(&mut context),
+            Mode::GeneralLevelInfo => general_level_info.frame(&mut context),
+            Mode::RandomItemEditor(game_type) => random_item_editor.frame(&mut context, game_type),
+            Mode::LoadLevel => load_level.frame(&mut context),
+            Mode::Quit => break,
         };
     }
 }

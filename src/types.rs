@@ -25,12 +25,14 @@ pub struct Tile {
 
 pub type Tiles = Vec<Vec<Tile>>;
 
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum GameType {
     Normal,
     Deathmatch,
 }
 
-pub enum NextMode {
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum Mode {
     Editor,
     TileSelect,
     Help,

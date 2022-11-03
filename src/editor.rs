@@ -1,7 +1,7 @@
 extern crate sdl2;
 
 use crate::context_util::resize;
-use crate::crates::{get_crates, CrateClass};
+use crate::crates::{get_crates, CrateClass, Crates};
 use crate::editor_textures::EditorTextures;
 use crate::level::StaticCrate;
 use crate::level::StaticCrateType;
@@ -11,8 +11,8 @@ use crate::util::*;
 use crate::Context;
 use crate::Graphics;
 use crate::Level;
-use crate::NextMode;
-use crate::NextMode::*;
+use crate::Mode;
+use crate::Mode::*;
 use crate::TextureType;
 use crate::{render, Renderer};
 use sdl2::event::Event;
@@ -65,21 +65,42 @@ enum InsertType {
     DMCrate(InsertState),
 }
 
-pub fn exec<'a>(renderer: &'a Renderer, context: &mut Context<'a>) -> NextMode {
-    let mut textures = EditorTextures::new(renderer, context);
-    let mut set_position: u8 = 0;
-    let mut mouse_left_click: Option<(u32, u32)> = None;
-    let mut mouse_right_click = false;
-    let mut prompt = PromptType::None;
-    let mut insert_item = InsertType::None;
-    static DEFAULT_LEVEL_SIZE: (u32, u32) = (16, 12);
-    let mut new_level_size_x: String = DEFAULT_LEVEL_SIZE.0.to_string();
-    let mut new_level_size_y: String = DEFAULT_LEVEL_SIZE.1.to_string();
-    let mut drag_tiles = false;
-    let crates = get_crates();
+pub struct EditorState<'a> {
+    renderer: &'a Renderer,
+    textures: EditorTextures<'a>,
+    set_position: u8,
+    mouse_left_click: Option<(u32, u32)>,
+    mouse_right_click: bool,
+    prompt: PromptType,
+    insert_item: InsertType,
+    new_level_size_x: String,
+    new_level_size_y: String,
+    drag_tiles: bool,
+    crates: Crates<'a>,
+}
 
-    let mut event_pump = context.sdl.event_pump().unwrap();
-    loop {
+static DEFAULT_LEVEL_SIZE: (u32, u32) = (16, 12);
+
+impl<'a> EditorState<'a> {
+    pub fn new(renderer: &'a Renderer, context: &Context<'a>) -> Self {
+        let textures = EditorTextures::new(renderer, context);
+        EditorState {
+            renderer,
+            textures,
+            set_position: 0,
+            mouse_left_click: None,
+            mouse_right_click: false,
+            prompt: PromptType::None,
+            insert_item: InsertType::None,
+            new_level_size_x: DEFAULT_LEVEL_SIZE.0.to_string(),
+            new_level_size_y: DEFAULT_LEVEL_SIZE.1.to_string(),
+            drag_tiles: false,
+            crates: get_crates(),
+        }
+    }
+
+    pub fn frame(&mut self, context: &mut Context<'a>) -> Mode {
+        let mut event_pump = context.sdl.event_pump().unwrap();
         for event in event_pump.poll_iter() {
             match event {
                 Event::Quit { .. }
@@ -87,25 +108,25 @@ pub fn exec<'a>(renderer: &'a Renderer, context: &mut Context<'a>) -> NextMode {
                     keycode: Some(Keycode::Escape),
                     ..
                 } => {
-                    prompt = if prompt != PromptType::None
-                        || insert_item != InsertType::None
-                        || set_position > 0
+                    self.prompt = if self.prompt != PromptType::None
+                        || self.insert_item != InsertType::None
+                        || self.set_position > 0
                     {
-                        insert_item = InsertType::None;
+                        self.insert_item = InsertType::None;
                         context.sdl.video().unwrap().text_input().stop();
-                        set_position = 0;
+                        self.set_position = 0;
                         PromptType::None
                     } else {
                         PromptType::Quit
                     };
                 }
-                Event::TextInput { text, .. } => match &prompt {
+                Event::TextInput { text, .. } => match &self.prompt {
                     PromptType::NewLevel(new_level_state) => match new_level_state {
                         NewLevelState::XSize => {
-                            sanitize_numeric_input(&text, &mut new_level_size_x)
+                            sanitize_numeric_input(&text, &mut self.new_level_size_x)
                         }
                         NewLevelState::YSize => {
-                            sanitize_numeric_input(&text, &mut new_level_size_y)
+                            sanitize_numeric_input(&text, &mut self.new_level_size_y)
                         }
                         _ => {}
                     },
@@ -118,8 +139,8 @@ pub fn exec<'a>(renderer: &'a Renderer, context: &mut Context<'a>) -> NextMode {
                     _ => (),
                 },
                 Event::Window { win_event, .. } => {
-                    if resize(renderer, context, win_event) {
-                        textures = EditorTextures::new(renderer, context);
+                    if resize(self.renderer, context, win_event) {
+                        self.textures = EditorTextures::new(self.renderer, context);
                     }
                 }
                 Event::KeyDown { keycode, .. } => {
@@ -133,24 +154,25 @@ pub fn exec<'a>(renderer: &'a Renderer, context: &mut Context<'a>) -> NextMode {
                             }
                             Keycode::F2 => {
                                 context.sdl.video().unwrap().text_input().stop();
-                                prompt = PromptType::Save(SaveLevelType::Prompt);
+                                self.prompt = PromptType::Save(SaveLevelType::Prompt);
                             }
                             Keycode::F3 => {
                                 context.sdl.video().unwrap().text_input().stop();
                                 return LoadLevel;
                             }
                             Keycode::F4 => {
-                                prompt = PromptType::NewLevel(NewLevelState::Prompt);
-                                new_level_size_x = DEFAULT_LEVEL_SIZE.0.to_string();
-                                new_level_size_y = DEFAULT_LEVEL_SIZE.1.to_string();
+                                self.prompt = PromptType::NewLevel(NewLevelState::Prompt);
+                                self.new_level_size_x = DEFAULT_LEVEL_SIZE.0.to_string();
+                                self.new_level_size_y = DEFAULT_LEVEL_SIZE.1.to_string();
                             }
                             Keycode::F6 => {
                                 context.sdl.video().unwrap().text_input().stop();
-                                prompt = PromptType::CreateShadows(if context.automatic_shadows {
-                                    ShadowPromptType::Enabled
-                                } else {
-                                    ShadowPromptType::Disabled
-                                });
+                                self.prompt =
+                                    PromptType::CreateShadows(if context.automatic_shadows {
+                                        ShadowPromptType::Enabled
+                                    } else {
+                                        ShadowPromptType::Disabled
+                                    });
                             }
                             Keycode::F7 => {
                                 return GeneralLevelInfo;
@@ -162,38 +184,38 @@ pub fn exec<'a>(renderer: &'a Renderer, context: &mut Context<'a>) -> NextMode {
                                 return RandomItemEditor(GameType::Deathmatch);
                             }
                             Keycode::Num1 | Keycode::Num2 => {
-                                if !matches!(prompt, PromptType::NewLevel(_))
-                                    && !matches!(prompt, PromptType::Save(_))
+                                if !matches!(self.prompt, PromptType::NewLevel(_))
+                                    && !matches!(self.prompt, PromptType::Save(_))
                                 {
-                                    set_position = if key == Keycode::Num1 { 1 } else { 2 };
-                                    prompt = PromptType::None;
+                                    self.set_position = if key == Keycode::Num1 { 1 } else { 2 };
+                                    self.prompt = PromptType::None;
                                 }
                             }
                             Keycode::Q | Keycode::W => {
-                                if !matches!(prompt, PromptType::Save(_)) {
-                                    insert_item = if key == Keycode::Q {
+                                if !matches!(self.prompt, PromptType::Save(_)) {
+                                    self.insert_item = if key == Keycode::Q {
                                         InsertType::Spotlight(InsertState::Place)
                                     } else {
                                         InsertType::Spotlight(InsertState::Delete)
                                     };
                                     context.sdl.video().unwrap().text_input().stop();
-                                    prompt = PromptType::None;
+                                    self.prompt = PromptType::None;
                                 }
                             }
                             Keycode::A | Keycode::S => {
-                                if !matches!(prompt, PromptType::Save(_)) {
-                                    insert_item = if key == Keycode::A {
+                                if !matches!(self.prompt, PromptType::Save(_)) {
+                                    self.insert_item = if key == Keycode::A {
                                         InsertType::Steam(InsertState::Place)
                                     } else {
                                         InsertType::Steam(InsertState::Delete)
                                     };
                                     context.sdl.video().unwrap().text_input().stop();
-                                    prompt = PromptType::None;
+                                    self.prompt = PromptType::None;
                                 }
                             }
                             Keycode::Z | Keycode::X | Keycode::C => {
-                                if !matches!(prompt, PromptType::Save(_)) {
-                                    insert_item = if key == Keycode::Z {
+                                if !matches!(self.prompt, PromptType::Save(_)) {
+                                    self.insert_item = if key == Keycode::Z {
                                         InsertType::NormalCrate(InsertState::Place)
                                     } else if key == Keycode::X {
                                         InsertType::DMCrate(InsertState::Place)
@@ -201,20 +223,20 @@ pub fn exec<'a>(renderer: &'a Renderer, context: &mut Context<'a>) -> NextMode {
                                         InsertType::NormalCrate(InsertState::Delete)
                                     };
                                     context.sdl.video().unwrap().text_input().stop();
-                                    prompt = PromptType::None;
+                                    self.prompt = PromptType::None;
                                 }
                             }
-                            Keycode::Y => match &prompt {
+                            Keycode::Y => match &self.prompt {
                                 PromptType::NewLevel(new_level_state) => match new_level_state {
                                     NewLevelState::Prompt => {
-                                        prompt = PromptType::NewLevel(NewLevelState::XSize);
+                                        self.prompt = PromptType::NewLevel(NewLevelState::XSize);
                                         context.sdl.video().unwrap().text_input().start();
                                     }
                                     _ => {}
                                 },
                                 PromptType::Save(save_level_state) => match save_level_state {
                                     SaveLevelType::Prompt => {
-                                        prompt = PromptType::Save(SaveLevelType::NameInput);
+                                        self.prompt = PromptType::Save(SaveLevelType::NameInput);
                                         context.sdl.video().unwrap().text_input().start();
                                     }
                                     _ => {}
@@ -227,14 +249,14 @@ pub fn exec<'a>(renderer: &'a Renderer, context: &mut Context<'a>) -> NextMode {
                                             true
                                         }
                                     };
-                                    prompt = PromptType::None;
+                                    self.prompt = PromptType::None;
                                 }
                                 PromptType::Quit => return Quit,
                                 PromptType::None => {
-                                    prompt = PromptType::None;
+                                    self.prompt = PromptType::None;
                                 }
                             },
-                            Keycode::Up => match &insert_item {
+                            Keycode::Up => match &self.insert_item {
                                 InsertType::Spotlight(state) => match state {
                                     InsertState::Instructions(coordinates) => {
                                         let spotlight_intensity =
@@ -290,7 +312,7 @@ pub fn exec<'a>(renderer: &'a Renderer, context: &mut Context<'a>) -> NextMode {
                                     }
                                 }
                             },
-                            Keycode::Down => match &insert_item {
+                            Keycode::Down => match &self.insert_item {
                                 InsertType::Spotlight(state) => match state {
                                     InsertState::Instructions(coordinates) => {
                                         let spotlight_intensity =
@@ -349,7 +371,7 @@ pub fn exec<'a>(renderer: &'a Renderer, context: &mut Context<'a>) -> NextMode {
                                     }
                                 }
                             },
-                            Keycode::Left => match &insert_item {
+                            Keycode::Left => match &self.insert_item {
                                 InsertType::Steam(state) => match state {
                                     InsertState::Instructions(coordinates) => {
                                         let steam =
@@ -387,7 +409,7 @@ pub fn exec<'a>(renderer: &'a Renderer, context: &mut Context<'a>) -> NextMode {
                                     }
                                 }
                             },
-                            Keycode::Right => match &insert_item {
+                            Keycode::Right => match &self.insert_item {
                                 InsertType::Steam(state) => match state {
                                     InsertState::Instructions(coordinates) => {
                                         let steam =
@@ -410,7 +432,8 @@ pub fn exec<'a>(renderer: &'a Renderer, context: &mut Context<'a>) -> NextMode {
                                                 .get_crate_from_level(&coordinates)
                                                 .clone();
                                             if crate_item.crate_type
-                                                < (crates[crate_item.crate_class as usize].len()
+                                                < (self.crates[crate_item.crate_class as usize]
+                                                    .len()
                                                     - 1)
                                                     as u8
                                             {
@@ -434,46 +457,46 @@ pub fn exec<'a>(renderer: &'a Renderer, context: &mut Context<'a>) -> NextMode {
                             },
                             Keycode::Return | Keycode::KpEnter => {
                                 if matches!(
-                                    insert_item,
+                                    self.insert_item,
                                     InsertType::Spotlight(InsertState::Instructions(_))
                                 ) {
-                                    insert_item = InsertType::Spotlight(InsertState::Place);
+                                    self.insert_item = InsertType::Spotlight(InsertState::Place);
                                 }
                                 if matches!(
-                                    insert_item,
+                                    self.insert_item,
                                     InsertType::Steam(InsertState::Instructions(_))
                                 ) {
-                                    insert_item = InsertType::Steam(InsertState::Place);
+                                    self.insert_item = InsertType::Steam(InsertState::Place);
                                 }
                                 if matches!(
-                                    insert_item,
+                                    self.insert_item,
                                     InsertType::NormalCrate(InsertState::Instructions(_))
                                 ) {
-                                    insert_item = InsertType::NormalCrate(InsertState::Place);
+                                    self.insert_item = InsertType::NormalCrate(InsertState::Place);
                                 }
                                 if matches!(
-                                    insert_item,
+                                    self.insert_item,
                                     InsertType::DMCrate(InsertState::Instructions(_))
                                 ) {
-                                    insert_item = InsertType::DMCrate(InsertState::Place);
-                                } else if prompt == PromptType::NewLevel(NewLevelState::XSize)
-                                    && new_level_size_x.len() > 1
-                                    && new_level_size_x.parse::<u8>().unwrap() >= 16
+                                    self.insert_item = InsertType::DMCrate(InsertState::Place);
+                                } else if self.prompt == PromptType::NewLevel(NewLevelState::XSize)
+                                    && self.new_level_size_x.len() > 1
+                                    && self.new_level_size_x.parse::<u8>().unwrap() >= 16
                                 {
-                                    prompt = PromptType::NewLevel(NewLevelState::YSize);
-                                } else if prompt == PromptType::NewLevel(NewLevelState::YSize)
-                                    && new_level_size_x.len() > 1
-                                    && new_level_size_y.parse::<u8>().unwrap() >= 12
+                                    self.prompt = PromptType::NewLevel(NewLevelState::YSize);
+                                } else if self.prompt == PromptType::NewLevel(NewLevelState::YSize)
+                                    && self.new_level_size_x.len() > 1
+                                    && self.new_level_size_y.parse::<u8>().unwrap() >= 12
                                 {
                                     context.level = Level::get_default_level((
-                                        new_level_size_x.parse::<u8>().unwrap(),
-                                        new_level_size_y.parse::<u8>().unwrap(),
+                                        self.new_level_size_x.parse::<u8>().unwrap(),
+                                        self.new_level_size_y.parse::<u8>().unwrap(),
                                     ));
                                     context.sdl.video().unwrap().text_input().stop();
                                     context.textures.saved_level_name = None;
                                     context.level_save_name.clear();
-                                    prompt = PromptType::None;
-                                } else if prompt == PromptType::Save(SaveLevelType::NameInput)
+                                    self.prompt = PromptType::None;
+                                } else if self.prompt == PromptType::Save(SaveLevelType::NameInput)
                                     && context.level_save_name.len() > 1
                                 {
                                     let level_save_name_uppercase =
@@ -483,20 +506,20 @@ pub fn exec<'a>(renderer: &'a Renderer, context: &mut Context<'a>) -> NextMode {
                                     context.level.serialize(&level_saved_name).unwrap();
                                     context.sdl.video().unwrap().text_input().stop();
                                     context.textures.saved_level_name =
-                                        Some(renderer.create_text_texture(
+                                        Some(self.renderer.create_text_texture(
                                             &context.font,
                                             &level_saved_name.clone().to_lowercase(),
                                         ));
-                                    prompt = PromptType::None;
+                                    self.prompt = PromptType::None;
                                 }
                             }
-                            Keycode::Backspace => match &prompt {
+                            Keycode::Backspace => match &self.prompt {
                                 PromptType::NewLevel(new_level_state) => match new_level_state {
                                     NewLevelState::XSize => {
-                                        new_level_size_x.pop();
+                                        self.new_level_size_x.pop();
                                     }
                                     NewLevelState::YSize => {
-                                        new_level_size_y.pop();
+                                        self.new_level_size_y.pop();
                                     }
                                     _ => {}
                                 },
@@ -520,11 +543,11 @@ pub fn exec<'a>(renderer: &'a Renderer, context: &mut Context<'a>) -> NextMode {
                                 }
                             }
                             _ => {
-                                if prompt != PromptType::NewLevel(NewLevelState::XSize)
-                                    && prompt != PromptType::NewLevel(NewLevelState::YSize)
-                                    && prompt != PromptType::Save(SaveLevelType::NameInput)
+                                if self.prompt != PromptType::NewLevel(NewLevelState::XSize)
+                                    && self.prompt != PromptType::NewLevel(NewLevelState::YSize)
+                                    && self.prompt != PromptType::Save(SaveLevelType::NameInput)
                                 {
-                                    prompt = PromptType::None
+                                    self.prompt = PromptType::None
                                 }
                             }
                         }
@@ -534,16 +557,11 @@ pub fn exec<'a>(renderer: &'a Renderer, context: &mut Context<'a>) -> NextMode {
                     if x >= 0 && y >= 0 {
                         context.mouse.0 = x as u32;
                         context.mouse.1 = y as u32;
-                        if mouse_left_click.is_some() {
-                            handle_mouse_left_down(
-                                context,
-                                &mut set_position,
-                                &mut insert_item,
-                                &mut drag_tiles,
-                            );
+                        if self.mouse_left_click.is_some() {
+                            self.handle_mouse_left_down(context);
                         }
-                        if mouse_right_click {
-                            handle_mouse_right_down(context);
+                        if self.mouse_right_click {
+                            self.handle_mouse_right_down(context);
                         }
                     }
                 }
@@ -551,21 +569,16 @@ pub fn exec<'a>(renderer: &'a Renderer, context: &mut Context<'a>) -> NextMode {
                     mouse_btn: MouseButton::Left,
                     ..
                 } => {
-                    mouse_left_click = Some(context.mouse);
-                    handle_mouse_left_down(
-                        context,
-                        &mut set_position,
-                        &mut insert_item,
-                        &mut drag_tiles,
-                    );
+                    self.mouse_left_click = Some(context.mouse);
+                    self.handle_mouse_left_down(context);
                 }
                 Event::MouseButtonUp {
                     mouse_btn: MouseButton::Left,
                     ..
                 } => {
-                    if drag_tiles {
-                        drag_tiles = false;
-                        if let Some(coordinates) = mouse_left_click {
+                    if self.drag_tiles {
+                        self.drag_tiles = false;
+                        if let Some(coordinates) = self.mouse_left_click {
                             let selected_level_tiles = get_selected_level_tiles(
                                 &context.graphics,
                                 &coordinates,
@@ -592,25 +605,25 @@ pub fn exec<'a>(renderer: &'a Renderer, context: &mut Context<'a>) -> NextMode {
                             }
                         }
                     };
-                    mouse_left_click = None;
+                    self.mouse_left_click = None;
                 }
                 Event::MouseButtonDown {
                     mouse_btn: MouseButton::Right,
                     ..
                 } => {
-                    mouse_right_click = true;
-                    handle_mouse_right_down(context);
+                    self.mouse_right_click = true;
+                    self.handle_mouse_right_down(context);
                 }
                 Event::MouseButtonUp {
                     mouse_btn: MouseButton::Right,
                     ..
                 } => {
-                    mouse_right_click = false;
+                    self.mouse_right_click = false;
                 }
                 _ => {}
             }
         }
-        renderer.render_level(
+        self.renderer.render_level(
             &context.graphics,
             &context.level,
             &context.textures,
@@ -627,76 +640,82 @@ pub fn exec<'a>(renderer: &'a Renderer, context: &mut Context<'a>) -> NextMode {
             context.graphics.get_x_tiles_per_screen(),
             None,
         );
-        renderer.highlight_selected_tile(
+        self.renderer.highlight_selected_tile(
             &context.graphics,
             highlighted_id,
             &render::RendererColor::White,
         );
         let render_size = context.graphics.get_render_size();
-        renderer.render_text_texture(
-            &textures.p1_text_texture,
+        self.renderer.render_text_texture(
+            &self.textures.p1_text_texture,
             context.level.p1_position.0 * render_size,
             context.level.p1_position.1 * render_size,
             render_size,
             Some(context.level.scroll),
         );
-        renderer.render_text_texture(
-            &textures.p2_text_texture,
+        self.renderer.render_text_texture(
+            &self.textures.p2_text_texture,
             context.level.p2_position.0 * render_size,
             context.level.p2_position.1 * render_size,
             render_size,
             Some(context.level.scroll),
         );
         let text_position = (8, 8);
-        let text_texture = if set_position == 1 {
-            &textures.p1_set_text_texture
-        } else if set_position == 2 {
-            &textures.p2_set_text_texture
+        let text_texture = if self.set_position == 1 {
+            &self.textures.p1_set_text_texture
+        } else if self.set_position == 2 {
+            &self.textures.p2_set_text_texture
         } else if matches!(
-            insert_item,
+            self.insert_item,
             InsertType::Spotlight(InsertState::Instructions(_))
         ) {
-            &textures.spotlight_instructions_text_texture
-        } else if matches!(insert_item, InsertType::Spotlight(InsertState::Place)) {
-            &textures.spotlight_place_text_texture
-        } else if matches!(insert_item, InsertType::Spotlight(InsertState::Delete)) {
-            &textures.spotlight_delete_text_texture
-        } else if matches!(insert_item, InsertType::Steam(InsertState::Instructions(_))) {
-            &textures.steam_instructions_text_texture
-        } else if matches!(insert_item, InsertType::Steam(InsertState::Place)) {
-            &textures.steam_place_text_texture
-        } else if matches!(insert_item, InsertType::Steam(InsertState::Delete)) {
-            &textures.steam_delete_text_texture
-        } else if matches!(insert_item, InsertType::NormalCrate(InsertState::Place)) {
-            &textures.place_normal_crate_text_texture
-        } else if matches!(insert_item, InsertType::DMCrate(InsertState::Place)) {
-            &textures.place_deathmatch_create_text_texture
+            &self.textures.spotlight_instructions_text_texture
+        } else if matches!(self.insert_item, InsertType::Spotlight(InsertState::Place)) {
+            &self.textures.spotlight_place_text_texture
+        } else if matches!(self.insert_item, InsertType::Spotlight(InsertState::Delete)) {
+            &self.textures.spotlight_delete_text_texture
         } else if matches!(
-            insert_item,
+            self.insert_item,
+            InsertType::Steam(InsertState::Instructions(_))
+        ) {
+            &self.textures.steam_instructions_text_texture
+        } else if matches!(self.insert_item, InsertType::Steam(InsertState::Place)) {
+            &self.textures.steam_place_text_texture
+        } else if matches!(self.insert_item, InsertType::Steam(InsertState::Delete)) {
+            &self.textures.steam_delete_text_texture
+        } else if matches!(
+            self.insert_item,
+            InsertType::NormalCrate(InsertState::Place)
+        ) {
+            &self.textures.place_normal_crate_text_texture
+        } else if matches!(self.insert_item, InsertType::DMCrate(InsertState::Place)) {
+            &self.textures.place_deathmatch_create_text_texture
+        } else if matches!(
+            self.insert_item,
             InsertType::NormalCrate(InsertState::Instructions(_))
         ) || matches!(
-            insert_item,
+            self.insert_item,
             InsertType::DMCrate(InsertState::Instructions(_))
         ) {
-            &textures.insert_crate_text_texture
-        } else if matches!(insert_item, InsertType::NormalCrate(InsertState::Delete))
-            || matches!(insert_item, InsertType::DMCrate(InsertState::Delete))
+            &self.textures.insert_crate_text_texture
+        } else if matches!(
+            self.insert_item,
+            InsertType::NormalCrate(InsertState::Delete)
+        ) || matches!(self.insert_item, InsertType::DMCrate(InsertState::Delete))
         {
-            &textures.delete_crate_text_texture
+            &self.textures.delete_crate_text_texture
         } else {
-            &textures.help_text_texture
+            &self.textures.help_text_texture
         };
-        renderer.render_text_texture_coordinates(text_texture, text_position, render_size, None);
-        render_prompt_if_needed(
-            renderer,
-            context,
-            &textures,
-            &prompt,
-            &new_level_size_x,
-            &new_level_size_y,
+        self.renderer.render_text_texture_coordinates(
+            text_texture,
+            text_position,
+            render_size,
+            None,
         );
-        if insert_item == InsertType::None {
-            if let Some(coordinates) = mouse_left_click {
+        self.render_prompt_if_needed(self.renderer, context);
+        if self.insert_item == InsertType::None {
+            if let Some(coordinates) = self.mouse_left_click {
                 let selected_screen_tiles = get_selected_level_tiles(
                     &context.graphics,
                     &coordinates,
@@ -710,7 +729,7 @@ pub fn exec<'a>(renderer: &'a Renderer, context: &mut Context<'a>) -> NextMode {
                     None,
                 );
                 for screen_tile_id in selected_screen_tiles {
-                    renderer.highlight_selected_tile(
+                    self.renderer.highlight_selected_tile(
                         &context.graphics,
                         screen_tile_id,
                         &render::RendererColor::White,
@@ -719,14 +738,227 @@ pub fn exec<'a>(renderer: &'a Renderer, context: &mut Context<'a>) -> NextMode {
             }
         }
         if let Some(texture) = &context.textures.saved_level_name {
-            renderer.render_text_texture_coordinates(
+            self.renderer.render_text_texture_coordinates(
                 &texture,
                 get_bottom_text_position(context.graphics.resolution_y),
                 render_size,
                 None,
             );
         }
-        renderer.render_and_wait();
+        self.renderer.render_and_wait();
+        Editor
+    }
+
+    fn render_input_prompt(
+        &self,
+        renderer: &Renderer,
+        context: &Context,
+        prompt_position: (u32, u32),
+        prompt_line_spacing: u32,
+        instruction_texture: &Texture,
+        input_field: &str,
+    ) {
+        let render_size = context.graphics.get_render_size();
+        renderer.render_text_texture(
+            instruction_texture,
+            prompt_position.0,
+            prompt_position.1 + 2 * prompt_line_spacing,
+            render_size,
+            None,
+        );
+
+        if !input_field.is_empty() {
+            let input_text_texture = renderer.create_text_texture(&context.font, &input_field);
+            let TextureQuery { width, .. } = instruction_texture.query();
+            renderer.render_text_texture(
+                &input_text_texture,
+                prompt_position.0 + width * render::TEXT_SIZE_MULTIPLIER + 10,
+                prompt_position.1 + 2 * prompt_line_spacing,
+                render_size,
+                None,
+            );
+        }
+    }
+
+    fn render_prompt_if_needed(&self, renderer: &Renderer, context: &Context) {
+        if self.prompt != PromptType::None {
+            let prompt_position = (context.graphics.resolution_x / 2 - 100, 200);
+            let prompt_line_spacing = 30;
+            let prompt_texture = match &self.prompt {
+                PromptType::NewLevel(state) => {
+                    match state {
+                        NewLevelState::Prompt => (),
+                        input_state => {
+                            if *input_state == NewLevelState::XSize
+                                || *input_state == NewLevelState::YSize
+                            {
+                                self.render_input_prompt(
+                                    renderer,
+                                    context,
+                                    prompt_position,
+                                    prompt_line_spacing,
+                                    &self.textures.new_level_x_size_text_texture,
+                                    &self.new_level_size_x,
+                                );
+                            }
+                            if *input_state == NewLevelState::YSize {
+                                self.render_input_prompt(
+                                    renderer,
+                                    context,
+                                    (prompt_position.0, prompt_position.1 + prompt_line_spacing),
+                                    prompt_line_spacing,
+                                    &self.textures.new_level_y_size_text_texture,
+                                    &self.new_level_size_y,
+                                );
+                            }
+                        }
+                    }
+                    &self.textures.create_new_level_text_texture
+                }
+                PromptType::Save(save_level_state) => {
+                    match save_level_state {
+                        SaveLevelType::Prompt => (),
+                        SaveLevelType::NameInput => {
+                            let level_save_name = context.level_save_name.clone();
+                            self.render_input_prompt(
+                                renderer,
+                                context,
+                                prompt_position,
+                                prompt_line_spacing,
+                                &self.textures.filename_text_texture,
+                                &level_save_name,
+                            );
+                        }
+                    };
+                    &self.textures.save_level_text_texture
+                }
+                PromptType::Quit => &self.textures.wanna_quit_text_texture,
+                PromptType::CreateShadows(shadow_state) => match shadow_state {
+                    ShadowPromptType::Enabled => {
+                        &self
+                            .textures
+                            .create_shadows_enabled_instructions_text_texture
+                    }
+                    ShadowPromptType::Disabled => {
+                        &self
+                            .textures
+                            .create_shadows_disabled_instructions_text_texture
+                    }
+                },
+                PromptType::None => unreachable!(),
+            };
+            let render_size = context.graphics.get_render_size();
+            renderer.render_text_texture(
+                prompt_texture,
+                prompt_position.0,
+                prompt_position.1,
+                render_size,
+                None,
+            );
+            renderer.render_text_texture(
+                &self.textures.press_y_text_texture,
+                prompt_position.0,
+                prompt_position.1 + prompt_line_spacing,
+                render_size,
+                None,
+            );
+        }
+    }
+
+    fn handle_mouse_left_down(&mut self, context: &mut Context) {
+        if self.drag_tiles {
+            return;
+        }
+
+        if self.set_position > 0 {
+            let position = if self.set_position == 1 {
+                &mut context.level.p1_position
+            } else {
+                &mut context.level.p2_position
+            };
+            *position = get_logical_coordinates(
+                &context.graphics,
+                context.mouse.0,
+                context.mouse.1,
+                Some(context.level.scroll),
+            );
+            self.set_position = 0;
+        } else {
+            let level_coordinates = get_level_coordinates_from_screen_coordinates(
+                &context.graphics,
+                &context.mouse,
+                &context.level.scroll,
+            );
+            if matches!(self.insert_item, InsertType::Spotlight(InsertState::Place)) {
+                self.insert_item =
+                    InsertType::Spotlight(InsertState::Instructions(level_coordinates));
+                context.level.put_spotlight_to_level(&level_coordinates, 0);
+            } else if matches!(self.insert_item, InsertType::Spotlight(InsertState::Delete)) {
+                context.level.delete_spotlight_if_near(
+                    &level_coordinates,
+                    context.graphics.render_multiplier,
+                );
+            } else if matches!(self.insert_item, InsertType::Steam(InsertState::Place)) {
+                self.insert_item = InsertType::Steam(InsertState::Instructions(level_coordinates));
+                context
+                    .level
+                    .put_steam_to_level(&level_coordinates, &Steam { angle: 0, range: 1 });
+            } else if matches!(self.insert_item, InsertType::Steam(InsertState::Delete)) {
+                context
+                    .level
+                    .delete_steam_if_near(&level_coordinates, context.graphics.render_multiplier);
+            } else if matches!(
+                self.insert_item,
+                InsertType::NormalCrate(InsertState::Place)
+            ) {
+                self.insert_item =
+                    InsertType::NormalCrate(InsertState::Instructions(level_coordinates));
+                context.level.put_crate_to_level(
+                    &level_coordinates,
+                    &StaticCrateType {
+                        crate_variant: StaticCrate::Normal,
+                        crate_class: CrateClass::Weapon,
+                        crate_type: 0,
+                    },
+                );
+            } else if matches!(self.insert_item, InsertType::DMCrate(InsertState::Place)) {
+                self.insert_item =
+                    InsertType::DMCrate(InsertState::Instructions(level_coordinates));
+                context.level.put_crate_to_level(
+                    &level_coordinates,
+                    &StaticCrateType {
+                        crate_variant: StaticCrate::Deathmatch,
+                        crate_class: CrateClass::Weapon,
+                        crate_type: 0,
+                    },
+                );
+            } else if matches!(
+                self.insert_item,
+                InsertType::NormalCrate(InsertState::Delete)
+            ) {
+                context
+                    .level
+                    .delete_crate_if_near(&level_coordinates, context.graphics.render_multiplier);
+            } else if self.insert_item == InsertType::None {
+                self.drag_tiles = true;
+            }
+        }
+    }
+
+    fn handle_mouse_right_down(&self, context: &mut Context) {
+        let pointed_tile = get_tile_id_from_coordinates(
+            &context.graphics,
+            &limit_coordinates(
+                &context.mouse,
+                &(context.graphics.resolution_x, context.graphics.resolution_y),
+            ),
+            context.level.tiles[0].len() as u32,
+            Some(context.level.scroll),
+        );
+        context
+            .level
+            .put_tile_to_level(pointed_tile, None, &TextureType::SHADOW);
+        context.automatic_shadows = false;
     }
 }
 
@@ -740,215 +972,6 @@ fn sanitize_level_name_input(new_text: &str, target_text: &mut String) {
     if new_text.chars().all(char::is_alphanumeric) && (target_text.len() + new_text.len() <= 11) {
         *target_text += new_text;
     }
-}
-
-fn render_input_prompt(
-    renderer: &Renderer,
-    context: &Context,
-    prompt_position: (u32, u32),
-    prompt_line_spacing: u32,
-    instruction_texture: &Texture,
-    input_field: &str,
-) {
-    let render_size = context.graphics.get_render_size();
-    renderer.render_text_texture(
-        instruction_texture,
-        prompt_position.0,
-        prompt_position.1 + 2 * prompt_line_spacing,
-        render_size,
-        None,
-    );
-
-    if !input_field.is_empty() {
-        let input_text_texture = renderer.create_text_texture(&context.font, &input_field);
-        let TextureQuery { width, .. } = instruction_texture.query();
-        renderer.render_text_texture(
-            &input_text_texture,
-            prompt_position.0 + width * render::TEXT_SIZE_MULTIPLIER + 10,
-            prompt_position.1 + 2 * prompt_line_spacing,
-            render_size,
-            None,
-        );
-    }
-}
-
-fn render_prompt_if_needed(
-    renderer: &Renderer,
-    context: &mut Context,
-    textures: &EditorTextures,
-    prompt: &PromptType,
-    new_level_size_x: &str,
-    new_level_size_y: &str,
-) {
-    if *prompt != PromptType::None {
-        let prompt_position = (context.graphics.resolution_x / 2 - 100, 200);
-        let prompt_line_spacing = 30;
-        let prompt_texture = match &prompt {
-            PromptType::NewLevel(state) => {
-                match state {
-                    NewLevelState::Prompt => (),
-                    input_state => {
-                        if *input_state == NewLevelState::XSize
-                            || *input_state == NewLevelState::YSize
-                        {
-                            render_input_prompt(
-                                renderer,
-                                context,
-                                prompt_position,
-                                prompt_line_spacing,
-                                &textures.new_level_x_size_text_texture,
-                                new_level_size_x,
-                            );
-                        }
-                        if *input_state == NewLevelState::YSize {
-                            render_input_prompt(
-                                renderer,
-                                context,
-                                (prompt_position.0, prompt_position.1 + prompt_line_spacing),
-                                prompt_line_spacing,
-                                &textures.new_level_y_size_text_texture,
-                                new_level_size_y,
-                            );
-                        }
-                    }
-                }
-                &textures.create_new_level_text_texture
-            }
-            PromptType::Save(save_level_state) => {
-                match save_level_state {
-                    SaveLevelType::Prompt => (),
-                    SaveLevelType::NameInput => {
-                        let level_save_name = context.level_save_name.clone();
-                        render_input_prompt(
-                            renderer,
-                            context,
-                            prompt_position,
-                            prompt_line_spacing,
-                            &textures.filename_text_texture,
-                            &level_save_name,
-                        );
-                    }
-                };
-                &textures.save_level_text_texture
-            }
-            PromptType::Quit => &textures.wanna_quit_text_texture,
-            PromptType::CreateShadows(shadow_state) => match shadow_state {
-                ShadowPromptType::Enabled => {
-                    &textures.create_shadows_enabled_instructions_text_texture
-                }
-                ShadowPromptType::Disabled => {
-                    &textures.create_shadows_disabled_instructions_text_texture
-                }
-            },
-            PromptType::None => unreachable!(),
-        };
-        let render_size = context.graphics.get_render_size();
-        renderer.render_text_texture(
-            prompt_texture,
-            prompt_position.0,
-            prompt_position.1,
-            render_size,
-            None,
-        );
-        renderer.render_text_texture(
-            &textures.press_y_text_texture,
-            prompt_position.0,
-            prompt_position.1 + prompt_line_spacing,
-            render_size,
-            None,
-        );
-    }
-}
-
-fn handle_mouse_left_down(
-    context: &mut Context,
-    set_position: &mut u8,
-    insert_item: &mut InsertType,
-    drag_tiles: &mut bool,
-) {
-    if *drag_tiles {
-        return;
-    }
-
-    if *set_position > 0 {
-        let position = if *set_position == 1 {
-            &mut context.level.p1_position
-        } else {
-            &mut context.level.p2_position
-        };
-        *position = get_logical_coordinates(
-            &context.graphics,
-            context.mouse.0,
-            context.mouse.1,
-            Some(context.level.scroll),
-        );
-        *set_position = 0;
-    } else {
-        let level_coordinates = get_level_coordinates_from_screen_coordinates(
-            &context.graphics,
-            &context.mouse,
-            &context.level.scroll,
-        );
-        if matches!(insert_item, InsertType::Spotlight(InsertState::Place)) {
-            *insert_item = InsertType::Spotlight(InsertState::Instructions(level_coordinates));
-            context.level.put_spotlight_to_level(&level_coordinates, 0);
-        } else if matches!(insert_item, InsertType::Spotlight(InsertState::Delete)) {
-            context
-                .level
-                .delete_spotlight_if_near(&level_coordinates, context.graphics.render_multiplier);
-        } else if matches!(insert_item, InsertType::Steam(InsertState::Place)) {
-            *insert_item = InsertType::Steam(InsertState::Instructions(level_coordinates));
-            context
-                .level
-                .put_steam_to_level(&level_coordinates, &Steam { angle: 0, range: 1 });
-        } else if matches!(insert_item, InsertType::Steam(InsertState::Delete)) {
-            context
-                .level
-                .delete_steam_if_near(&level_coordinates, context.graphics.render_multiplier);
-        } else if matches!(insert_item, InsertType::NormalCrate(InsertState::Place)) {
-            *insert_item = InsertType::NormalCrate(InsertState::Instructions(level_coordinates));
-            context.level.put_crate_to_level(
-                &level_coordinates,
-                &StaticCrateType {
-                    crate_variant: StaticCrate::Normal,
-                    crate_class: CrateClass::Weapon,
-                    crate_type: 0,
-                },
-            );
-        } else if matches!(insert_item, InsertType::DMCrate(InsertState::Place)) {
-            *insert_item = InsertType::DMCrate(InsertState::Instructions(level_coordinates));
-            context.level.put_crate_to_level(
-                &level_coordinates,
-                &StaticCrateType {
-                    crate_variant: StaticCrate::Deathmatch,
-                    crate_class: CrateClass::Weapon,
-                    crate_type: 0,
-                },
-            );
-        } else if matches!(insert_item, InsertType::NormalCrate(InsertState::Delete)) {
-            context
-                .level
-                .delete_crate_if_near(&level_coordinates, context.graphics.render_multiplier);
-        } else if *insert_item == InsertType::None {
-            *drag_tiles = true;
-        }
-    }
-}
-
-fn handle_mouse_right_down(context: &mut Context) {
-    let pointed_tile = get_tile_id_from_coordinates(
-        &context.graphics,
-        &limit_coordinates(
-            &context.mouse,
-            &(context.graphics.resolution_x, context.graphics.resolution_y),
-        ),
-        context.level.tiles[0].len() as u32,
-        Some(context.level.scroll),
-    );
-    context
-        .level
-        .put_tile_to_level(pointed_tile, None, &TextureType::SHADOW);
-    context.automatic_shadows = false;
 }
 
 fn get_limited_screen_level_size(

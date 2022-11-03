@@ -4,7 +4,7 @@ use crate::context_util::resize;
 use crate::level::Level;
 use crate::types::*;
 use crate::util::{get_bottom_text_position, TITLE_POSITION};
-use crate::NextMode::*;
+use crate::Mode::*;
 use crate::{Context, Renderer};
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
@@ -49,18 +49,31 @@ fn set_value(level: &mut Level, game_type: &GameType, index: usize, value: u32) 
     }
 }
 
-pub fn exec<'a>(
+pub struct RandomItemEditorState<'a> {
     renderer: &'a Renderer,
-    context: &mut Context<'a>,
-    game_type: GameType,
-) -> NextMode {
-    let normal_game_instruction_text = &load_text(renderer, context, "NORMAL GAME CRATES");
-    let deatchmatch_instruction_text = &load_text(renderer, context, "DEATHMATCH CRATES");
-    let esc_instruction_text = &load_text(renderer, context, "press ESC to exit");
-    let mut selected = 0;
+    normal_game_instruction_text: Texture<'a>,
+    deathmatch_instruction_text: Texture<'a>,
+    esc_instruction_text: Texture<'a>,
+    selected: usize,
+}
 
-    let mut event_pump = context.sdl.event_pump().unwrap();
-    loop {
+impl<'a> RandomItemEditorState<'a> {
+    pub fn new(renderer: &'a Renderer, context: &Context<'a>) -> Self {
+        let normal_game_instruction_text = load_text(renderer, context, "NORMAL GAME CRATES");
+        let deathmatch_instruction_text = load_text(renderer, context, "DEATHMATCH CRATES");
+        let esc_instruction_text = load_text(renderer, context, "press ESC to exit");
+
+        RandomItemEditorState {
+            renderer,
+            normal_game_instruction_text,
+            deathmatch_instruction_text,
+            esc_instruction_text,
+            selected: 0,
+        }
+    }
+
+    pub fn frame(&mut self, context: &mut Context<'a>, game_type: GameType) -> Mode {
+        let mut event_pump = context.sdl.event_pump().unwrap();
         for event in event_pump.poll_iter() {
             match event {
                 Event::Quit { .. }
@@ -72,29 +85,29 @@ pub fn exec<'a>(
                     return Editor;
                 }
                 Event::Window { win_event, .. } => {
-                    if resize(renderer, context, win_event) {
+                    if resize(self.renderer, context, win_event) {
                         return Editor;
                     }
                 }
                 Event::KeyDown { keycode, .. } => match keycode.unwrap() {
                     Keycode::Down => {
-                        if selected < context.textures.crates.len() - 1 {
-                            selected = selected + 1;
+                        if self.selected < context.textures.crates.len() - 1 {
+                            self.selected += 1;
                         }
                     }
                     Keycode::Up => {
-                        if selected > 0 {
-                            selected = selected - 1;
+                        if self.selected > 0 {
+                            self.selected -= 1;
                         }
                     }
                     Keycode::Right => {
-                        let value = get_value(&context.level, &game_type, selected);
-                        set_value(&mut context.level, &game_type, selected, value + 1);
+                        let value = get_value(&context.level, &game_type, self.selected);
+                        set_value(&mut context.level, &game_type, self.selected, value + 1);
                     }
                     Keycode::Left => {
-                        let value = get_value(&context.level, &game_type, selected);
+                        let value = get_value(&context.level, &game_type, self.selected);
                         if value > 0 {
-                            set_value(&mut context.level, &game_type, selected, value - 1);
+                            set_value(&mut context.level, &game_type, self.selected, value - 1);
                         }
                     }
                     _ => (),
@@ -103,13 +116,13 @@ pub fn exec<'a>(
             }
         }
 
-        renderer.clear_screen(Color::from((0, 0, 0)));
+        self.renderer.clear_screen(Color::from((0, 0, 0)));
         let render_size = context.graphics.get_render_size();
 
-        renderer.render_text_texture_coordinates(
+        self.renderer.render_text_texture_coordinates(
             match game_type {
-                GameType::Normal => &normal_game_instruction_text,
-                GameType::Deathmatch => &deatchmatch_instruction_text,
+                GameType::Normal => &self.normal_game_instruction_text,
+                GameType::Deathmatch => &self.deathmatch_instruction_text,
             },
             TITLE_POSITION,
             render_size,
@@ -121,8 +134,8 @@ pub fn exec<'a>(
         let mut value_position = (280, option_position.1);
         for x in 0..context.textures.crates.len() {
             let option = &context.textures.crates[x];
-            if selected == x {
-                renderer.render_text_texture(
+            if self.selected == x {
+                self.renderer.render_text_texture(
                     &context.textures.selected_icon,
                     option_position.0 - 20,
                     option_position.1 + 3,
@@ -130,18 +143,18 @@ pub fn exec<'a>(
                     None,
                 );
             }
-            renderer.render_text_texture(
+            self.renderer.render_text_texture(
                 &option,
                 option_position.0,
                 option_position.1,
                 render_size,
                 None,
             );
-            let value_texture = renderer.create_text_texture(
+            let value_texture = self.renderer.create_text_texture(
                 &context.font,
                 &get_value(&context.level, &game_type, x).to_string(),
             );
-            renderer.render_text_texture(
+            self.renderer.render_text_texture(
                 &value_texture,
                 value_position.0,
                 value_position.1,
@@ -158,12 +171,13 @@ pub fn exec<'a>(
                 value_position.1 = option_position.1;
             }
         }
-        renderer.render_text_texture_coordinates(
-            esc_instruction_text,
+        self.renderer.render_text_texture_coordinates(
+            &self.esc_instruction_text,
             get_bottom_text_position(context.graphics.resolution_y),
             render_size,
             None,
         );
-        renderer.render_and_wait();
+        self.renderer.render_and_wait();
+        RandomItemEditor(game_type)
     }
 }
