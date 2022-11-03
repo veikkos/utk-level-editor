@@ -130,12 +130,11 @@ impl<'a> GeneralLevelInfoState<'a> {
                         return Editor;
                     }
                 }
-                Event::TextInput { text, .. } => match self.options[self.selected].value {
-                    Value::Comment => {
+                Event::TextInput { text, .. } => {
+                    if let Value::Comment = self.options[self.selected].value {
                         sanitize_level_comment_input(&text, &mut context.level.general_info.comment)
                     }
-                    _ => (),
-                },
+                }
                 Event::KeyDown { keycode, .. } => match keycode.unwrap() {
                     Keycode::Down => {
                         if self.selected < self.options.len() - 1 {
@@ -158,23 +157,22 @@ impl<'a> GeneralLevelInfoState<'a> {
                         Value::Number(index) => {
                             let value = &mut context.level.general_info.enemy_table[index];
                             if *value > 0 {
-                                *value = *value - 1;
+                                *value -= 1;
                             }
                         }
                         Value::TimeLimit => {
                             let value = &mut context.level.general_info.time_limit;
                             if *value > 0 {
-                                *value = *value - 10;
+                                *value -= 10;
                             }
                         }
                         _ => (),
                     },
-                    Keycode::Backspace => match self.options[self.selected].value {
-                        Value::Comment => {
+                    Keycode::Backspace => {
+                        if let Value::Comment = self.options[self.selected].value {
                             context.level.general_info.comment.pop();
                         }
-                        _ => (),
-                    },
+                    }
                     _ => (),
                 },
                 _ => {}

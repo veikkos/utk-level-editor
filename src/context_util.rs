@@ -11,32 +11,26 @@ fn refresh<'a>(renderer: &'a Renderer, context: &mut Context<'a>, window_size: (
     context.textures = get_textures(renderer, &context.font);
 }
 
-pub fn resize<'a>(
-    renderer: &'a Renderer,
-    context: &mut Context<'a>,
-    event: sdl2::event::WindowEvent,
-) -> bool {
+pub fn resize<'a>(renderer: &'a Renderer, context: &mut Context<'a>, event: WindowEvent) -> bool {
     match event {
         WindowEvent::Resized(w, h) => {
             refresh(renderer, context, (w as u32, h as u32));
-            return true;
+            true
         }
         WindowEvent::Maximized => {
             refresh(renderer, context, renderer.window_size());
-            return true;
+            true
         }
-        _ => {
-            return false;
-        }
+        _ => false,
     }
 }
 
 pub fn get_textures<'a>(renderer: &'a Renderer, font: &FN2) -> Textures<'a> {
-    let selected_icon = renderer.create_text_texture(&font, "*");
+    let selected_icon = renderer.create_text_texture(font, "*");
     let crate_textures: Vec<Texture> = crates::get_crates()
         .iter()
         .flatten()
-        .map(|name| renderer.create_text_texture(&font, name))
+        .map(|name| renderer.create_text_texture(font, name))
         .collect();
 
     Textures {

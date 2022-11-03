@@ -144,7 +144,7 @@ impl<'a> RandomItemEditorState<'a> {
                 );
             }
             self.renderer.render_text_texture(
-                &option,
+                option,
                 option_position.0,
                 option_position.1,
                 render_size,

@@ -130,7 +130,7 @@ impl Renderer {
             height * TEXT_SIZE_MULTIPLIER,
         );
 
-        self.canvas_mut().copy(&texture, None, dst).unwrap();
+        self.canvas_mut().copy(texture, None, dst).unwrap();
     }
 
     pub fn render_text_texture_coordinates(
@@ -181,13 +181,13 @@ impl Renderer {
                 .unwrap();
 
             if error <= 0 {
-                y = y + 1;
+                y += 1;
                 error += ty;
                 ty += 2;
             }
 
             if error > 0 {
-                x = x - 1;
+                x -= 1;
                 tx += 2;
                 error += tx - diameter;
             }
@@ -215,9 +215,9 @@ impl Renderer {
                     continue;
                 }
                 let texture = match level.tiles[y_index][x_index].texture_type {
-                    TextureType::FLOOR => &textures.floor,
-                    TextureType::WALLS => &textures.walls,
-                    TextureType::SHADOW => unreachable!(),
+                    TextureType::Floor => &textures.floor,
+                    TextureType::Walls => &textures.walls,
+                    TextureType::Shadow => unreachable!(),
                 };
                 let (texture_width, _texture_height) = get_texture_size(texture);
                 let src = get_block(
@@ -265,7 +265,7 @@ impl Renderer {
             }
         }
 
-        self.render_crates(graphics, &level.scroll, &textures, &level.crates.staticc);
+        self.render_crates(graphics, &level.scroll, textures, &level.crates.staticc);
     }
 
     fn render_crates(
@@ -278,7 +278,7 @@ impl Renderer {
         for (coordinates, crate_item) in crates {
             let box_size = get_crate_render_size();
             let (x_screen, y_screen) =
-                get_screen_coordinates_from_level_coordinates(graphics, &coordinates, scroll);
+                get_screen_coordinates_from_level_coordinates(graphics, coordinates, scroll);
             self.canvas_mut()
                 .set_draw_color(get_sdl_color(match crate_item.crate_variant {
                     StaticCrate::Normal => &RendererColor::LightGreen,
@@ -374,7 +374,7 @@ impl Renderer {
             } else {
                 offset += self.render_character(
                     canvas,
-                    &font,
+                    font,
                     (character_index - INDEX_OFFSET) as usize,
                     x + offset,
                     y,
@@ -416,7 +416,7 @@ impl Renderer {
 }
 
 pub fn get_texture_rect(texture: &Texture, render_multiplier: u32) -> Rect {
-    let (width, height) = get_texture_render_size(&texture, render_multiplier);
+    let (width, height) = get_texture_render_size(texture, render_multiplier);
     Rect::new(0, 0, width, height)
 }
 
@@ -426,7 +426,7 @@ pub fn get_texture_size(texture: &Texture) -> (u32, u32) {
 }
 
 pub fn get_texture_render_size(texture: &Texture, render_multiplier: u32) -> (u32, u32) {
-    let (width, height) = get_texture_size(&texture);
+    let (width, height) = get_texture_size(texture);
     (width * render_multiplier, height * render_multiplier)
 }
 

@@ -53,22 +53,22 @@ impl<'a> TileSelectState<'a> {
                     }
                     Keycode::PageDown => {
                         context.texture_type_scrolled =
-                            if context.texture_type_scrolled == TextureType::FLOOR {
-                                TextureType::WALLS
-                            } else if context.texture_type_scrolled == TextureType::WALLS {
-                                TextureType::SHADOW
+                            if context.texture_type_scrolled == TextureType::Floor {
+                                TextureType::Walls
+                            } else if context.texture_type_scrolled == TextureType::Walls {
+                                TextureType::Shadow
                             } else {
-                                TextureType::FLOOR
+                                TextureType::Floor
                             }
                     }
                     Keycode::PageUp => {
                         context.texture_type_scrolled =
-                            if context.texture_type_scrolled == TextureType::FLOOR {
-                                TextureType::SHADOW
-                            } else if context.texture_type_scrolled == TextureType::SHADOW {
-                                TextureType::WALLS
+                            if context.texture_type_scrolled == TextureType::Floor {
+                                TextureType::Shadow
+                            } else if context.texture_type_scrolled == TextureType::Shadow {
+                                TextureType::Walls
                             } else {
-                                TextureType::FLOOR
+                                TextureType::Floor
                             }
                     }
                     _ => {}
@@ -82,9 +82,9 @@ impl<'a> TileSelectState<'a> {
                     ..
                 } => {
                     let texture_selected = match &context.texture_type_scrolled {
-                        TextureType::FLOOR => &context.textures.floor,
-                        TextureType::WALLS => &context.textures.walls,
-                        TextureType::SHADOW => &context.textures.shadows,
+                        TextureType::Floor => &context.textures.floor,
+                        TextureType::Walls => &context.textures.walls,
+                        TextureType::Shadow => &context.textures.shadows,
                     };
                     let (texture_width, texture_height) = render::get_texture_render_size(
                         texture_selected,
@@ -113,13 +113,14 @@ impl<'a> TileSelectState<'a> {
 
         self.renderer.clear_screen(Color::from((0, 0, 0)));
         let texture_selected = match context.texture_type_scrolled {
-            TextureType::FLOOR => &context.textures.floor,
-            TextureType::WALLS => &context.textures.walls,
-            TextureType::SHADOW => &context.textures.shadows,
+            TextureType::Floor => &context.textures.floor,
+            TextureType::Walls => &context.textures.walls,
+            TextureType::Shadow => &context.textures.shadows,
         };
         let render_multiplier = context.graphics.render_multiplier;
         let dst = render::get_texture_rect(texture_selected, render_multiplier);
-        self.renderer.fill_and_render_texture(Color::from((200, 200, 200)), texture_selected, dst);
+        self.renderer
+            .fill_and_render_texture(Color::from((200, 200, 200)), texture_selected, dst);
         let (texture_width, texture_height) =
             render::get_texture_render_size(texture_selected, render_multiplier);
         let highlighted_id = get_tile_id_from_coordinates(
@@ -156,9 +157,9 @@ impl<'a> TileSelectState<'a> {
             );
         }
         let active_text = match context.texture_type_scrolled {
-            TextureType::FLOOR => &self.floor_blocks_text_texture,
-            TextureType::WALLS => &self.wall_blocks_text_texture,
-            TextureType::SHADOW => &self.shadow_blocks_text_texture,
+            TextureType::Floor => &self.floor_blocks_text_texture,
+            TextureType::Walls => &self.wall_blocks_text_texture,
+            TextureType::Shadow => &self.shadow_blocks_text_texture,
         };
         self.renderer.render_text_texture_coordinates(
             active_text,

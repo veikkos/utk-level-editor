@@ -22,7 +22,7 @@ fn get_file_as_byte_vec(filename: &str) -> Vec<u8> {
     let metadata = metadata(filename).expect("unable to read metadata");
     let size = metadata.len() as usize;
     let mut buffer = vec![0; size];
-    f.read(&mut buffer).expect("buffer overflow");
+    f.read_exact(&mut buffer).expect("buffer overflow");
     buffer
 }
 

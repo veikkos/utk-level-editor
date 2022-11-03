@@ -36,7 +36,7 @@ pub struct RandomCrates {
     pub deathmatch: CrateSet,
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum StaticCrate {
     Normal,
     Deathmatch,
@@ -135,19 +135,19 @@ impl Level {
             for x in 0..level_size_x {
                 row.push(if x == 0 {
                     Tile {
-                        texture_type: TextureType::WALLS,
+                        texture_type: TextureType::Walls,
                         id: 0,
                         shadow: 0,
                     }
                 } else if x == level_size_x - 1 {
                     Tile {
-                        texture_type: TextureType::WALLS,
+                        texture_type: TextureType::Walls,
                         id: 2,
                         shadow: 0,
                     }
                 } else {
                     Tile {
-                        texture_type: TextureType::WALLS,
+                        texture_type: TextureType::Walls,
                         id: 1,
                         shadow: 0,
                     }
@@ -161,21 +161,15 @@ impl Level {
             let mut row = Vec::new();
 
             for x in 0..level_size_x {
-                row.push(if x == 0 {
+                row.push(if x == 0 || x == level_size_x - 1 {
                     Tile {
-                        texture_type: TextureType::WALLS,
-                        id: 16,
-                        shadow: 0,
-                    }
-                } else if x == level_size_x - 1 {
-                    Tile {
-                        texture_type: TextureType::WALLS,
+                        texture_type: TextureType::Walls,
                         id: 16,
                         shadow: 0,
                     }
                 } else {
                     Tile {
-                        texture_type: TextureType::FLOOR,
+                        texture_type: TextureType::Floor,
                         id: 0,
                         shadow: 0,
                     }
@@ -190,19 +184,19 @@ impl Level {
             for x in 0..level_size_x {
                 row.push(if x == 0 {
                     Tile {
-                        texture_type: TextureType::WALLS,
+                        texture_type: TextureType::Walls,
                         id: 32,
                         shadow: 0,
                     }
                 } else if x == level_size_x - 1 {
                     Tile {
-                        texture_type: TextureType::WALLS,
+                        texture_type: TextureType::Walls,
                         id: 18,
                         shadow: 0,
                     }
                 } else {
                     Tile {
-                        texture_type: TextureType::WALLS,
+                        texture_type: TextureType::Walls,
                         id: 1,
                         shadow: 0,
                     }
@@ -228,7 +222,7 @@ impl Level {
     ) {
         let (x, y) = self.get_tile_index(pointed_tile);
         if y < self.tiles.len() && x < self.tiles[0].len() {
-            if *selected_texture != TextureType::SHADOW {
+            if *selected_texture != TextureType::Shadow {
                 self.tiles[y][x] = Tile {
                     texture_type: *selected_texture,
                     id: selected_tile_id.unwrap(),
@@ -329,13 +323,13 @@ impl Level {
 
     pub fn delete_crate_if_near(&mut self, level_coordinates: &Position, render_multiplier: u32) {
         let mut to_be_removed = Vec::new();
-        for (crate_coordinates, _crate_item) in &self.crates.staticc {
+        for crate_coordinates in self.crates.staticc.keys() {
             if check_box_click(
                 level_coordinates,
-                &crate_coordinates,
+                crate_coordinates,
                 get_crate_render_size() / render_multiplier,
             ) {
-                to_be_removed.push(crate_coordinates.clone());
+                to_be_removed.push(*crate_coordinates);
             }
         }
         for key in to_be_removed {
@@ -346,29 +340,29 @@ impl Level {
     pub fn create_shadows(&mut self) {
         for y in (0..self.tiles.len()).rev() {
             for x in 0..self.tiles[y].len() {
-                if self.tiles[y][x].texture_type != TextureType::WALLS {
+                if self.tiles[y][x].texture_type != TextureType::Walls {
                     let on_right = if x < self.tiles[y].len() - 1 {
                         self.tiles[y][x + 1].texture_type
                     } else {
-                        TextureType::FLOOR
+                        TextureType::Floor
                     };
                     let on_top_right = if y > 0 && x < self.tiles[y].len() - 1 {
                         self.tiles[y - 1][x + 1].texture_type
                     } else {
-                        TextureType::FLOOR
+                        TextureType::Floor
                     };
                     let on_top = if y > 0 {
                         self.tiles[y - 1][x].texture_type
                     } else {
-                        TextureType::FLOOR
+                        TextureType::Floor
                     };
-                    self.tiles[y][x].shadow = if on_top_right == TextureType::WALLS
-                        || (on_right == TextureType::WALLS && on_top == TextureType::WALLS)
+                    self.tiles[y][x].shadow = if on_top_right == TextureType::Walls
+                        || (on_right == TextureType::Walls && on_top == TextureType::Walls)
                     {
                         1
-                    } else if on_top == TextureType::WALLS {
+                    } else if on_top == TextureType::Walls {
                         3
-                    } else if on_right == TextureType::WALLS {
+                    } else if on_right == TextureType::Walls {
                         2
                     } else {
                         0
@@ -434,7 +428,7 @@ impl Level {
             file.write_all(&(steam.range as u32).to_le_bytes())
                 .expect("Failed to write steam range");
         }
-        file.write_all(&self.general_info.comment.as_bytes())
+        file.write_all(self.general_info.comment.as_bytes())
             .expect("Failed to write comment");
         for _ in 0..20 - self.general_info.comment.len() {
             file.write_all(b"\0")
@@ -661,7 +655,7 @@ impl Level {
         let number_of_crates = file.read_u32::<LittleEndian>()?;
         for _crate_index in 0..number_of_crates {
             let crate_item = StaticCrateType {
-                crate_variant: crate_variant,
+                crate_variant,
                 crate_class: CrateClass::from_u32(file.read_u32::<LittleEndian>()?),
                 crate_type: file.read_u32::<LittleEndian>()? as u8,
             };

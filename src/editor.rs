@@ -130,12 +130,11 @@ impl<'a> EditorState<'a> {
                         }
                         _ => {}
                     },
-                    PromptType::Save(save_level_state) => match save_level_state {
-                        SaveLevelType::NameInput => {
+                    PromptType::Save(save_level_state) => {
+                        if save_level_state == &SaveLevelType::NameInput {
                             sanitize_level_name_input(&text, &mut context.level_save_name)
                         }
-                        _ => {}
-                    },
+                    }
                     _ => (),
                 },
                 Event::Window { win_event, .. } => {
@@ -143,416 +142,362 @@ impl<'a> EditorState<'a> {
                         self.textures = EditorTextures::new(self.renderer, context);
                     }
                 }
-                Event::KeyDown { keycode, .. } => {
-                    if let Some(key) = keycode {
-                        match key {
-                            Keycode::Space => {
-                                return TileSelect;
+                Event::KeyDown {
+                    keycode: Some(key), ..
+                } => match key {
+                    Keycode::Space => {
+                        return TileSelect;
+                    }
+                    Keycode::F1 => {
+                        return Help;
+                    }
+                    Keycode::F2 => {
+                        context.sdl.video().unwrap().text_input().stop();
+                        self.prompt = PromptType::Save(SaveLevelType::Prompt);
+                    }
+                    Keycode::F3 => {
+                        context.sdl.video().unwrap().text_input().stop();
+                        return LoadLevel;
+                    }
+                    Keycode::F4 => {
+                        self.prompt = PromptType::NewLevel(NewLevelState::Prompt);
+                        self.new_level_size_x = DEFAULT_LEVEL_SIZE.0.to_string();
+                        self.new_level_size_y = DEFAULT_LEVEL_SIZE.1.to_string();
+                    }
+                    Keycode::F6 => {
+                        context.sdl.video().unwrap().text_input().stop();
+                        self.prompt = PromptType::CreateShadows(if context.automatic_shadows {
+                            ShadowPromptType::Enabled
+                        } else {
+                            ShadowPromptType::Disabled
+                        });
+                    }
+                    Keycode::F7 => {
+                        return GeneralLevelInfo;
+                    }
+                    Keycode::F8 => {
+                        return RandomItemEditor(GameType::Normal);
+                    }
+                    Keycode::F9 => {
+                        return RandomItemEditor(GameType::Deathmatch);
+                    }
+                    Keycode::Num1 | Keycode::Num2 => {
+                        if !matches!(self.prompt, PromptType::NewLevel(_))
+                            && !matches!(self.prompt, PromptType::Save(_))
+                        {
+                            self.set_position = if key == Keycode::Num1 { 1 } else { 2 };
+                            self.prompt = PromptType::None;
+                        }
+                    }
+                    Keycode::Q | Keycode::W => {
+                        if !matches!(self.prompt, PromptType::Save(_)) {
+                            self.insert_item = if key == Keycode::Q {
+                                InsertType::Spotlight(InsertState::Place)
+                            } else {
+                                InsertType::Spotlight(InsertState::Delete)
+                            };
+                            context.sdl.video().unwrap().text_input().stop();
+                            self.prompt = PromptType::None;
+                        }
+                    }
+                    Keycode::A | Keycode::S => {
+                        if !matches!(self.prompt, PromptType::Save(_)) {
+                            self.insert_item = if key == Keycode::A {
+                                InsertType::Steam(InsertState::Place)
+                            } else {
+                                InsertType::Steam(InsertState::Delete)
+                            };
+                            context.sdl.video().unwrap().text_input().stop();
+                            self.prompt = PromptType::None;
+                        }
+                    }
+                    Keycode::Z | Keycode::X | Keycode::C => {
+                        if !matches!(self.prompt, PromptType::Save(_)) {
+                            self.insert_item = if key == Keycode::Z {
+                                InsertType::NormalCrate(InsertState::Place)
+                            } else if key == Keycode::X {
+                                InsertType::DMCrate(InsertState::Place)
+                            } else {
+                                InsertType::NormalCrate(InsertState::Delete)
+                            };
+                            context.sdl.video().unwrap().text_input().stop();
+                            self.prompt = PromptType::None;
+                        }
+                    }
+                    Keycode::Y => match &self.prompt {
+                        PromptType::NewLevel(new_level_state) => {
+                            if new_level_state == &NewLevelState::Prompt {
+                                self.prompt = PromptType::NewLevel(NewLevelState::XSize);
+                                context.sdl.video().unwrap().text_input().start();
                             }
-                            Keycode::F1 => {
-                                return Help;
+                        }
+                        PromptType::Save(save_level_state) => {
+                            if save_level_state == &SaveLevelType::Prompt {
+                                self.prompt = PromptType::Save(SaveLevelType::NameInput);
+                                context.sdl.video().unwrap().text_input().start();
                             }
-                            Keycode::F2 => {
-                                context.sdl.video().unwrap().text_input().stop();
-                                self.prompt = PromptType::Save(SaveLevelType::Prompt);
+                        }
+                        PromptType::CreateShadows(shadow_state) => {
+                            context.automatic_shadows = match shadow_state {
+                                ShadowPromptType::Enabled => false,
+                                ShadowPromptType::Disabled => {
+                                    context.level.create_shadows();
+                                    true
+                                }
+                            };
+                            self.prompt = PromptType::None;
+                        }
+                        PromptType::Quit => return Quit,
+                        PromptType::None => {
+                            self.prompt = PromptType::None;
+                        }
+                    },
+                    Keycode::Up => match &self.insert_item {
+                        InsertType::Spotlight(state) => {
+                            if let InsertState::Instructions(coordinates) = state {
+                                let spotlight_intensity =
+                                    context.level.get_spotlight_from_level(coordinates);
+                                context
+                                    .level
+                                    .put_spotlight_to_level(coordinates, spotlight_intensity + 1)
                             }
-                            Keycode::F3 => {
-                                context.sdl.video().unwrap().text_input().stop();
-                                return LoadLevel;
-                            }
-                            Keycode::F4 => {
-                                self.prompt = PromptType::NewLevel(NewLevelState::Prompt);
-                                self.new_level_size_x = DEFAULT_LEVEL_SIZE.0.to_string();
-                                self.new_level_size_y = DEFAULT_LEVEL_SIZE.1.to_string();
-                            }
-                            Keycode::F6 => {
-                                context.sdl.video().unwrap().text_input().stop();
-                                self.prompt =
-                                    PromptType::CreateShadows(if context.automatic_shadows {
-                                        ShadowPromptType::Enabled
-                                    } else {
-                                        ShadowPromptType::Disabled
-                                    });
-                            }
-                            Keycode::F7 => {
-                                return GeneralLevelInfo;
-                            }
-                            Keycode::F8 => {
-                                return RandomItemEditor(GameType::Normal);
-                            }
-                            Keycode::F9 => {
-                                return RandomItemEditor(GameType::Deathmatch);
-                            }
-                            Keycode::Num1 | Keycode::Num2 => {
-                                if !matches!(self.prompt, PromptType::NewLevel(_))
-                                    && !matches!(self.prompt, PromptType::Save(_))
-                                {
-                                    self.set_position = if key == Keycode::Num1 { 1 } else { 2 };
-                                    self.prompt = PromptType::None;
-                                }
-                            }
-                            Keycode::Q | Keycode::W => {
-                                if !matches!(self.prompt, PromptType::Save(_)) {
-                                    self.insert_item = if key == Keycode::Q {
-                                        InsertType::Spotlight(InsertState::Place)
-                                    } else {
-                                        InsertType::Spotlight(InsertState::Delete)
-                                    };
-                                    context.sdl.video().unwrap().text_input().stop();
-                                    self.prompt = PromptType::None;
-                                }
-                            }
-                            Keycode::A | Keycode::S => {
-                                if !matches!(self.prompt, PromptType::Save(_)) {
-                                    self.insert_item = if key == Keycode::A {
-                                        InsertType::Steam(InsertState::Place)
-                                    } else {
-                                        InsertType::Steam(InsertState::Delete)
-                                    };
-                                    context.sdl.video().unwrap().text_input().stop();
-                                    self.prompt = PromptType::None;
-                                }
-                            }
-                            Keycode::Z | Keycode::X | Keycode::C => {
-                                if !matches!(self.prompt, PromptType::Save(_)) {
-                                    self.insert_item = if key == Keycode::Z {
-                                        InsertType::NormalCrate(InsertState::Place)
-                                    } else if key == Keycode::X {
-                                        InsertType::DMCrate(InsertState::Place)
-                                    } else {
-                                        InsertType::NormalCrate(InsertState::Delete)
-                                    };
-                                    context.sdl.video().unwrap().text_input().stop();
-                                    self.prompt = PromptType::None;
-                                }
-                            }
-                            Keycode::Y => match &self.prompt {
-                                PromptType::NewLevel(new_level_state) => match new_level_state {
-                                    NewLevelState::Prompt => {
-                                        self.prompt = PromptType::NewLevel(NewLevelState::XSize);
-                                        context.sdl.video().unwrap().text_input().start();
-                                    }
-                                    _ => {}
-                                },
-                                PromptType::Save(save_level_state) => match save_level_state {
-                                    SaveLevelType::Prompt => {
-                                        self.prompt = PromptType::Save(SaveLevelType::NameInput);
-                                        context.sdl.video().unwrap().text_input().start();
-                                    }
-                                    _ => {}
-                                },
-                                PromptType::CreateShadows(shadow_state) => {
-                                    context.automatic_shadows = match shadow_state {
-                                        ShadowPromptType::Enabled => false,
-                                        ShadowPromptType::Disabled => {
-                                            context.level.create_shadows();
-                                            true
-                                        }
-                                    };
-                                    self.prompt = PromptType::None;
-                                }
-                                PromptType::Quit => return Quit,
-                                PromptType::None => {
-                                    self.prompt = PromptType::None;
-                                }
-                            },
-                            Keycode::Up => match &self.insert_item {
-                                InsertType::Spotlight(state) => match state {
-                                    InsertState::Instructions(coordinates) => {
-                                        let spotlight_intensity =
-                                            context.level.get_spotlight_from_level(&coordinates);
-                                        context.level.put_spotlight_to_level(
-                                            &coordinates,
-                                            spotlight_intensity + 1,
-                                        )
-                                    }
-                                    _ => (),
-                                },
-                                InsertType::Steam(state) => match state {
-                                    InsertState::Instructions(coordinates) => {
-                                        let steam =
-                                            context.level.get_steam_from_level(&coordinates);
-                                        if steam.range < 6 {
-                                            context.level.put_steam_to_level(
-                                                &coordinates,
-                                                &Steam {
-                                                    angle: steam.angle,
-                                                    range: steam.range + 1,
-                                                },
-                                            )
-                                        }
-                                    }
-                                    _ => (),
-                                },
-                                InsertType::NormalCrate(state) | InsertType::DMCrate(state) => {
-                                    match state {
-                                        InsertState::Instructions(coordinates) => {
-                                            let mut crate_item = context
-                                                .level
-                                                .get_crate_from_level(&coordinates)
-                                                .clone();
-                                            if (crate_item.crate_class as u32)
-                                                < CrateClass::Energy as u32
-                                            {
-                                                crate_item.crate_type = 0;
-                                                crate_item.crate_class = CrateClass::from_u32(
-                                                    crate_item.crate_class as u32 + 1,
-                                                );
-                                                context
-                                                    .level
-                                                    .put_crate_to_level(&coordinates, &crate_item)
-                                            }
-                                        }
-                                        _ => (),
-                                    }
-                                }
-                                _ => {
-                                    if context.level.scroll.1 > 0 {
-                                        context.level.scroll.1 = context.level.scroll.1 - 1
-                                    }
-                                }
-                            },
-                            Keycode::Down => match &self.insert_item {
-                                InsertType::Spotlight(state) => match state {
-                                    InsertState::Instructions(coordinates) => {
-                                        let spotlight_intensity =
-                                            context.level.get_spotlight_from_level(&coordinates);
-                                        if spotlight_intensity > 0 {
-                                            context.level.put_spotlight_to_level(
-                                                &coordinates,
-                                                spotlight_intensity - 1,
-                                            )
-                                        }
-                                    }
-                                    _ => (),
-                                },
-                                InsertType::Steam(state) => match state {
-                                    InsertState::Instructions(coordinates) => {
-                                        let steam =
-                                            context.level.get_steam_from_level(&coordinates);
-                                        if steam.range > 0 {
-                                            context.level.put_steam_to_level(
-                                                &coordinates,
-                                                &Steam {
-                                                    angle: steam.angle,
-                                                    range: steam.range - 1,
-                                                },
-                                            )
-                                        }
-                                    }
-                                    _ => (),
-                                },
-                                InsertType::NormalCrate(state) | InsertType::DMCrate(state) => {
-                                    match state {
-                                        InsertState::Instructions(coordinates) => {
-                                            let mut crate_item = context
-                                                .level
-                                                .get_crate_from_level(&coordinates)
-                                                .clone();
-                                            if crate_item.crate_class as u32 > 0 {
-                                                crate_item.crate_type = 0;
-                                                crate_item.crate_class = CrateClass::from_u32(
-                                                    crate_item.crate_class as u32 - 1,
-                                                );
-                                                context
-                                                    .level
-                                                    .put_crate_to_level(&coordinates, &crate_item)
-                                            }
-                                        }
-                                        _ => (),
-                                    }
-                                }
-                                _ => {
-                                    if context.level.scroll.1
-                                        + context.graphics.get_full_y_tiles_per_screen()
-                                        < (context.level.tiles.len()) as u32
-                                    {
-                                        context.level.scroll.1 = context.level.scroll.1 + 1;
-                                    }
-                                }
-                            },
-                            Keycode::Left => match &self.insert_item {
-                                InsertType::Steam(state) => match state {
-                                    InsertState::Instructions(coordinates) => {
-                                        let steam =
-                                            context.level.get_steam_from_level(&coordinates);
-                                        context.level.put_steam_to_level(
-                                            &coordinates,
-                                            &Steam {
-                                                angle: (steam.angle + 360 - 5) % 360,
-                                                range: steam.range,
-                                            },
-                                        )
-                                    }
-                                    _ => (),
-                                },
-                                InsertType::NormalCrate(state) | InsertType::DMCrate(state) => {
-                                    match state {
-                                        InsertState::Instructions(coordinates) => {
-                                            let mut crate_item = context
-                                                .level
-                                                .get_crate_from_level(&coordinates)
-                                                .clone();
-                                            if crate_item.crate_type > 0 {
-                                                crate_item.crate_type = crate_item.crate_type - 1;
-                                                context
-                                                    .level
-                                                    .put_crate_to_level(coordinates, &crate_item);
-                                            }
-                                        }
-                                        _ => (),
-                                    }
-                                }
-                                _ => {
-                                    if context.level.scroll.0 > 0 {
-                                        context.level.scroll.0 = context.level.scroll.0 - 1;
-                                    }
-                                }
-                            },
-                            Keycode::Right => match &self.insert_item {
-                                InsertType::Steam(state) => match state {
-                                    InsertState::Instructions(coordinates) => {
-                                        let steam =
-                                            context.level.get_steam_from_level(&coordinates);
-                                        context.level.put_steam_to_level(
-                                            &coordinates,
-                                            &Steam {
-                                                angle: (steam.angle + 5) % 360,
-                                                range: steam.range,
-                                            },
-                                        )
-                                    }
-                                    _ => (),
-                                },
-                                InsertType::NormalCrate(state) | InsertType::DMCrate(state) => {
-                                    match state {
-                                        InsertState::Instructions(coordinates) => {
-                                            let mut crate_item = context
-                                                .level
-                                                .get_crate_from_level(&coordinates)
-                                                .clone();
-                                            if crate_item.crate_type
-                                                < (self.crates[crate_item.crate_class as usize]
-                                                    .len()
-                                                    - 1)
-                                                    as u8
-                                            {
-                                                crate_item.crate_type = crate_item.crate_type + 1;
-                                                context
-                                                    .level
-                                                    .put_crate_to_level(coordinates, &crate_item);
-                                            }
-                                        }
-                                        _ => (),
-                                    }
-                                }
-                                _ => {
-                                    if context.level.scroll.0
-                                        + context.graphics.get_full_x_tiles_per_screen()
-                                        < (context.level.tiles[0].len()) as u32
-                                    {
-                                        context.level.scroll.0 = context.level.scroll.0 + 1;
-                                    }
-                                }
-                            },
-                            Keycode::Return | Keycode::KpEnter => {
-                                if matches!(
-                                    self.insert_item,
-                                    InsertType::Spotlight(InsertState::Instructions(_))
-                                ) {
-                                    self.insert_item = InsertType::Spotlight(InsertState::Place);
-                                }
-                                if matches!(
-                                    self.insert_item,
-                                    InsertType::Steam(InsertState::Instructions(_))
-                                ) {
-                                    self.insert_item = InsertType::Steam(InsertState::Place);
-                                }
-                                if matches!(
-                                    self.insert_item,
-                                    InsertType::NormalCrate(InsertState::Instructions(_))
-                                ) {
-                                    self.insert_item = InsertType::NormalCrate(InsertState::Place);
-                                }
-                                if matches!(
-                                    self.insert_item,
-                                    InsertType::DMCrate(InsertState::Instructions(_))
-                                ) {
-                                    self.insert_item = InsertType::DMCrate(InsertState::Place);
-                                } else if self.prompt == PromptType::NewLevel(NewLevelState::XSize)
-                                    && self.new_level_size_x.len() > 1
-                                    && self.new_level_size_x.parse::<u8>().unwrap() >= 16
-                                {
-                                    self.prompt = PromptType::NewLevel(NewLevelState::YSize);
-                                } else if self.prompt == PromptType::NewLevel(NewLevelState::YSize)
-                                    && self.new_level_size_x.len() > 1
-                                    && self.new_level_size_y.parse::<u8>().unwrap() >= 12
-                                {
-                                    context.level = Level::get_default_level((
-                                        self.new_level_size_x.parse::<u8>().unwrap(),
-                                        self.new_level_size_y.parse::<u8>().unwrap(),
-                                    ));
-                                    context.sdl.video().unwrap().text_input().stop();
-                                    context.textures.saved_level_name = None;
-                                    context.level_save_name.clear();
-                                    self.prompt = PromptType::None;
-                                } else if self.prompt == PromptType::Save(SaveLevelType::NameInput)
-                                    && context.level_save_name.len() > 1
-                                {
-                                    let level_save_name_uppercase =
-                                        context.level_save_name.to_uppercase();
-                                    let level_saved_name =
-                                        format!("{}.LEV", &level_save_name_uppercase);
-                                    context.level.serialize(&level_saved_name).unwrap();
-                                    context.sdl.video().unwrap().text_input().stop();
-                                    context.textures.saved_level_name =
-                                        Some(self.renderer.create_text_texture(
-                                            &context.font,
-                                            &level_saved_name.clone().to_lowercase(),
-                                        ));
-                                    self.prompt = PromptType::None;
-                                }
-                            }
-                            Keycode::Backspace => match &self.prompt {
-                                PromptType::NewLevel(new_level_state) => match new_level_state {
-                                    NewLevelState::XSize => {
-                                        self.new_level_size_x.pop();
-                                    }
-                                    NewLevelState::YSize => {
-                                        self.new_level_size_y.pop();
-                                    }
-                                    _ => {}
-                                },
-                                PromptType::Save(save_level_state) => match save_level_state {
-                                    SaveLevelType::NameInput => {
-                                        context.level_save_name.pop();
-                                    }
-                                    _ => {}
-                                },
-                                _ => (),
-                            },
-                            Keycode::Plus | Keycode::KpPlus => {
-                                if context.graphics.render_multiplier == 1 {
-                                    context.graphics.render_multiplier = 2;
-                                }
-                            }
-                            Keycode::Minus | Keycode::KpMinus => {
-                                if context.graphics.render_multiplier == 2 {
-                                    context.graphics.render_multiplier = 1;
-                                    context.level.scroll = (0, 0);
-                                }
-                            }
-                            _ => {
-                                if self.prompt != PromptType::NewLevel(NewLevelState::XSize)
-                                    && self.prompt != PromptType::NewLevel(NewLevelState::YSize)
-                                    && self.prompt != PromptType::Save(SaveLevelType::NameInput)
-                                {
-                                    self.prompt = PromptType::None
+                        }
+                        InsertType::Steam(state) => {
+                            if let InsertState::Instructions(coordinates) = state {
+                                let steam = context.level.get_steam_from_level(coordinates);
+                                if steam.range < 6 {
+                                    context.level.put_steam_to_level(
+                                        coordinates,
+                                        &Steam {
+                                            angle: steam.angle,
+                                            range: steam.range + 1,
+                                        },
+                                    )
                                 }
                             }
                         }
+                        InsertType::NormalCrate(state) | InsertType::DMCrate(state) => {
+                            if let InsertState::Instructions(coordinates) = state {
+                                let mut crate_item =
+                                    *context.level.get_crate_from_level(coordinates);
+                                if (crate_item.crate_class as u32) < CrateClass::Energy as u32 {
+                                    crate_item.crate_type = 0;
+                                    crate_item.crate_class =
+                                        CrateClass::from_u32(crate_item.crate_class as u32 + 1);
+                                    context.level.put_crate_to_level(coordinates, &crate_item)
+                                }
+                            }
+                        }
+                        _ => {
+                            if context.level.scroll.1 > 0 {
+                                context.level.scroll.1 -= 1
+                            }
+                        }
+                    },
+                    Keycode::Down => match &self.insert_item {
+                        InsertType::Spotlight(state) => {
+                            if let InsertState::Instructions(coordinates) = state {
+                                let spotlight_intensity =
+                                    context.level.get_spotlight_from_level(coordinates);
+                                if spotlight_intensity > 0 {
+                                    context.level.put_spotlight_to_level(
+                                        coordinates,
+                                        spotlight_intensity - 1,
+                                    )
+                                }
+                            }
+                        }
+                        InsertType::Steam(state) => {
+                            if let InsertState::Instructions(coordinates) = state {
+                                let steam = context.level.get_steam_from_level(coordinates);
+                                if steam.range > 0 {
+                                    context.level.put_steam_to_level(
+                                        coordinates,
+                                        &Steam {
+                                            angle: steam.angle,
+                                            range: steam.range - 1,
+                                        },
+                                    )
+                                }
+                            }
+                        }
+                        InsertType::NormalCrate(state) | InsertType::DMCrate(state) => {
+                            if let InsertState::Instructions(coordinates) = state {
+                                let mut crate_item =
+                                    *context.level.get_crate_from_level(coordinates);
+                                if crate_item.crate_class as u32 > 0 {
+                                    crate_item.crate_type = 0;
+                                    crate_item.crate_class =
+                                        CrateClass::from_u32(crate_item.crate_class as u32 - 1);
+                                    context.level.put_crate_to_level(coordinates, &crate_item)
+                                }
+                            }
+                        }
+                        _ => {
+                            if context.level.scroll.1
+                                + context.graphics.get_full_y_tiles_per_screen()
+                                < (context.level.tiles.len()) as u32
+                            {
+                                context.level.scroll.1 += 1;
+                            }
+                        }
+                    },
+                    Keycode::Left => match &self.insert_item {
+                        InsertType::Steam(state) => {
+                            if let InsertState::Instructions(coordinates) = state {
+                                let steam = context.level.get_steam_from_level(coordinates);
+                                context.level.put_steam_to_level(
+                                    coordinates,
+                                    &Steam {
+                                        angle: (steam.angle + 360 - 5) % 360,
+                                        range: steam.range,
+                                    },
+                                )
+                            }
+                        }
+                        InsertType::NormalCrate(state) | InsertType::DMCrate(state) => {
+                            if let InsertState::Instructions(coordinates) = state {
+                                let mut crate_item =
+                                    *context.level.get_crate_from_level(coordinates);
+                                if crate_item.crate_type > 0 {
+                                    crate_item.crate_type -= 1;
+                                    context.level.put_crate_to_level(coordinates, &crate_item);
+                                }
+                            }
+                        }
+                        _ => {
+                            if context.level.scroll.0 > 0 {
+                                context.level.scroll.0 -= 1;
+                            }
+                        }
+                    },
+                    Keycode::Right => match &self.insert_item {
+                        InsertType::Steam(state) => {
+                            if let InsertState::Instructions(coordinates) = state {
+                                let steam = context.level.get_steam_from_level(coordinates);
+                                context.level.put_steam_to_level(
+                                    coordinates,
+                                    &Steam {
+                                        angle: (steam.angle + 5) % 360,
+                                        range: steam.range,
+                                    },
+                                )
+                            }
+                        }
+                        InsertType::NormalCrate(state) | InsertType::DMCrate(state) => {
+                            if let InsertState::Instructions(coordinates) = state {
+                                let mut crate_item =
+                                    *context.level.get_crate_from_level(coordinates);
+                                if crate_item.crate_type
+                                    < (self.crates[crate_item.crate_class as usize].len() - 1) as u8
+                                {
+                                    crate_item.crate_type += 1;
+                                    context.level.put_crate_to_level(coordinates, &crate_item);
+                                }
+                            }
+                        }
+                        _ => {
+                            if context.level.scroll.0
+                                + context.graphics.get_full_x_tiles_per_screen()
+                                < (context.level.tiles[0].len()) as u32
+                            {
+                                context.level.scroll.0 += 1;
+                            }
+                        }
+                    },
+                    Keycode::Return | Keycode::KpEnter => {
+                        if matches!(
+                            self.insert_item,
+                            InsertType::Spotlight(InsertState::Instructions(_))
+                        ) {
+                            self.insert_item = InsertType::Spotlight(InsertState::Place);
+                        }
+                        if matches!(
+                            self.insert_item,
+                            InsertType::Steam(InsertState::Instructions(_))
+                        ) {
+                            self.insert_item = InsertType::Steam(InsertState::Place);
+                        }
+                        if matches!(
+                            self.insert_item,
+                            InsertType::NormalCrate(InsertState::Instructions(_))
+                        ) {
+                            self.insert_item = InsertType::NormalCrate(InsertState::Place);
+                        }
+                        if matches!(
+                            self.insert_item,
+                            InsertType::DMCrate(InsertState::Instructions(_))
+                        ) {
+                            self.insert_item = InsertType::DMCrate(InsertState::Place);
+                        } else if self.prompt == PromptType::NewLevel(NewLevelState::XSize)
+                            && self.new_level_size_x.len() > 1
+                            && self.new_level_size_x.parse::<u8>().unwrap() >= 16
+                        {
+                            self.prompt = PromptType::NewLevel(NewLevelState::YSize);
+                        } else if self.prompt == PromptType::NewLevel(NewLevelState::YSize)
+                            && self.new_level_size_x.len() > 1
+                            && self.new_level_size_y.parse::<u8>().unwrap() >= 12
+                        {
+                            context.level = Level::get_default_level((
+                                self.new_level_size_x.parse::<u8>().unwrap(),
+                                self.new_level_size_y.parse::<u8>().unwrap(),
+                            ));
+                            context.sdl.video().unwrap().text_input().stop();
+                            context.textures.saved_level_name = None;
+                            context.level_save_name.clear();
+                            self.prompt = PromptType::None;
+                        } else if self.prompt == PromptType::Save(SaveLevelType::NameInput)
+                            && context.level_save_name.len() > 1
+                        {
+                            let level_save_name_uppercase = context.level_save_name.to_uppercase();
+                            let level_saved_name = format!("{}.LEV", &level_save_name_uppercase);
+                            context.level.serialize(&level_saved_name).unwrap();
+                            context.sdl.video().unwrap().text_input().stop();
+                            context.textures.saved_level_name =
+                                Some(self.renderer.create_text_texture(
+                                    &context.font,
+                                    &level_saved_name.clone().to_lowercase(),
+                                ));
+                            self.prompt = PromptType::None;
+                        }
                     }
-                }
+                    Keycode::Backspace => match &self.prompt {
+                        PromptType::NewLevel(new_level_state) => match new_level_state {
+                            NewLevelState::XSize => {
+                                self.new_level_size_x.pop();
+                            }
+                            NewLevelState::YSize => {
+                                self.new_level_size_y.pop();
+                            }
+                            _ => {}
+                        },
+                        PromptType::Save(save_level_state) => {
+                            if save_level_state == &SaveLevelType::NameInput {
+                                context.level_save_name.pop();
+                            }
+                        }
+                        _ => (),
+                    },
+                    Keycode::Plus | Keycode::KpPlus => {
+                        if context.graphics.render_multiplier == 1 {
+                            context.graphics.render_multiplier = 2;
+                        }
+                    }
+                    Keycode::Minus | Keycode::KpMinus => {
+                        if context.graphics.render_multiplier == 2 {
+                            context.graphics.render_multiplier = 1;
+                            context.level.scroll = (0, 0);
+                        }
+                    }
+                    _ => {
+                        if self.prompt != PromptType::NewLevel(NewLevelState::XSize)
+                            && self.prompt != PromptType::NewLevel(NewLevelState::YSize)
+                            && self.prompt != PromptType::Save(SaveLevelType::NameInput)
+                        {
+                            self.prompt = PromptType::None
+                        }
+                    }
+                },
                 Event::MouseMotion { x, y, .. } => {
                     if x >= 0 && y >= 0 {
                         context.mouse.0 = x as u32;
@@ -598,7 +543,7 @@ impl<'a> EditorState<'a> {
                                     &context.texture_type_selected,
                                 );
                             }
-                            if context.texture_type_selected == TextureType::SHADOW {
+                            if context.texture_type_selected == TextureType::Shadow {
                                 context.automatic_shadows = false;
                             } else if context.automatic_shadows {
                                 context.level.create_shadows();
@@ -739,7 +684,7 @@ impl<'a> EditorState<'a> {
         }
         if let Some(texture) = &context.textures.saved_level_name {
             self.renderer.render_text_texture_coordinates(
-                &texture,
+                texture,
                 get_bottom_text_position(context.graphics.resolution_y),
                 render_size,
                 None,
@@ -768,7 +713,7 @@ impl<'a> EditorState<'a> {
         );
 
         if !input_field.is_empty() {
-            let input_text_texture = renderer.create_text_texture(&context.font, &input_field);
+            let input_text_texture = renderer.create_text_texture(&context.font, input_field);
             let TextureQuery { width, .. } = instruction_texture.query();
             renderer.render_text_texture(
                 &input_text_texture,
@@ -957,7 +902,7 @@ impl<'a> EditorState<'a> {
         );
         context
             .level
-            .put_tile_to_level(pointed_tile, None, &TextureType::SHADOW);
+            .put_tile_to_level(pointed_tile, None, &TextureType::Shadow);
         context.automatic_shadows = false;
     }
 }

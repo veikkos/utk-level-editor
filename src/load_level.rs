@@ -81,7 +81,7 @@ impl<'a> LoadLevelState<'a> {
                         }
                     }
                     Keycode::Return | Keycode::KpEnter => {
-                        if self.files.len() > 0 {
+                        if !self.files.is_empty() {
                             context
                                 .level
                                 .deserialize(&self.files[self.selected].filename)
@@ -91,11 +91,10 @@ impl<'a> LoadLevelState<'a> {
                                 .strip_prefix("./")
                                 .unwrap()
                                 .to_string();
-                            context.textures.saved_level_name =
-                                Some(self.renderer.create_text_texture(
-                                    &context.font,
-                                    &level_name.clone().to_lowercase(),
-                                ));
+                            context.textures.saved_level_name = Some(
+                                self.renderer
+                                    .create_text_texture(&context.font, &level_name.to_lowercase()),
+                            );
                             context.level_save_name =
                                 level_name.strip_suffix(".LEV").unwrap().to_string();
                         }
